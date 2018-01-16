@@ -1,0 +1,386 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="favicon.ico">
+
+    <title>15811/18739M Special Topics: Formal Foundations of Software Security</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="assets/css/bootstrap-theme.min.css" rel="stylesheet">
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <link href="assets/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="theme.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+
+    <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
+    <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+    <script src="assets/js/ie-emulation-modes-warning.js"></script>
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+
+    <body role="document">
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">15811/18739M</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="index.html">Home</a></li>
+            <li class="active"><a href="#sched">Schedule</a></li>            
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container theme-showcase" role="main">
+
+
+	<h3>Schedule &amp Readings</h3>
+
+	<table class="table">
+	<tr>
+	<td class="unit"><i>unit</i></td>
+	<td class="date"><i>date</i></td>
+	<td class="topic"><i>topic</i></td>
+	<td class="instr"><i>instr.</i></td>
+	<td class="reading"><i>reading</i></td>
+	<td class="notes"><i>notes</i></td>
+	</tr>
+
+	<td class="active" rowspan =7> Unit 1:  Tools</td>
+<tr class="active">  <td>1/11/16 </td>
+  <td>Introduction</td>
+  <td>MF/LJ</td>
+  <td></td>
+  <td></td>
+</tr>
+<tr>  <td>1/13/16 </td>
+  <td>An interactive theorem prover (Coq) </td>
+  <td>LJ</td>
+  <td>[<a href="#bib1">1</a>] </td>
+  <td>tutorial</td>
+</tr>
+<tr class="danger">  <td>1/18/16 </td>
+  <td>No class, Martin Luther King Day</td>
+  <td></td>
+  <td></td>
+  <td></td>
+</tr>
+<tr class="danger">  <td>1/20/16 </td>
+  <td>No class, POPL</td>
+  <td></td>
+  <td></td>
+  <td></td>
+</tr>
+<tr class="active">  <td>1/25/16 </td>
+  <td>SMT solvers</td>
+  <td>MF</td>
+  <td>[<a href="#bib2">2</a>] [<a href="#bib3">3</a>] </td>
+  <td>Second reading optional</td>
+</tr>
+<tr>  <td>1/27/16 </td>
+  <td>Software Model Checking</td>
+  <td>MF</td>
+  <td>[<a href="#bib4">4</a>] [<a href="#bib5">5</a>] </td>
+  <td>Sections 6-8 of the first reading are optional, second reading optional</td>
+</tr>
+</td> 
+<td rowspan =4> Unit 2:  Properties</td>
+<tr class="active">  <td>2/1/16 </td>
+  <td>Safety, liveness, and hyperproperties</td>
+  <td>MF</td>
+  <td>[<a href="#bib6">6</a>] [<a href="#bib7">7</a>] </td>
+  <td></td>
+</tr>
+<tr>  <td>2/3/16 </td>
+  <td>Equivalence-based properties</td>
+  <td>LJ</td>
+  <td>[<a href="#bib1">1</a>] </td>
+  <td></td>
+</tr>
+<tr class="info">  <td>2/8/16 </td>
+  <td>Project proposal</td>
+  <td></td>
+  <td></td>
+  <td></td>
+</tr>
+</td> 
+<td class="active" rowspan =6> Unit 3:  Type-based techniques</td>
+<tr>  <td>2/10/16 </td>
+  <td>Introduction to type theory</td>
+  <td>LJ</td>
+  <td>[<a href="#bib8">8</a>] [<a href="#bib1">1</a>] </td>
+  <td></td>
+</tr>
+<tr class="active">  <td>2/15/16 </td>
+  <td>Type systems that eforce safety properties</td>
+  <td>MF</td>
+  <td>[<a href="#bib9">9</a>] [<a href="#bib10">10</a>] </td>
+  <td></td>
+</tr>
+<tr>  <td>2/17/16 </td>
+  <td>Information flow type systems</td>
+  <td>MF</td>
+  <td>[<a href="#bib11">11</a>] [<a href="#bib12">12</a>] </td>
+  <td></td>
+</tr>
+<tr class="active">  <td>2/22/16 </td>
+  <td>Typed assembly language and proof-carrying code</td>
+  <td>LJ</td>
+  <td>[<a href="#bib13">13</a>] [<a href="#bib14">14</a>] </td>
+  <td></td>
+</tr>
+<tr>  <td>2/24/16 </td>
+  <td>Hoare type theory and relational Hoare type theory</td>
+  <td>LJ</td>
+  <td>[<a href="#bib15">15</a>] [<a href="#bib16">16</a>] </td>
+  <td></td>
+</tr>
+</td> 
+<td rowspan =8> Unit 4:  Verification and theorem proving</td>
+<tr class="active">  <td>2/29/16 </td>
+  <td>Verified Compilation</td>
+  <td>MF</td>
+  <td>[<a href="#bib17">17</a>] [<a href="#bib18">18</a>] </td>
+  <td></td>
+</tr>
+<tr>  <td>3/2/16 </td>
+  <td>Verifiably-secure OS kernels</td>
+  <td>LJ</td>
+  <td>[<a href="#bib19">19</a>] </td>
+  <td></td>
+</tr>
+<tr class="danger">  <td>3/7/16 </td>
+  <td>No class, spring break</td>
+  <td></td>
+  <td></td>
+  <td></td>
+</tr>
+<tr class="danger">  <td>3/9/16 </td>
+  <td>No class, spring break</td>
+  <td></td>
+  <td></td>
+  <td></td>
+</tr>
+<tr class="info">  <td>3/14/16 </td>
+  <td>Mid-semester project presentation</td>
+  <td></td>
+  <td></td>
+  <td></td>
+</tr>
+<tr>  <td>3/16/16 </td>
+  <td>Secure systems from safe languages</td>
+  <td>MF</td>
+  <td>[<a href="#bib20">20</a>] [<a href="#bib21">21</a>] </td>
+  <td></td>
+</tr>
+<tr class="active">  <td>3/21/16 </td>
+  <td>Verified software fault isolation</td>
+  <td>LJ</td>
+  <td>[<a href="#bib22">22</a>] </td>
+  <td></td>
+</tr>
+</td> 
+<td class="active" rowspan =6> Unit 5:  Program analysis and dynamic enforcement</td>
+<tr>  <td>3/23/16 </td>
+  <td>Symbolic analysis</td>
+  <td>MF</td>
+  <td>[<a href="#bib23">23</a>] [<a href="#bib24">24</a>] </td>
+  <td></td>
+</tr>
+<tr class="active">  <td>3/28/16 </td>
+  <td>Hyper-V: A Verified Hypervisor</td>
+  <td>MF</td>
+  <td>[<a href="#bib25">25</a>] </td>
+  <td></td>
+</tr>
+<tr>  <td>3/30/16 </td>
+  <td>Program anlysis for information flow</td>
+  <td>MF</td>
+  <td>[<a href="#bib26">26</a>] </td>
+  <td></td>
+</tr>
+<tr class="active">  <td>4/4/16 </td>
+  <td>An introduction to runtime monitors</td>
+  <td>LB</td>
+  <td>[<a href="#bib1">1</a>] </td>
+  <td></td>
+</tr>
+<tr>  <td>4/6/16 </td>
+  <td>Dynamic tainting and information flow control</td>
+  <td>LJ</td>
+  <td>[<a href="#bib27">27</a>] </td>
+  <td></td>
+</tr>
+</td> 
+<td rowspan =3> Unit 6:  Safe language subsets</td>
+<tr class="active">  <td>4/11/16 </td>
+  <td>Safe subsets for runtime enforcement</td>
+  <td>LJ</td>
+  <td>[<a href="#bib28">28</a>] [<a href="#bib29">29</a>] </td>
+  <td></td>
+</tr>
+<tr>  <td>4/13/16 </td>
+  <td>Core languages</td>
+  <td>MF</td>
+  <td>[<a href="#bib30">30</a>] [<a href="#bib31">31</a>] </td>
+  <td></td>
+</tr>
+</td> 
+<td class="active" rowspan =6> Unit 7:  Emerging topics</td>
+<tr class="active">  <td>4/18/16 </td>
+  <td>Compositional verification</td>
+  <td>LJ</td>
+  <td>[<a href="#bib1">1</a>] </td>
+  <td></td>
+</tr>
+<tr>  <td>4/20/16 </td>
+  <td>tbd</td>
+  <td></td>
+  <td>[<a href="#bib1">1</a>] </td>
+  <td></td>
+</tr>
+<tr class="active">  <td>4/25/16 </td>
+  <td>Ongoing work</td>
+  <td>MF/LJ</td>
+  <td>[<a href="#bib1">1</a>] </td>
+  <td></td>
+</tr>
+<tr>  <td>4/27/16 </td>
+  <td>Survey of future directions</td>
+  <td>MF/LJ</td>
+  <td>[<a href="#bib1">1</a>] </td>
+  <td></td>
+</tr>
+<tr class="info">  <td>5/2/16 </td>
+  <td>Project presentation</td>
+  <td></td>
+  <td></td>
+  <td></td>
+</tr>
+</td> 
+</table><p><p>
+
+
+<table class="table table-condensed">
+
+</td></tr></a>
+
+<a name="bib1"><tr><td style="vertical-align:top">[1]</td><td><b>Reading to be determined</b>. <br>TBD. <br> 2015.
+</td></tr></a>
+
+<a name="bib2"><tr><td style="vertical-align:top">[2]</td><td><b><a href="https://blackboard.andrew.cmu.edu" onclick="log('https://blackboard.andrew.cmu.edu')">Satisfiability modulo theories</a></b>. <br>Clark Barrett, Roberto Sebastiani, Sanjit Seshia, and Cesare Tinelli. <br>In <i>Handbook of Satisfiability</i>, 2008. IOS Press. Chapter 12
+</td></tr></a>
+
+<a name="bib3"><tr><td style="vertical-align:top">[3]</td><td><b><a href="http://doi.acm.org/10.1145/1995376.1995394" onclick="log('http://doi.acm.org/10.1145/1995376.1995394')">Satisfiability modulo theories: introduction and applications</a></b>. <br>Leonardo De Moura and Nikolaj Bjorner. <br><i>Communications of the ACM</i>, 54(9):69&ndash;77, September 2011.  ACM. (optional)
+</td></tr></a>
+
+<a name="bib4"><tr><td style="vertical-align:top">[4]</td><td><b><a href="http://doi.acm.org/10.1145/1592434.1592438" onclick="log('http://doi.acm.org/10.1145/1592434.1592438')">Software model checking</a></b>. <br>Ranjit Jhala and Rupak Majumdar. <br><i>ACM Computing Surveys</i>, 41(4):1&ndash;54, October 2009.  ACM.
+</td></tr></a>
+
+<a name="bib5"><tr><td style="vertical-align:top">[5]</td><td><b><a href="https://www.andrew.cmu.edu/user/liminjia/research/papers/xmhf-oakland13.pdf" onclick="log('https://www.andrew.cmu.edu/user/liminjia/research/papers/xmhf-oakland13.pdf')">Design, implementation and verification of an extensible and modular hypervisor framework</a></b>. <br>Amit Vasudevan, Sagar Chaki, Limin Jia, Jonathan McCune, James Newsome, and Anupam Datta. <br>In <i>Proceedings of the 2013 IEEE Symposium on Security and Privacy</i>, pages 430&ndash;444, 2013. IEEE Computer Society.
+</td></tr></a>
+
+<a name="bib6"><tr><td style="vertical-align:top">[6]</td><td><b><a href="http://dx.doi.org/10.1007/BF01782772" onclick="log('http://dx.doi.org/10.1007/BF01782772')">Recognizing safety and liveness</a></b>. <br>Bowen Alpern and Fred B. Schneider. <br><i>Distributed Computing</i>, 2(3):117&ndash;126, 1987. 
+</td></tr></a>
+
+<a name="bib7"><tr><td style="vertical-align:top">[7]</td><td><b><a href="http://dx.doi.org/10.1109/CSF.2008.7" onclick="log('http://dx.doi.org/10.1109/CSF.2008.7')">Hyperproperties</a></b>. <br>Michael R. Clarkson and Fred B. Schneider. <br>In <i>Proceedings of the 2008 21st IEEE Computer Security Foundations Symposium</i>, 2008. IEEE Computer Society.
+</td></tr></a>
+
+<a name="bib8"><tr><td style="vertical-align:top">[8]</td><td><b><a href="https://blackboard.andrew.cmu.edu" onclick="log('https://blackboard.andrew.cmu.edu')">Dependent types</a></b>. <br>David Aspinall and Martin Hofmann. <br>In <i>Advanced Topics in Types and Programming Languages</i>, 2005. The MIT Press. Chapter 2
+</td></tr></a>
+
+<a name="bib9"><tr><td style="vertical-align:top">[9]</td><td><b><a href="http://doi.acm.org/10.1145/1375581.1375602" onclick="log('http://doi.acm.org/10.1145/1375581.1375602')">Liquid types</a></b>. <br>Patrick M. Rondon, Ming Kawaguci and Ranjit Jhala. <br>In <i>Proceedings of the 29th ACM SIGPLAN Conference on Programming Language Design and Implementation</i>, pages 159&ndash;169, 2008. ACM.
+</td></tr></a>
+
+<a name="bib10"><tr><td style="vertical-align:top">[10]</td><td><b><a href="http://research.microsoft.com/apps/pubs/default.aspx?id=150012" onclick="log('http://research.microsoft.com/apps/pubs/default.aspx?id=150012')">Secure distributed programming with value-dependent types</a></b>. <br>Nikhil Swamy, Juan Chen, Cedric Fournet, Pierre-Yves Strub, Karthikeyan Bhargavan, and Jean Yang. <br>In <i>Proceeding of the 16th ACM SIGPLAN international conference on</i>, pages 266&ndash;278, 2011. ACM.
+</td></tr></a>
+
+<a name="bib11"><tr><td style="vertical-align:top">[11]</td><td><b><a href="http://dx.doi.org/10.1109/JSAC.2002.806121" onclick="log('http://dx.doi.org/10.1109/JSAC.2002.806121')">Language-based information-flow security</a></b>. <br>Sabelfeld A. and Myers A. C.. <br><i>IEEE Journal on Selected Areas in Communications</i>, 21(1):5&ndash;19, September 2006.  IEEE Press.
+</td></tr></a>
+
+<a name="bib12"><tr><td style="vertical-align:top">[12]</td><td><b><a href="http://doi.acm.org/10.1145/2254064.2254078" onclick="log('http://doi.acm.org/10.1145/2254064.2254078')">Language-based control and mitigation of timing channels</a></b>. <br>Danfeng Zhang, Aslan Askarov and Andrew C. Myers. <br>In <i>Proceedings of the 33rd ACM SIGPLAN Conference on Programming Language Design and Implementation</i>, pages 99&ndash;110, 2012. ACM.
+</td></tr></a>
+
+<a name="bib13"><tr><td style="vertical-align:top">[13]</td><td><b><a href="https://blackboard.andrew.cmu.edu" onclick="log('https://blackboard.andrew.cmu.edu')">Typed assembly language</a></b>. <br>Greg Morrisett. <br>In <i>Advanced Topics in Types and Programming Languages</i>, 2005. The MIT Press. Chapter 4
+</td></tr></a>
+
+<a name="bib14"><tr><td style="vertical-align:top">[14]</td><td><b><a href="http://dx.doi.org/10.1109/LICS.2001.932501" onclick="log('http://dx.doi.org/10.1109/LICS.2001.932501')">Foundational proof-carrying code</a></b>. <br>Andrew W. Appel. <br>In <i>Proceedings of the 16th Annual IEEE Symposium on Logic in Computer Science</i>, pages 247&ndash;256,  2001. IEEE Computer Society.
+</td></tr></a>
+
+<a name="bib15"><tr><td style="vertical-align:top">[15]</td><td><b><a href="http://software.imdea.org/~aleks/papers/hoarelogic/htt.pdf" onclick="log('http://software.imdea.org/~aleks/papers/hoarelogic/htt.pdf')">Dependent type theory of stateful higher-order functions</a></b>. <br>Aleks Nanevski and Greg Morrisett. <br>Technical Report TR-24-05, Harvard University,  2005.
+</td></tr></a>
+
+<a name="bib16"><tr><td style="vertical-align:top">[16]</td><td><b><a href="http://dx.doi.org/10.1109/CSF.2015.38" onclick="log('http://dx.doi.org/10.1109/CSF.2015.38')">A logic of programs with interface-confined code</a></b>. <br>Limin Jia, Sen S., Garg D., and Datta A.. <br>In <i>Proceedings of the 2015 IEEE Computer Security Foundations Symposium</i>, pages 512-525,  2015.
+</td></tr></a>
+
+<a name="bib17"><tr><td style="vertical-align:top">[17]</td><td><b><a href="http://doi.acm.org/10.1145/1538788.1538814" onclick="log('http://doi.acm.org/10.1145/1538788.1538814')">Formal verification of a realistic compiler</a></b>. <br>Leroy Xavier. <br><i>Communications of the ACM</i>, 52(7):107&ndash;115, July 2009.  ACM.
+</td></tr></a>
+
+<a name="bib18"><tr><td style="vertical-align:top">[18]</td><td><b><a href="http://doi.acm.org/10.1145/2676726.2676985" onclick="log('http://doi.acm.org/10.1145/2676726.2676985')">Compositional compcert</a></b>. <br>Stewart Gordon, Beringer Lennart, Cuellar Santiago, and Appel Andrew W.. <br>In <i>Proceedings of the 42Nd Annual ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages</i>, pages 275&ndash;287, 2015. ACM.
+</td></tr></a>
+
+<a name="bib19"><tr><td style="vertical-align:top">[19]</td><td><b><a href="http://doi.acm.org/10.1145/2560537" onclick="log('http://doi.acm.org/10.1145/2560537')">Comprehensive formal verification of an OS microkernel</a></b>. <br>Gerwin Klein, June Andronick, Kevin Elphinstone, Toby Murray, Thomas Sewell,  Rafal Kolanski, and Gernot Heiser. <br><i>ACM Trans. Comput. Syst.</i>, 32(1), February 2014.  ACM.
+</td></tr></a>
+
+<a name="bib20"><tr><td style="vertical-align:top">[20]</td><td><b><a href="https://www.usenix.org/conference/osdi14/technical-sessions/presentation/hawblitzel" onclick="log('https://www.usenix.org/conference/osdi14/technical-sessions/presentation/hawblitzel')">Ironclad apps: end-to-end security via automated full-system verification</a></b>. <br>Chris Hawblitzel, Jon Howell, Jacob R. Lorch,  Arjun Narayan,   Bryan Parno, Danfeng Zhang, and Brian Zill. <br>In <i>11th USENIX Symposium on Operating Systems Design and Implementation</i>, 2014.
+</td></tr></a>
+
+<a name="bib21"><tr><td style="vertical-align:top">[21]</td><td><b><a href="http://doi.acm.org/10.1145/1243418.1243424" onclick="log('http://doi.acm.org/10.1145/1243418.1243424')">Singularity: rethinking the software stack</a></b>. <br>Galen C. Hunt and James R. Larus. <br><i>SIGOPS Oper. Syst. Rev.</i>, 41(2):37&ndash;49, April 2007.  ACM.
+</td></tr></a>
+
+<a name="bib22"><tr><td style="vertical-align:top">[22]</td><td><b><a href="http://doi.acm.org/10.1145/2254064.2254111" onclick="log('http://doi.acm.org/10.1145/2254064.2254111')">Rocksalt: better, faster, stronger SFI for the x86</a></b>. <br>Greg Morrisett, Gang Tan, Joseph Tassarotti, Jean-Baptiste Tristan, and Edward Gan. <br>In <i>ACM SIGPLAN Conference on Programming Language Design and Implementation</i>, pages 395&ndash;404, 2012.
+</td></tr></a>
+
+<a name="bib23"><tr><td style="vertical-align:top">[23]</td><td><b><a href="https://www.usenix.org/legacy/event/osdi08/tech/full_papers/cadar/cadar.pdf" onclick="log('https://www.usenix.org/legacy/event/osdi08/tech/full_papers/cadar/cadar.pdf')">{klee}: unassisted and automatic generation of high-coverage tests for complex systems programs</a></b>. <br>Cristian Cadar, Daniel Dunbar and Dawson Engler. <br>In <i>Proceedings of the 8th USENIX Conference on Operating Systems Design and Implementation</i>, pages 209&ndash;224, 2008. USENIX Association.
+</td></tr></a>
+
+<a name="bib24"><tr><td style="vertical-align:top">[24]</td><td><b><a href="http://research.microsoft.com/en-us/um/people/pg/public_psfiles/ndss2008.pdf" onclick="log('http://research.microsoft.com/en-us/um/people/pg/public_psfiles/ndss2008.pdf')">Automated whitebox fuzz testing</a></b>. <br>Patrice Godefroid, Michael Y. Levin and David A. Molnar. <br>In <i>Network Distributed Security Symposium (NDSS)</i>, 2008. Internet Society.
+</td></tr></a>
+
+<a name="bib25"><tr><td style="vertical-align:top">[25]</td><td><b><a href="http://research.microsoft.com/pubs/118664/VCClocal.pdf" onclick="log('http://research.microsoft.com/pubs/118664/VCClocal.pdf')">Local verification of global invariants in concurrent programs</a></b>. <br>Ernie Cohen, Michal Moskal, Wolfram Schulte, and Stephan Tobies. <br>Technical Report MSR-TR-2010-9, Microsoft Research,  2010.
+</td></tr></a>
+
+<a name="bib26"><tr><td style="vertical-align:top">[26]</td><td><b><a href="http://dx.doi.org/10.1007/11547662_24" onclick="log('http://dx.doi.org/10.1007/11547662_24')">Secure information flow as a safety problem</a></b>. <br>Tachio Terauchi and Alex Aiken. <br>In <i>Proceedings of the 12th International Conference on Static Analysis</i>, pages 352&ndash;367, 2005. Springer-Verlag.
+</td></tr></a>
+
+<a name="bib27"><tr><td style="vertical-align:top">[27]</td><td><b><a href="http://dx.doi.org/10.1109/SP.2010.26" onclick="log('http://dx.doi.org/10.1109/SP.2010.26')">All you ever wanted to know about dynamic taint analysis and forward symbolic execution (but might have been afraid to ask)</a></b>. <br>Edward J. Schwartz, Thanassis Avgerinos and David Brumley. <br>In <i>Proceedings of the 2010 IEEE Symposium on Security and Privacy</i>, pages 317&ndash;331, 2010. IEEE Computer Society.
+</td></tr></a>
+
+<a name="bib28"><tr><td style="vertical-align:top">[28]</td><td><b><a href="http://dx.doi.org/10.1109/CSF.2009.11" onclick="log('http://dx.doi.org/10.1109/CSF.2009.11')">Language-based isolation of untrusted javascript</a></b>. <br>Sergio Maffeis and Ankur Taly. <br>In <i>Proceedings of the 2009 22Nd IEEE Computer Security Foundations Symposium</i>, pages 77&ndash;91, 2009. IEEE Computer Society.
+</td></tr></a>
+
+<a name="bib30"><tr><td style="vertical-align:top">[30]</td><td><b><a href="http://dl.acm.org/citation.cfm?id=1883978.1883988" onclick="log('http://dl.acm.org/citation.cfm?id=1883978.1883988')">The essence of javascript</a></b>. <br>Guha Arjun, Saftoiu Claudiu and Krishnamurthi Shriram. <br>In <i>Proceedings of the 24th European Conference on Object-oriented Programming</i>, pages 126&ndash;150, 2010. Springer-Verlag.
+</td></tr></a>
+
+<a name="bib31"><tr><td style="vertical-align:top">[31]</td><td><b><a href="http://doi.acm.org/10.1145/2814228.2814240" onclick="log('http://doi.acm.org/10.1145/2814228.2814240')">Slimming languages by reducing sugar: a case for semantics-altering transformations</a></b>. <br>Li Junsong, Pombrio Justin, Politz Joe Gibbs, and Krishnamurthi Shriram. <br>In <i>2015 ACM International Symposium on New Ideas, New Paradigms, and Reflections on Programming and Software (Onward!)</i>, pages 90&ndash;106, 2015.
+</table>
+
+
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <!-- <link rel="icon" href="favicon.ico"> -->
+
+    <title>15-316 Software Foundations of Security &amp Privacy</title>
+
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="dist/css/bootstrap.min.css">
+
+    <!-- Bootstrap theme -->
+    <link href="navbar-top-fixed.css" rel="stylesheet">
+  </head>
+
+    <body>
+
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+      <a class="navbar-brand" href="#">15316 Spring 2018</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+      </button>
+      <div id="navbarCollapse" class="collapse navbar-collapse">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+          <li class="nav-item active"><a class="nav-link" href="#">Syllabus</a></li>
+          <li class="nav-item"><a class="nav-link" href="schedule.html">Schedule</a></li>
+          <li class="nav-item"><a class="nav-link" href="assignments.html">Assignments</a></li>
+        </ul>
+      </div><!--/.nav-collapse -->
+    </nav>
+
+    <div class="container theme-showcase  w-75 p-3 mx-auto" role="main">
+
+      <h1>Syllabus</h1>
+      <hr class="my-4">
+
+      <h3>Software Foundations of Security &amp Privacy</h3>
+      <p>
+
+      <p><b>Instructor</b>: Matt Fredrikson</p>
+        <ul>
+          <li>Office Hours: Mondays 11am-12pm CIC 2126
+          <li>Email: mfredrik@cs
+        </ul>
+      <p><b>TAs</b>:Tianyu Li</p>
+        <ul>
+          <li>Office Hours: TBD
+          <li>Location: TBD
+          <li>Email: tli2@andrew
+        </ul>
+
+      <p><b>Lectures</b>: TuTh 3:00-4:20pm in GHC 4215.</p>
+
+      <h4>Course textbook</h4>
+      <p>
+        There is no textbook for this class. Lecture notes will be posted to the course website, but be aware that they may not contain everything covered in class. Comments and corrections are welcome, please give them to the course staff on Piazza.
+      </p>
+
+      <h4>Course schedule</h4>
+      <p>
+        Consult the <a href="schedule.html">online schedule</a> for up-to-date information.
+      </p>
+
+      <h4>Learning objectives</h4>
+      The philosophy underpinning this course seeks to bridge formal principles with their practical application to enhancing security and privacy in software implementations. On the “principles” side, there are several key learning objectives.
+      <p></p>
+      <p>
+        <b>Identify and formalize security and privacy policies.</b> In order to reason about vulnerabilities in software, and ultimately demonstrate their absence, we need to agree on what it means for the code to satisfy security and privacy requirements. Students will learn how to formalize these policies using logical specifications, types, and mathematical definitions that give precise meaning to policies.
+      </p>
+      <p>
+        <b>Understand formal proof and deductive systems.</b> One of the key benefits of formalizing policies is that it becomes possible to conduct formal proof of a program's adherence to policy. Formal proofs can be checked by automated procedures, and in many cases can be derived automatically or with substantial assistance from automated tools. Students will understand the properties of deductive systems that lead to their useful application in software security, be able to establish these properties for novel deductive systems, and be able to conduct a formal proof that a piece of software adheres to a security policy.
+      </p>
+      <p>
+        <b>Understand how automated software security tools work.</b> Most of the tools and techniques that are discussed in this class are not perfect, and will never be able to meet all security needs in all settings. Understanding the principles and techniques that these tools use is necessary for evaluating when it is appropriate to use then, and for addressing their limitations in practice.
+      </p>      
+      However, this is not a "pure" theory course, and much of the intended focus is on applying the above principles to real, practical problems that arise in software security and privacy.
+      <p></p>
+      <p>
+        <b>Apply rigorous techniques to achieve security and privacy.</b> The course will cover numerous techniques for translating the objectives of formal policies into practical implementations that meet these objectives. Students will learn how to use reference monitors, type systems, authorization logic, and state space exploration to ensure that implemented code satisfies a given policy.
+      </p>
+      <p>
+        <b>Understand trusted computing technologies.</b> Trusted computing and related technologies are widely used in practice, and continue to show promise in emerging "killer" applications. Students will understand how the formal principles underpinning this technology yield practical, scalable results through the use of hardware protections and software techniques that build on them.
+      </p>
+      <p>
+        <b>Understand web security threats &amp best practices.</b> Ensuring that web applications are robust against attack and manage users' private data correctly is a challenging problem that many developers will face at some point in their work. Many of the techniques and principles covered in this course are illustrated with practical examples from web security, and students will learn about the prevailing security models in this domain as well as several techniques for ensuing that application-specific security needs are met.
+      </p>
+
+      At all times, the interplay between attack and defense is central to the topics covered in this course. We will not spend much time is this course writing exploits for known vulnerabilities, but it is often the case that in order to design an appropriate defense, intimate knowledge of the attacker's design space and toolbox is necessary. Conversely, students will learn that once one has formalized a security policy and semantics for the system, it becomes easy to identify potential vulnerabilities, or to rule out entire classes of potential vulnerability. In short, students will not learn specific hacking techniques in this course, but will understand how to identify and analyze software vulnerabilities for the purpose of designing mitigations.
+      <p></p>
+
+      <h4>Lectures</h4>
+      <p>
+        We enjoy seeing you in class, so please come to the lectures unless you have an unavoidable conflict, in which case you are expected to follow up with what you have missed in class on your own. Although class participation only counts for a small portion of your grade, it can be enough to sway a final letter grade in certain circumstances. Please sit near the front, interact, and ask questions. This is the best way to learn!
+      </p>
+
+      <p>
+        As research on learning shows, unexpected noises and movement automatically divert and capture people’s attention, which means you are affecting everyone’s learning experience if your phone, laptop, etc. makes noise or is visually distracting during class. You may use laptops for taking notes, but if the course staff notices other content on your screen that may be distracting for you or others&mdash;news, videos, games, or even other homework&mdash;we will ask you to put the device away for the rest of the lecture.
+      </p>
+
+      <h4>Assignments, exams, and grading</h4>
+      <p>
+        Grading will be based on labs, written homework, midterm and final exams, and class participation. Barring exceptional circumstances, letter-grade thresholds are: 90% (A), 80% (B), 70% (C), 60% (D).
+        <dl class="row">
+          <dt class="col-sm-2">Labs (35%)</dt>
+          <dd class="col-sm-10">
+            <p>
+              The lab assignments are designed to give you hands-on experience writing secure software that serves a practical purpose. In general, the lab assignments will ask you to implement some functionality (generally in C) related to a network server that receives HTTP requests, while ensuring that it is not vulnerable to a particular class of security threats. Some of the labs will give you hands-on experience using tools to help achieve this goal, whereas others will have you implementing a technique discussed in lecture.
+            </p>
+            <p>
+              The most important criterion with respect to grading the labs is correctness, and your justification for believing that your solution is correct. An ideal lab attempt contains a concise, correct security policy, and a correct implementation of an apparatus that enforces that policy or sufficient documentation of the steps you took to ensure compliance. However, it may be the case that your policy is incorrect, or too complicated for the grader to fully understand. Verification of policy to code cannot be fully automated, so it is possible that the grader is not able to certify that your solution is guaranteed to be correct. In these cases, you will receive partial credit, so it is also important that the code you hand in be clean and well-commented, as course staff cannot assign points to solutions that they do not understand.
+            </p>
+            <p>
+              Labs will be handed in on Autolab.
+            </p>
+          </dd>
+          <dt class="col-sm-2">Homework (30%)</dt>
+          <dd class="col-sm-10">
+            <p>
+              Written homework will be assigned more frequently, and should not require as much time to complete as the labs. The goal of the written homework is to help you refine the fundamental skills, and better understand the theoretical underpinnings, that you will need in order to do well on the labs and exams. Grading for these assignments is based on the correctness of your answer, and the presentation of your reasoning. You should strive for clarity and conciseness, while making sure to show each step of your reasoning. Categorical answers with no explanation will not even receive partial credit, but lucid explanations of your attempt to find the answer will.
+            </p>
+            <p>
+              Written homework will be handed in via Gradescope, and should preferably be typeset in LaTeX.
+              Homework that the course staff cannot read will not receive any points.
+            </p>
+          </dd>
+          <dt class="col-sm-2">Exams <br> (15% midterm, 15% final)</dt>
+          <dd class="col-sm-10">
+            <p>
+              We will have two in-class exams. The content of these exams will more closely resemble the written homework than the labs, but some questions may rely on, or make reference to, key parts of the labs. The midterm will take place during the normal class meeting time, in the same room used for lectures. Both exams are "closed book" (i.e., you may not reference our lecture notes), but you are allowed to bring a single double-sided sheet of <b>hand-written</b> notes.
+            </p>
+            <p>
+              For special accommodations on exams, students should submit an accommodations letter to the course staff at least one week before. For extra time on exams we then ask that you arrange it to be proctored through the disability services office (assuming you have given us the form) for each exam separately. We will work with them to get them a copy of the exam. For other issues please contact the instructor. No make up exams are given, except for medical reasons. To schedule a make-up exam, ask your academic advisor to contact the instructors. Please do not email the course staff personally. You will need to provide medical documentation that shows that you cannot take the exam.
+            </p>
+          </dd>
+          <dt class="col-sm-2">Participation (5%)</dt>
+          <dd class="col-sm-10">
+            <p>
+              Active class participation counts for a small percentage of your grade, and in borderline letter-grade cases, could be decisive of what ultimately appears on your transcript. This is a relatively small course, so we expect to become familiar with each of you through your lecture attendance. Some factors that we will use to decide the participation component are interaction through good questions and answers during class discussions. Although you are not required to make use of Piazza, we appreciate students who are willing to help others by answering questions and providing helpful advice, and doing so will factor into your participation grade positively.
+            </p>
+          </dd>
+        </dl>
+      </p>
+
+      <h4>Late Assignments</h4>
+      <p>
+        Proving correctness of real code can be difficult, even when you have correctly specified and implemented the functionality. To give you the opportunity to earn back points that you might have missed by not successfully verifying your code, you can resubmit each lab <i>once</i> within three days of the original due date. However, you will only gain points for the proof portion of the lab&mdash;you will not get points after the deadline for changes made to your implementation or specification. To earn any points after the deadline, your proof must be complete, and the verifier must accept it.
+      </p>
+      <p>
+        There are no late days for written homework. If you submit a written homework after the assigned deadline, your grade will be docked 25% for each late day.
+      </p>
+
+      <h4>Communication</h4>
+      <p>
+        When you need help from the course staff, please use Piazza first. If you feel that Piazza is not appropriate, then you can email the instructor. Of course you are always welcome to office hours, or to ask the TAs or instructor questions after class, time permitting.
+      </p>
+
+      <p>
+        <b>How to use Piazza:</b> We will post announcements, clarifications, corrections, and hints on Piazza, and in certain cases to the course webpage. When using Piazza for discussion of labs and homework, please resist the temptation to ask every question that you might have. Even with a moderately-sized course like this one, the volume of traffic can get out of hand, making it difficult for course staff and other students to keep up. Most importantly, the best way to learn this material is to spend time thinking through the details yourself, and exploring various alternative solutions. Asking others for too many hints contradicts that process, and will leave you less well-prepared for exams and future labs.
+      </p>
+      <p>
+        Please make your Piazza questions public. Chances are that other students have similar questions to the one you're asking, and marking it private will likely require the course staff to spend unnecessary time posting responses to several minor variations of the same question. A good heuristic to use is that if you don't feel comfortable making your question public, then Piazza might not be the right place to ask it. In these cases, emailing the course staff, or coming to office hours, may be the right thing to do.
+      </p>
+
+      <h4>Academic Integrity</h4>
+      <p>
+        Students are expected to complete each assignment on their own, and should be able to explain all of the work that they hand in. Copying code or proof material from other students or online sources is not allowed. However, students are encouraged to discuss assignments with each other at a sufficiently high level to avoid the risk of duplicating implementation or proof. Examples of this would be discussing algorithms and properties referred to in the assignment, helping other students with questions about a programming language or tool required to complete the assignment, discussing a general proof technique, or referring to an online source with useful information. If you have questions about whether something might be an issue, contact the course staff before discussing further. Please refer to the <a
+        href=http://www.cmu.edu/academic-integrity/index.html>Carnegie Mellon
+        Code</a> for information about university policies regarding academic conduct.
+      </p>
+
+      <h4>Accessibility</h4>
+      <p>
+        Carnegie Mellon University makes every effort to provide accessible facilities and programs for individuals with disabilities. If you have a disability and require accommodations, contact the Office of Disability Resources at <a href="mailto:access@andrew.cmu.edu">access@andrew.cmu.edu</a>. Please let the instructors know early in the semester so that your needs may be appropriately met. Special accommodation for exams must be requested for each exam separately one week in advance.
+      </p>
+
+      <h4>Take Care of Yourself</h4>
+      All of us benefit from support during times of struggle. You are not alone. There are many helpful resources available on campus and an important part of the college experience is learning how to ask for help. You should ask sooner rather than later.
+
+      Should you find yourself or a friend in serious trouble, take it seriously: your classes can wait. For emergencies call UPMC’s re:solve Crisis Network at <code>1-888-796-8226</code>. Counseling and Psychological Services (CaPS) is here to help: call <code>412-268-2922</code> and visit their website at <a href="http://www.cmu.edu/counseling/">http://www.cmu.edu/counseling/</a>.
+
+      Also consider reaching out to a friend, faculty or family member you trust for help getting connected to the support that can help.
+      <p>
+
+    </div>
+
+    <!-- Bootstrap core JavaScript
+        ================================================== -->
+        <!-- Placed at the end of the document so the pages load faster -->
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script>window.jQuery || document.write('<script src="assets/js/vendor/jquery.min.js"><\/script>')</script>
+        <script src="assets/js/vendor/popper.min.js"></script>
+        <script src="dist/js/bootstrap.min.js"></script>
+        <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+        <script src="assets/js/ie10-viewport-bug-workaround.js"></script>
+
+  </body>
+</html>
