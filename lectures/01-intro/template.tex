@@ -1,0 +1,134 @@
+\usefonttheme{professionalfonts} % using non standard fonts for beamer
+\usefonttheme{serif} % default family is serif
+\setmainfont{Helvetica Neue}
+
+\definecolor{cmu_red}{RGB}{153,0,0}					% #990000
+\definecolor{cmu_dark_grey}{RGB}{70, 70, 70}		% #464646
+\definecolor{cmu_light_grey}{RGB}{212, 212, 212}	% #d4d4d4
+\definecolor{cmu_light_tan}{RGB}{243,240,233}		% #f3f0e9
+\definecolor{cmu_violet}{RGB}{100,76,86}			% #674c56
+\definecolor{cmu_blue}{RGB}{116,147,162}			% #7493a2
+\definecolor{cmu_mustard}{RGB}{193,165,98}			% #c1a562
+\definecolor{cmu_brown}{RGB}{147,98,65}				% #936241
+\definecolor{cmu_orange}{RGB}{209,119,2}			% #d17702
+\definecolor{cmu_green}{RGB}{153,153,51}			% #999933
+\definecolor{cmu_tan}{RGB}{172,157,116}				% #ac9d74
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+
+\mode<presentation>{
+	\usetheme{Berlin}
+	\usecolortheme{beaver}
+} 
+
+\setbeamercolor{title}{fg=white,bg=cmu_red}
+\setbeamercolor{frametitle}{bg=cmu_red,fg=white}
+\setbeamercolor{itemize item}{bg=white,fg=black}
+\setbeamercolor{enumerate item}{bg=white,fg=black}
+\setbeamercolor{enumerate subitem}{bg=white,fg=black}
+
+\setbeamertemplate{headline}{}
+\setbeamertemplate{itemize items}[default]
+\setbeamertemplate{enumerate items}[default]
+
+\usenavigationsymbolstemplate{}
+
+\makeatletter
+\defbeamertemplate*{footline}{myfootline}
+{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+    \usebeamerfont{author in head/foot}\insertshortauthor\expandafter\beamer@ifempty\expandafter{\beamer@shortinstitute}{}{~~\insertshortinstitute}
+  \end{beamercolorbox}%  
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+    \usebeamerfont{title in head/foot}\insertshorttitle
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,right]{title in head/foot}%
+    % \usebeamerfont{date in head/foot}\insertshortdate{}\hspace*{2em}
+    \insertframenumber{} / \inserttotalframenumber\hspace*{2ex} 
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+\makeatother
+\setbeamertemplate{footline}[myfootline]
+
+\lstdefinestyle{customc}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  language=C,
+  showstringspaces=false,
+  numbers=none,
+  % xleftmargin=1ex,
+  framexleftmargin=1ex,
+  % numbersep=5pt,
+  % numberstyle=\tiny\color{mygray},
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\color{blue},
+  commentstyle=\itshape\color{purple!40!black},  
+  stringstyle=\color{orange},
+  morekeywords={output,assume,observe,input,bool,then,fun,match,in,val,list,type,of,string,unit,let,bytes,mov,imul,add,sar,shr,function,forall,nat,requires,ensures,method,returns,assert,new,array,modifies,reads,old,predicate,lemma,seq,calc,nan,var},
+  tabsize=2,
+  deletestring=[b]',
+  backgroundcolor=\color{gray!15},
+  frame=tb
+}
+\lstset{escapechar=@,style=customc}
+
+\NewDocumentCommand{\redcallout}{r<> O{text opacity=1} m m}{%
+\tikz[remember picture, overlay]\node[align=center,fill=red!65!black,#2,visible on=<#1>,rounded corners,rectangle callout,anchor=pointer,callout relative pointer={(230:1cm)},text=white,minimum width=4cm,inner sep=5pt]
+at (#3) {#4};
+}
+
+\NewDocumentCommand{\redcalloutpos}{r<> O{text opacity=1} m m m}{%
+\tikz[remember picture, overlay]\node[align=center,fill=red!65!black,#2,visible on=<#1>,rounded corners,rectangle callout,anchor=pointer,callout relative pointer={(#5:1cm)},text=white,minimum width=4cm,inner sep=5pt]
+at (#3) {#4};
+}
+
+\newcommand{\tikzmark}[1]{\tikz[overlay,remember picture,xshift=-0.9ex] \node (#1) {};}
+
+\newcommand{\nondeterm}{\xspace\ensuremath{[]}\xspace}
+
+\tikzstyle{database}=
+[
+  cylinder,
+  shape border rotate=90,
+  aspect=0.25,
+  draw,
+  thick,
+  text width=10ex,
+  minimum width=10ex,
+  align=center,
+  minimum height=4.5em
+]
+\tikzstyle{process}=
+[
+  rounded corners=3pt,
+  draw,
+  thick,
+  text width=9ex,
+  minimum width=10ex,
+  align=center,
+  minimum height=4.5em
+]
+\tikzstyle{result}=
+[
+  rounded rectangle,
+  draw,
+  thick,
+  text width=9ex,
+  align=center,
+  minimum height=2em
+]
+\tikzstyle{blockarrow}=
+[
+  draw,
+  thick,
+  ->
+]
+
+\tikzset{
+  treenode/.style = {align=center},
+  root/.style     = {treenode, font=\footnotesize},
+  env/.style      = {treenode, font=\footnotesize},
+  dummy/.style    = {treenode}
+}
