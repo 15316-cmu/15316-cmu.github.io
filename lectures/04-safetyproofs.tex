@@ -1,0 +1,668 @@
+\documentclass[11pt,twoside]{scrartcl}
+%\documentclass[11pt,twoside]{article}
+
+%opening
+\newcommand{\lecid}{15-316}
+\newcommand{\leccourse}{Software Foundations of Security and Privacy}
+\newcommand{\lecdate}{} %e.g. {October 21, 2013}
+\newcommand{\lecnum}{4}
+\newcommand{\lectitle}{Proving Safety, Compositionally}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecurl}{https://15316-cmu.github.io/index}
+
+\usepackage{lecnotes}
+\usepackage[irlabel]{bugcatch}
+
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+
+\begin{document}
+
+\newcommand{\atrace}{\sigma}%
+%% the standard interpretation naming conventions
+\newcommand{\stdI}{\dTLint[state=\omega]}%
+\newcommand{\Ip}{\dTLint[trace=\atrace]}%
+\newcommand{\ws}{\omega}\newcommand{\wt}{\nu}% 
+
+\maketitle
+\thispagestyle{empty}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+
+Recall that in the previous lecture we introduced a programming language that exemplifies the core elements common to many imperative languages.
+
+\begin{definition}[Program] \label{def:deterministic-program}
+\dfn[program]{Deterministic while programs} are defined by the following grammar ($\asprg,\bsprg$ are programs, $x$ is a variable, $\astrm$ is a term, and $\ivr$ is a Boolean formula of arithmetic):%
+\indexn{\cup}\indexn{;}\indexn{{}^*}\indexn{{:}{=}}\indexn{x\,{:}{=}\,\astrm}\index{\ptest{\ivr}}%
+\begin{equation*}
+  \asprg,\bsprg ~\bebecomes~
+  \pupdate{\pumod{x}{\astrm}}
+  \alternative
+  \passert{\ivr}
+  \alternative
+  \pif{\ivr}{\asprg}{\bsprg}
+  \alternative
+  \asprg;\bsprg
+  \alternative
+  \pwhile{\ivr}{\asprg}
+\end{equation*}
+\end{definition}
+
+We defined the semantics of this language in terms of its traces, which are finite or infinite sequences of program states mapping variables to integers.
+
+\begin{definition}[Trace semantics of programs] \label{def:program-trace}
+  % \renewcommand{\I}{\iconcat[state=\ws]{\stdI}}%
+  % \renewcommand{\It}{\iconcat[state=\wt]{\stdI}}%
+  
+The \dfn[valuation!of~programs]{trace semantics $\iaccess[\alpha]{\I}$ of a program}~$\alpha$ is the set of all its possible traces and is defined inductively as follows:
+    % \index{_\tau(\alpha)_@$\tau(\alpha)$}%
+    \begin{enumerate}
+    \item
+      \m{\iaccess[\pupdate{\umod{x}{\astrm}}]{\I}}
+      =
+      \m{\{(\iget[state]{\I},\iget[state]{\It}) \with
+      \iget[state]{\It}=\iget[state]{\I}~\text{except that}~ \iget[state]{\It}(x)=\ivaluation{\I}{\astrm}}
+      for~\m{\ws\in\linterpretations{\Sigma}{V}\}} \\
+      The final state $\iget[state]{\It}$ is identical to the initial state $\iget[state]{\I}$ except in its interpretation of the variable $x$, which is changed to the value that $\genDJ{x}$ has in initial state $\iget[state]{\I}$.      
+   
+   \item \(\iaccess[\passert{\ivr}]{\I} = \{(\ws) \with
+      \imodels{\I}{\ivr}\} \cup
+        \{(\ws,\errstate) \with
+      \inonmodels{\I}{\ivr}\}\)
+      \index{$\ptest{}$} \\
+      The assert stays in its state $\iget[state]{\I}$ if formula $\ivr$ holds in $\iget[state]{\I}$, otherwise the final state is the error state \errstate.
+    
+    \item \(\iaccess[\pif{\ivr}{\alpha}{\beta}]{\I} =
+      \{\atrace \in \iaccess[\alpha]{\I} \with \atrace_0 \models \ivr\} \cup
+      \{\atrace \in \iaccess[\beta]{\I} \with \atrace_0 \nonmodels \ivr\}\) \\
+      The \m{\pif{\ivr}{\asprg}{\bsprg}} program runs $\asprg$ if $\ivr$ is true in the initial state and otherwise runs $\bsprg$.
+    
+    \item \(\iaccess[{\alpha};{\beta}]{\I} =
+      \{\atrace \compose \varsigma \with \atrace\in\iaccess[\alpha]{\I} \mand \varsigma\in\iaccess[\beta]{\I}\}\);\\
+      the composition of~\m{\atrace=(\atrace_0,\atrace_1,\atrace_2,\dots)} and~\m{\varsigma=(\varsigma_0,\varsigma_1,\varsigma_2,\dots)} is
+      \[
+      \atrace \compose \varsigma \eqdef
+      \begin{cases}
+        (\atrace_0,\dots,\atrace_n,\varsigma_1,\varsigma_2,\dots) &\mylpmi[\text{if}~] \text{$\atrace$ terminates in $\atrace_n$}~\text{and}~\atrace_n=\varsigma_0\\
+        \atrace &\mylpmi[\text{if}~] \atrace~\text{does not terminate}\\
+        \text{not defined} &\text{otherwise}
+      \end{cases}
+      \] \\
+      The relation \m{\iaccess[\asprg;\bsprg]{\I}} is the composition of traces from \(\iaccess[\bsprg]{\I}\) after those from \(\iaccess[\asprg]{\I}\) and can, thus, follow any transition of $\asprg$ through any intermediate state $\iget[state]{\Iz}$ to a transition of $\bsprg$.
+    
+    \item
+      \(\iaccess[\pwhile{\ivr}{\alpha}]{\I}\)
+=\(\{\atrace^{(0)} \compose \atrace^{(1)} \compose \dots \compose \atrace^{(n)} \with\)
+for some $n\geq0$
+such that for all $0\leq i<n$:
+\textcircled{1} the loop condition is true \m{\atrace^{(i)}_0 \models \ivr} and
+\textcircled{2}
+\m{\atrace^{(i)} \in \iaccess[\asprg]{\Iz[i]}}
+and \textcircled{3} $\atrace^{(n)}$ either does not terminate or it terminates in $\atrace^{(n)}_m$ and \m{\atrace^{(n)}_m \nonmodels \ivr} in the end$\big\}$
+\\
+  \(\cup~\{\atrace^{(0)} \compose \atrace^{(1)} \compose \atrace^{(2)} \compose \dots \with\)
+for all $i\in\naturals$:
+\textcircled{1} \m{\atrace^{(i)}_0 \models \ivr} and
+\textcircled{2}
+\m{\atrace^{(i)} \in \iaccess[\asprg]{\Iz[i]}}$\}$
+  \\
+  \(\cup~\{(\iget[state]{\I}) \with \inonmodels{\I}{\ivr}\}\)
+  \\
+  That is, the loop either runs a nonzero finite number of times with the last iteration either terminating or running forever,
+  or the loop itself repeats infinitely often and never stops,
+  or the loop does not even run a single time.
+    \end{enumerate}
+\end{definition}
+
+We then discussed safety properties, which are formalized as sets of traces in which for each trace in the property, ``something bad'' never happens. Safety properties include invariant properties like memory safety and access control, as well as assertions and contracts.
+
+We then introduced first-order dynamic logic, whose formulas let us characterize program behavior.
+
+\begin{definition}[DL formula]
+The \emph{formulas of dynamic logic} ({DL}) are defined by the grammar
+(where $\asfml,\bsfml$ are DL formulas, $\astrm,\bstrm$ terms, $x$ is a variable, $\asprg$ a program):
+  \[
+  \asfml,\bsfml ~\bebecomes~
+  \astrm=\bstrm \alternative
+  \astrm\leq\bstrm \alternative
+  \lnot \asfml \alternative
+  \asfml \land \bsfml \alternative
+  \asfml \lor \bsfml \alternative
+  \asfml \limply \bsfml \alternative
+  \asfml \lbisubjunct \bsfml \alternative
+  \lforall{x}{\asfml} \alternative 
+  \lexists{x}{\asfml} \alternative
+  \dbox{\asprg}{\asfml}
+  \alternative \ddiamond{\asprg}{\asfml}
+  \]
+\end{definition}
+
+For example, we can use dynamic logic formulas to make the meaning of contracts precise. If we have a contract consisting of \verb'@requires P' and \verb'@ensures Q', then the corresponding dynamic logic formula is $P \limply \dbox{\asprg}{Q}$ for program $\asprg$. If this formula is valid, then it means that in any state $\omega$ whenever $P$ is true, then all terminating runs of $\asprg$ end with a state in which $Q$ is true. 
+
+However, we can't actually reason about the validity of this  formula because we have not yet defined the semantics of first-order dynamic logic. We will begin our discussion today by doing so. We will then introduce a set of axioms for dynamic logic that relate the box modality, which refers to programs, to simpler formulas that oftentimes make no reference to programs. We can use these axioms in sequent calculus proofs to reduce statements about program behavior, and in particular whether or not a program satisfies a safety property given as a contract, to a set of simpler statements involving only arithmetic.
+
+\section{Dynamic Logic Semantics}
+
+One thing that dynamic logic does is to make the meaning of contracts, and later on more general safety properties, completely precise. Of course, we need a semantics to accomplish this, which is our next task.
+
+Like in the semantics for arithmetic formulas, the truth value of a dynamic logic formula depends on a state $\iget[state]{\I}$ that maps variables to values that we will assume are integers. The semantics for terms in Dynamic Logic is the same as before, and so are the semantics for the predicate $\le,=$ and logical connectives $\land,\lor,\ldots$.
+
+\begin{definition}[Semantics of dynamic logic] \label{def:DL-semantics}
+The DL formula $\asfml$ is true in state $\iportray{\I}$, written \(\imodels{\I}{\asfml}\), as inductively defined by distinguishing the shape of formula $\asfml$:
+\begin{enumerate}
+\item \(\imodels{\I}{\astrm=\bstrm}\) iff \(\ivaluation{\I}{\astrm}=\ivaluation{\I}{\bstrm}\)
+
+\item \(\imodels{\I}{\astrm\leq\bstrm}\) iff \(\ivaluation{\I}{\astrm}\leq\ivaluation{\I}{\bstrm}\)
+
+\item \(\imodels{\I}{\asfml\land\bsfml}\) iff \(\imodels{\I}{\asfml}\) and \(\imodels{\I}{\bsfml}\).
+
+\item \(\imodels{\I}{\asfml\lor\bsfml}\) iff \(\imodels{\I}{\asfml}\) or \(\imodels{\I}{\bsfml}\).
+
+\item \(\imodels{\I}{\lnot\asfml}\) iff \(\inonmodels{\I}{\asfml}\), i.e. it is not the case that \(\imodels{\I}{\asfml}\).
+
+\item \(\imodels{\I}{\asfml\limply\bsfml}\) iff \(\inonmodels{\I}{\asfml}\) or \(\imodels{\I}{\bsfml}\).
+
+\item \(\imodels{\I}{\asfml\lbisubjunct\bsfml}\) iff both are true or both false, i.e., it is either the case that both \(\imodels{\I}{\asfml}\) and \(\imodels{\I}{\bsfml}\) or it is the case that \(\inonmodels{\I}{\asfml}\) and \(\inonmodels{\I}{\bsfml}\).
+
+\item \(\imodels{\I}{\lforall{x}{\asfml}}\) iff \(\imodels{\It}{\asfml}\) for all states $\iget[state]{\It}$ that only differ from $\iget[state]{\I}$ in the value of variable $x$.
+
+\item \(\imodels{\I}{\lexists{x}{\asfml}}\) iff \(\imodels{\It}{\asfml}\) for at least one state $\iget[state]{\It}$ that only differs from $\iget[state]{\I}$ in the value of variable $x$.
+
+\item \(\imodels{\I}{\dbox{\asprg}{\asfml}}\) iff \(\atrace_n \models \asfml\) for all final states $\atrace_n$ reachable on traces of $\asprg$ starting in $\iget[state]{\I}$, i.e.\ for all finite traces \((\atrace_0, \ldots, \atrace_n) \in \iaccess[\asprg]{\I}\) where $\atrace_0 = \omega$, it is true that \(\atrace_n \models \ausfml\).
+
+\item \(\imodels{\I}{\ddiamond{\asprg}{\asfml}}\) iff there is at least one finite trace $\atrace$ of $\asprg$ starting in $\iget[state]{\I}$ where the final state $\atrace_n \models \ausfml$, i.e.\ there exists \((\atrace_0, \ldots, \atrace_n) \in \iaccess[\asprg]{\I}\) where \(\atrace_n \models \ausfml\) and \(\atrace_0 = \iget[state]{\I}\).
+\end{enumerate}
+\end{definition}
+
+\begin{lemma}[Determinism] \label{lem:determinism}
+  The programs $\asprg$ from \rref{def:deterministic-program} are \dfn{deterministic}, that is, for every initial state $\iget[state]{\I}$ there is at most one trace $\atrace$ such that $\sigma \in \iaccess[\asprg]{\I}$ and $\sigma_0 = \iget[state]{\I}$.
+\end{lemma}
+\begin{proof}
+The proof is by induction on the structure of the program $\asprg$ and a good exercise.
+\end{proof}
+
+
+Because of determinacy, dynamic logic for the deterministic programs from \rref{def:deterministic-program} also satisfy another particularly close relationship of the box and the diamond modality:
+\begin{lemma}[Deterministic program modality relation]
+  Because the programs $\asprg$ from \rref{def:deterministic-program} are \emph{deterministic}, they make the following formula valid for all formulas $\asfml$:
+  \[
+  \ddiamond{\asprg}{\asfml} \limply \dbox{\asprg}{\asfml}
+  \]
+\end{lemma}
+\begin{proof}
+Suppose that $\omega \models \ddiamond{\asprg}{\ausfml}$. Then by the semantics of the diamond modality, there is at least one trace $\atrace \in \llbracket\asprg\rrbracket$, and moreover that trace is finite and the final state $\atrace_n \models \ausfml$. Because of \rref{lem:determinism}, there is at most one final state for any given initial state, which means that $\atrace$ is the \emph{only} trace with initial state $\atrace_0 = \omega$, so by the semantics of the box modality $\omega \models \dbox{\asprg}{\asfml}$.
+\end{proof}
+Colloquially, we also refer to this lemma as the ``one for all'' principle.
+We will occasionally have reason to work with a more general notion of programs that is no longer deterministic, so we should carefully mark all uses of this determinism principle to avoid getting confused about which results depend on determinism.
+
+\section{Proving statements about program behavior}
+
+Recall the dynamic logic formula for the program swapping two variables \texttt{x} and \texttt{y} in place:
+\begin{equation}
+{x=a\land y=b\limply\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}
+\label{eq:swap}
+\end{equation}
+Its meaning, and thus the meaning of the program contract that it came from, are now mathematically defined precisely.
+What can we do with its mathematical semantics?
+Well, we could, for example, follow the definitions of the semantics to find out how a specific initial state \(\iget[state]{\I}\) changes as the program is executing.
+Consider the initial state \(\iget[state]{\I}\) with \(\iget[state]{\I}(x)=5\) and \(\iget[state]{\I}(y)=7\).
+For this state to satisfy the preconditions, it also needs to have the following values \(\iget[state]{\I}(a)=5\) and \(\iget[state]{\I}(b)=7\) for variables $a$ and $b$.
+Thus,
+\[
+\imodels{\I}{x=a\land y=b}
+\]
+Since the swap program only changes the variables $x$ and $y$, we only need to track their values, since everything else stays unchanged.
+After running the first assignment \(x:=x+y\), the program reaches state a \(\iget[state]{\Iz[1]}\) with \(\iget[state]{\Iz[1]}(x)=12,\iget[state]{\Iz[1]}(y)=7\).
+After running the second assignment \(y:=x-y;\) from state \(\iget[state]{\Iz[1]}\) the program reaches a state \(\iget[state]{\Iz[2]}\) with \(\iget[state]{\Iz[2]}(x)=12,\iget[state]{\Iz[2]}(y)=5\).
+After running the third assignment \(x:=x-y;\) from state \(\iget[state]{\Iz[2]}\) the program reaches a state \(\iget[state]{\It}\) with \(\iget[state]{\It}(x)=7,\iget[state]{\It}(y)=5\).
+Let's write the respective program statements in the first row and the states in between these in the next rows:
+\[\begin{array}{clclclc}
+& x:=x+y;&& y:=x-y;&& x:=x-y &\\\
+\iget[state]{\I}(x)=5 && \iget[state]{\Iz[1]}(x)=12 && \iget[state]{\Iz[2]}(x)=12 && \iget[state]{\It}(x)=7\\
+\iget[state]{\I}(y)=7 && \iget[state]{\Iz[1]}(y)=7 && \iget[state]{\Iz[2]}(y)=5 && \iget[state]{\It}(y)=5
+\end{array}\]
+All those states agree that $a$ has the value 5 and $b$ the value 7.
+So indeed, the (only) final state $\iget[state]{\It}$ satisfies the postcondition:
+\[
+\imodels{\I}{x=b\land y=a}
+\]
+
+Well that's nice.
+We followed the semantics of program execution from the particular initial state \(\iget[state]{\I}\) with \(\iget[state]{\I}(x)=5\) and \(\iget[state]{\I}(y)=7\) and found out that all its final states (well $\iget[state]{\It}$ is the only one) satisfy the postcondition that formula \rref{eq:swap} claims.
+This justifies that \rref{eq:swap} is true in state $\iget[state]{\I}$:
+\[
+\imodels{\I}{x=a\land y=b\limply\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}
+\]
+Now all we need to do to justify that DL formula \rref{eq:swap} is not just true in this particular initial state $\iget[state]{\I}$ but is valid in all states, is to consider one state at a time and follow the semantics to show the same.
+
+The only downside of that approach of following the semantics through concrete states is that it will keep us busy till the end of the universe because there are infinitely many different states.
+Even among those initial states that satisfy the precondition \(x=a\land y=b\) (otherwise there is nothing to show for \rref{eq:swap} since implications are true if their left hand sides are false), there are still infinitely many such states.
+That's not very practical for such a simple program nor, in fact, for any other interesting program with input.
+
+\subsection{Axioms for programs}
+
+Our approach to understanding programs with logic is to design one reasoning princple for each program operator that describes its effect in logic with simpler logical operators.
+If we succeed doing that for every operator that a program can have, then we will understand even the most complicated programs just by repeatedly making use of the respective logical reasoning principles.
+
+\paragraph{Assertions}
+
+We'll start with perhaps the simplest program form, at least in terms of what is required for compositional reasoning.
+The assert statement $\passert{\ivr}$ checks a condition on the current state, and stays in that state if the condition holds and otherwise enters the error state \errstate.
+How can we express \m{\dbox{\passert{\ivr}}{\ausfml}} in logic in structurally simpler ways?
+
+The formula \m{\dbox{\passert{\ivr}}{\ausfml}} is true iff formula $\ausfml$ holds always after running the assert $\passert{\ivr}$. But if the condition $\ivr$ is true when the assert is executed, then the state after running $\passert{\ivr}$ is exactly the same as before. If the condition $\ivr$ is false prior to executing the assert, then the final state of the trace will be $\errstate$, and there is no way that $\ausfml$ holds in $\errstate$.
+
+Consequently $\ausfml$ holds after all runs of the program \m{\passert{\ivr}} iff both the assertion condition $\ivr$ and the postcondition $\ausfml$ are true.
+This is captured in the assert axiom \irref{assertb}:
+\[
+\cinferenceRule[assertb|$\dibox{\text{assert}}$]{assert}
+{\linferenceRule[equiv]
+  {(\ivr \land \ausfml)}
+  {\axkey{\dbox{\passert{\ivr}}{\ausfml}}}
+}{}%
+\]
+
+From now on, every time we want to make use of this equivalence, we just refer to it by name: \irref{assertb}.
+And, indeed, this axiom tells us everything we need to know about assert statements.
+When using the equivalence \irref{assertb} from left to right, we can use it to simplify every question about an assert statement of the form \m{\dbox{\passert{\busfml}}{\ausfml}}  by a corresponding structurally simpler formula \m{Q \land P}.
+that does not use the assert statement any more but is logically equivalent.
+The axiom will enable us, for example to conclude this equivalence:
+\[
+{\dbox{\passert{x < 0}}{x \ge 0}}
+\lbisubjunct
+{x < 0 \land x \ge 0}
+\]
+Also, since axiom \irref{assertb} justifies this equivalence, we will be able to reduce a question about whether its left hand side is valid with axiom \irref{assertb} to the question whether its corresponding right hand side is valid.
+In sequent calculus proofs, we will, thus, mark the use of such an axiom by giving its name \irref{assertb}.
+
+So now we have an axiom that will be useful in proofs. Before we even consider using it, we must convince ourselves that it is sound. The \irref{assertb} axiom is an equivalence of first-order dynamic logic, so we must prove that it is a valid one. Having done so, we can use it freely in proofs to replace \m{\passert{\ausfml}} commands with their simplier equivalent form, and vice versa if we have a good reason to do so.
+
+\begin{theorem}
+\label{thm:assert-soundness}
+The assert axiom \irref{assertb} is sound, i.e. all its instances are valid:
+\[
+\dbox{\passert{\ivr}}{\ausfml} \lbisubjunct \ivr \land \ausfml
+\]
+\end{theorem}
+\begin{proof}
+Recall the semantics for assert commands:
+\[
+\iaccess[\passert{\ivr}]{\I} = \{(\ws) \with
+      \imodels{\I}{\ivr}\} \cup
+        \{(\ws,\errstate) \with
+      \inonmodels{\I}{\ivr}\}
+\]
+We must show that $\models \dbox{\passert{\ivr}}{\ausfml} \lbisubjunct \ivr \land \ausfml$, so consider any state $\omega$ and show that $\omega \models \dbox{\passert{\ivr}}{\ausfml} \lbisubjunct \ivr \land \ausfml$. We prove the biimplication by proving each implication seperately.
+\begin{enumerate}
+\item[``$\lylpmi$'']
+Assume the right side $\omega \models \ivr \land \ausfml$, and show that $\omega \models \dbox{\passert{\ivr}}{\ausfml}$. From this assumption, we know that $\omega \models \ivr$, and so by the semantics of assert the only trace in $\iaccess[\passert{\ivr}]{\I}$ whose initial state is $\omega$ is $(\omega)$. But our assumption also gives us that $\omega \models \ausfml$, so $\ausfml$ is also true in the final state. Thus, $\omega \models \dbox{\passert{\ivr}}{\ausfml}$.
+
+\item[``$\lylpmi$''] 
+Conversely, assume that the left side $\omega \models \dbox{\passert{\ivr}}{\ausfml}$ holds, and show $\omega \models \ivr \land \ausfml$. By the semantics of the box modality in dynamic logic, all finite traces $\sigma \in \iaccess[\passert{\ivr}]{\I}$ have final states in which $\ausfml$ is true. By the semantics of assert commands, all traces in which $\omega \not\models \ivr$ have \errstate as the final state. So we know that $\omega \models \ivr$, in which case $\sigma = (\omega)$. We can thus conclude $\omega \models \ivr \land \ausfml$. 
+\qedhere
+\end{enumerate}
+\end{proof}
+Now that we know \irref{assertb} is sound, we move on to other commands.
+
+\paragraph{Conditionals}
+
+We continue on to the formula \m{\dbox{\pif{\ivr}{\ausprg}{\busprg}}{\ausfml}}, which expresses that formula $\ausfml$ always holds after running the if-then-else conditional \m{\pif{\ivr}{\ausprg}{\busprg}} that runs program $\ausprg$ if formula $\ivr$ is true and runs $\busprg$ otherwise.
+In order to understand it from a logical perspective, how could we express \m{\dbox{\pif{\ivr}{\ausprg}{\busprg}}{\ausfml}} in easier ways?
+
+If $\ivr$ holds then \m{\dbox{\pif{\ivr}{\ausprg}{\busprg}}{\ausfml}} says that $\ausfml$ always holds after running $\ausprg$.
+If $\ivr$ does not hold then the same formula \m{\dbox{\pif{\ivr}{\ausprg}{\busprg}}{\ausfml}} says that $\ausfml$ always holds after running $\busprg$.
+It is easy to say with a logical formula that $\ausfml$ always holds after running $\ausprg$, which is precisely what \(\dbox{\ausprg}{\ausfml}\) is good for.
+Likewise \(\dbox{\busprg}{\ausfml}\) directly expresses in logic that $\ausfml$ always holds after running $\busprg$.
+Both of those formulas \(\dbox{\ausprg}{\ausfml}\) as well as \(\dbox{\busprg}{\ausfml}\) are simpler than the original formula \m{\dbox{\pif{\ivr}{\ausprg}{\busprg}}{\ausfml}}.
+But, of course, they express something else, because the program \m{\pif{\ivr}{\ausprg}{\busprg}} only runs the respective programs conditionally depending on the truth-value of $\ivr$.
+
+Yet, there still is a way of expressing \m{\dbox{\pif{\ivr}{\ausprg}{\busprg}}{\ausfml}} in logic in easier ways with the help of other logical operators.
+Implications are perfect at expressing the conditions that an if-then statement states in a program.
+Indeed, if $\ivr$ holds then \(\dbox{\ausprg}{\ausfml}\) needs to be true and if $\ivr$ does not hold then \(\dbox{\busprg}{\ausfml}\) for \m{\dbox{\pif{\ivr}{\ausprg}{\busprg}}{\ausfml}} to hold.
+Indeed, \m{\dbox{\pif{\ivr}{\ausprg}{\busprg}}{\ausfml}} is true if and only if 
+\m{(\ivr\limply\dbox{\ausprg}{\ausfml}) \land (\lnot\ivr\limply\dbox{\busprg}{\ausfml})} is true.
+We capture this argument once and for all in the if-then-else axiom \irref{ifb}:
+\[
+\cinferenceRule[ifb|$\dibox{\text{if}}$]{if-thenelse}
+{\linferenceRule[equiv]
+  {(\ivr\limply\dbox{\ausprg}{\ausfml}) \land (\lnot\ivr\limply\dbox{\busprg}{\ausfml})}
+  {\axkey{\dbox{\pif{\ivr}{\ausprg}{\busprg}}{\ausfml}}}
+}{}%
+\]
+Again, before using \irref{ifb} in proofs we must know that it is sound. Theorem~\ref{thm:if-sound} tells us this.
+\begin{theorem}
+\label{thm:if-sound}
+The \irref{ifb} axiom is sound, i.e. all its instances are valid:
+\[
+\dbox{\pif{\ivr}{\ausprg}{\busprg}}{\ausfml}
+\lbisubjunct
+(\ivr\limply\dbox{\ausprg}{\ausfml}) \land (\lnot\ivr\limply\dbox{\busprg}{\ausfml})
+\]
+\end{theorem}
+\begin{proof}
+Having seen the proof of Theorem~\ref{thm:assert-soundness}, you should be able to complete this proof as an exercise.
+\end{proof}
+
+\paragraph{Assignments}
+
+The next case to look into is what we need to prove in order to show the formula \m{\dbox{\pupdate{\umod{x}{\astrm}}}{p(x)}}, which expresses that the formula $p(x)$ holds after the assignment \m{\pupdate{\umod{x}{\astrm}}} that assigns the value of term $\astrm$ to variable $x$.
+How could we reduce this to another logical formula that is simpler?
+
+If we want to show that the formula $p(x)$ holds after assigning the new value $\astrm$ to variable $x$ then we might as well show $p(\astrm)$ right away.
+And, in fact, $p$ is true of $x$ after assigning $\astrm$ to $x$ if and only if $p$ is true of its new value $\astrm$.
+That is, the formula \m{\dbox{\pupdate{\umod{x}{\astrm}}}{p(x)}} is equivalent to the formula \m{p(\astrm)}.
+We capture this argument once and for all in the assignment axiom \irref{assignb}:
+
+%What has worked exceedingly well for propositional logic might work just as well for programs.
+\[
+\cinferenceRule[assignb|$\dibox{:=}$]{assignment / substitution axiom}
+{\linferenceRule[equiv]
+  {p(\astrm)}
+  {\axkey{\dbox{\pupdate{\umod{x}{\astrm}}}{p(x)}}}
+}
+{}%{$genDJ{x}$ free for $x$ in $\ausfml$}
+\]
+
+In the assignment axiom \irref{assignb}, the formula $p(\astrm)$ has the term $\astrm$ everywhere in place of where the formula $p(x)$ has the variable $x$.
+Of course, it is important for this substitution of $\astrm$ for $x$ to avoid capture of variables and not make any replacements under the scope of a quantifier or modality binding an affected variable.
+For example, the following formula is an instance of \irref{assignb}:
+\[
+\dbox{\pupdate{\pumod{x}{x^2-1}}}{x(x+1)\geq x+y} \lbisubjunct (x^2-1)(x^2-1+1) \geq (x^2-1)+y
+\]
+But the following is not because it would capture the replacement $y$ that is used for $x$:
+\[
+\dbox{\pupdate{\pumod{x}{y}}}{(x\geq0 \land \lforall{y}{(x\geq y)})} \lbisubjunct (y\geq0 \land \lforall{y}{(y\geq y)})
+\]
+Instead, if we first rename $\forall y$ to $\forall z$ then the substitution works:
+\[
+\dbox{\pupdate{\pumod{x}{y}}}{(x\geq0 \land \lforall{z}{(x\geq z)})} \lbisubjunct (y\geq0 \land \lforall{z}{(y\geq z)})
+\]
+The axioms we've seen so far already enable us to do a first proof:
+\begin{sequentdeduction}[array]
+\linfer[ifb]
+{\linfer[andr]
+  {\linfer[implyr]
+    {\linfer[assignb]
+      {\linfer[qear]
+        {\lclose}
+        {\lsequent{x{\geq}0} {x{=}\abs{x}}}
+      }
+      {\lsequent{x{\geq}0} {\dbox{\pupdate{\pumod{y}{x}}}{\,y{=}\abs{x}}}}
+    }
+    {\lsequent{} {x{\geq}0\limply\dbox{\pupdate{\pumod{y}{x}}}{\,y{=}\abs{x}}}}
+  !\linfer[implyr]
+    {\linfer[assignb]
+      {\linfer[qear]
+        {\lclose}
+        {\lsequent{\lnot x{\geq}0} {-x{=}\abs{x}}}
+      }
+      {\lsequent{\lnot x{\geq}0} {\dbox{\pupdate{\pumod{y}{-x}}}{\,y{=}\abs{x}}}}
+    }
+    {\lsequent{} {\lnot x{\geq}0\limply \dbox{\pupdate{\pumod{y}{-x}}}{\,y{=}\abs{x}}}}
+  }
+  {\lsequent{} {(x{\geq}0\limply\dbox{\pupdate{\pumod{y}{x}}}{\,y{=}\abs{x}}) \land (\lnot x{\geq}0\limply \dbox{\pupdate{\pumod{y}{-x}}}{\,y{=}\abs{x}})}}
+}
+{\lsequent{} {\dbox{\pif{x{\geq}0}{\pupdate{\pumod{y}{x}}}{\pupdate{\pumod{y}{-x}}}}{\,y{=}\abs{x}}}}
+\end{sequentdeduction}
+
+This proof shows validity of the following formula, which says that the given program correctly implements the absolute value function \(\abs{\cdot}\) from mathematics:
+\[{\dbox{\pif{x{\geq}0}{\pupdate{\pumod{y}{x}}}{\pupdate{\pumod{y}{-x}}}}{\,y{=}\abs{x}}}\]
+The proof refers to propositional logic sequent calculus rules such as \irref{andr} and \irref{implyr} as well as the dynamic logic axioms \irref{ifb} and \irref{assignb}.
+The proof is developed starting with the desired conclusion at the bottom and working with proof rules to the top as usual in sequent calculus.
+The proof also makes use of integer arithmetic reasoning (marked by \irref{qear}) to show that, indeed, if $x$ is nonnegative then $x$ equals the absolute value of $x$ (on the left branch).
+Likewise, integer arithmetic reasoning is needed to show that if $x$ is negative then $-x$ equals the absolute value of $x$ (on the right branch).
+
+It is quite common for nontrivial arithmetic to be needed during program verification. However, this course is not about proving arithmetic facts. Whenever our proof goal is purely one of arithmetic, and contains no mention of program commands or logical connectives, we will simply avail ourselves of the \irref{qear} rule and close out the proof. In fact, this is also what automated program verification and analysis tools do as well: generate a series of arithmetic formulas whose validity implies program correctness, and invoke a \emph{decision procedure} to solve the arithmetic. We will see more of this style of reasoning as we proceed through the course.
+
+We must not forget to establish the soundness of \irref{assignb}. Theorem~\ref{thm:assignb-soundness} covers the relevant claim.
+\begin{theorem}
+\label{thm:assignb-soundness}
+The \irref{assignb} axiom is sound, i.e. all its instances are valid:
+\[
+\dbox{\pupdate{\umod{x}{\astrm}}}{p(x)}
+\lbisubjunct
+p(\astrm)
+\]
+\end{theorem}
+\begin{proof}
+Recall the semantics for assignments:
+\[
+\iaccess[\pupdate{\umod{x}{\astrm}}]{\I}
+      =
+      \{(\iget[state]{\I},\iget[state]{\It}) \with
+      \iget[state]{\It}=\iget[state]{\I}~\text{except that}~ \iget[state]{\It}(x)=\ivaluation{\I}{\astrm}
+      ~\text{for}~\ws\in\linterpretations{\Sigma}{V}\}
+\]
+We must show that $\models \dbox{\pupdate{\umod{x}{\astrm}}}{p(x)} \lbisubjunct p(\astrm)$, so consider any state $\omega$ and show that $\omega \models \dbox{\pupdate{\umod{x}{\astrm}}}{p(x)} \lbisubjunct p(\astrm)$. We prove the biimplication by proving each implication seperately.
+\begin{enumerate}
+\item[``$\lylpmi$'']
+Assume the right side $\omega \models p(\astrm)$, and show that $\omega \models \dbox{\pupdate{\umod{x}{\astrm}}}{p(x)}$. By the semantics of assignment, we know that the only trace in $\iaccess[\pupdate{\umod{x}{\astrm}}]{\I}$ beginning with $\omega$ is $(\omega, \nu)$ where $\nu = \omega$ everywhere except at $x$, and $\nu(x) = \omega\llbracket\astrm\rrbracket$. But from our assumption we know that $\omega \models p(\astrm)$, i.e. $p$ is true in $\omega$ when $\astrm$ is substituted in place of $x$, and in $\nu$, $x$ is mapped to $\astrm$ and otherwise is the same as $\omega$, so $\nu \models p(x)$. Therefore, $\omega \models \dbox{\pupdate{\umod{x}{\astrm}}}{p(x)}$.
+
+\item[``$\lylpmi$''] 
+Conversely, assume that the left side $\omega \models \dbox{\pupdate{\umod{x}{\astrm}}}{p(x)}$ holds, and show $\omega \models p(e)$. By the semantics of assignment, there is one trace $(\omega,\nu) \in \iaccess[\pupdate{\umod{x}{\astrm}}]{\I}$ beginning with $\omega$ and $\nu = \omega$ except that $\nu(x) = \omega\llbracket\astrm\rrbracket$. Our assumption gives us that $\nu \models p(x)$, and because $\nu(x) = \omega\llbracket\astrm\rrbracket$, it is also true that $\nu \models p(\omega\llbracket\astrm\rrbracket)$. Then $\omega \models p(\astrm)$, because $\omega \models p(\astrm)$ if and only if $\omega \models p(\omega\llbracket\astrm\rrbracket)$, and $\nu = \omega$ at all other variables except $x$.
+\qedhere
+\end{enumerate}
+\end{proof}
+
+\paragraph{Sequential compositions}
+
+The axioms we investigated so far already handle some programs, but sequential compositions are missing quite noticeably and we won't get very far in programs without them.
+So how can we equivalently express \m{\dbox{\ausprg;\busprg}{\ausfml}} in simpler logic without sequential compositions?
+This formula expresses that $\ausfml$ holds after all runs of $\ausprg;\busprg$, which first runs $\ausprg$ and then runs $\busprg$.
+How can this be expressed in an easier way in logic, again using just the subprograms $\ausprg$ as well as $\busprg$ of $\ausprg;\busprg$ then?
+
+In order to express \m{\dbox{\ausprg;\busprg}{\ausfml}} what we need to say is that after all runs of $\ausprg$ it is the case that $\ausfml$ holds after all runs of $\busprg$.
+It is comparably easy to say that $\ausfml$ holds after all runs of $\busprg$ just with the formula \(\dbox{\busprg}{\ausfml}\).
+But where does this formula need to hold?
+After all runs of $\ausprg$.
+In particular, all we need to say is that \(\dbox{\busprg}{\ausfml}\) holds after all runs of $\ausprg$, which is exactly what the formula \m{\dbox{\ausprg}{\dbox{\busprg}{\ausfml}}} says.
+We capture these insights in the sequential composition axiom \irref{composeb}:
+\[
+\cinferenceRule[composeb|$\dibox{{;}}$]{composition} %``One step at a time axiom''
+{\linferenceRule[equiv]
+  {\dbox{\ausprg}{\dbox{\busprg}{\ausfml}}}
+  {\axkey{\dbox{\ausprg;\busprg}{\ausfml}}}
+}{}%
+\]
+Indeed, after all runs of $\ausprg;\busprg$ does $\ausfml$ hold if and only if after all runs of $\ausprg$ it is the case that after all runs of $\busprg$ does $\ausfml$ hold.
+
+These axioms already enable us to prove the correctness of the integer-based swapping function
+\[
+{x=a\land y=b\limply\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}
+\]
+All we need to do is turn it into a sequent and start with this as the desired conclusion at the bottom of a sequent proof and successively apply axioms until the proof completes:
+\begin{sequentdeduction}[array]
+\linfer[implyr]
+{\linfer[composeb]
+  {\linfer[composeb]
+    {\linfer[assignb]
+      {\linfer[assignb]
+        {\linfer[assignb]
+          {\linfer
+            {\linfer[qear]
+              {\lclose}
+              {\lsequent{x{=}a\land y{=}b} {y=b\land x=a}}
+            }
+            {\lsequent{x{=}a\land y{=}b} {x+y-(x+y-y)=b\land x+y-y=a}}
+          }
+          {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{(x-(x-y)=b\land x-y=a)}}}
+        }
+        {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y}{(x-y=b\land y=a)}}}}
+      }
+      {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y}{\dbox{x:=x-y}{(x=b\land y=a)}}}}}
+    }
+    {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y; x:=x-y}{(x=b\land y=a)}}}}
+  }
+  {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}}
+}
+{\lsequent{} {x=a\land y=b\limply\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}}
+\end{sequentdeduction}
+Remember how we mark the use of arithmetic reasoning as \irref{qear}.
+
+Note how this is now a proof of correctness of the swap program from \rref{eq:swap} that, in a finite amount of work, justifies correctness for all states and, thus, implies its validity:
+\[
+\entails {x=a\land y=b\limply\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}
+\]
+
+The above sequent calculus proof used the assignment axiom inside out, so starting with handling the rightmost assignment first.
+It would also have been possible to start outside in handling the leftmost assignment first, but this is not an advisable approach to take because one must be very careful to avoid replacing bound variables. Assignments bind variables, because after an assignment the value has changed. Consider what happens if we proceed indiscriminately replacing variables after assignments, applying \irref{assignb} from left to right.
+\begin{sequentdeduction}[array]
+\linfer[implyr]
+{\linfer[composeb]
+  {\linfer[composeb]
+    {\linfer[assignb]
+      {\linfer[assignb]
+        {\linfer[qear]
+          {
+            \linfer[assignb] {
+              \lsequent{x{=}a\land y{=}b} {2x=b\land x=a}
+            } {
+              \lsequent{x{=}a\land y{=}b} {\dbox{x:=x}{(2x=b\land x=a)}}
+            }
+          }
+          {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+(x+y-y)-(x+y-y)}{(x+(x+y-y)=b\land x+y-y=a)}}}
+        }
+        {\lsequent{x{=}a\land y{=}b} {\dbox{y:=x+y-y}{\dbox{x:=x+y-y}{(x+y=b\land y=a)}}}}
+      }
+      {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y}{\dbox{x:=x-y}{(x=b\land y=a)}}}}}
+    }
+    {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y; x:=x-y}{(x=b\land y=a)}}}}
+  }
+  {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}}
+}
+{\lsequent{} {x=a\land y=b\limply\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}}
+\end{sequentdeduction}
+This is certainly not right! The problems began when we replaced $x = b$ with $x + y = b$ after the first application us \irref{assignb}. It was not correct to do so, because the second assignment to $x$ binds it for all subsequent ``reads'' of the variable; after the assignment, $x$ refers to a different quantity than it does before the assignment. This may seem a bit confusing, and indeed the rules of binding in first-order dynamic logic are intricate and subtle. However, \textbf{you can avoid having to think about these matters if you always apply the assignment axiom from right to left in your proofs!}
+
+\begin{theorem}
+  The sequential composition axiom \irref{composeb} is sound, i.e. all its instances are valid:
+  \[
+  \cinferenceRuleQuote{composeb}
+  \]
+\end{theorem}
+\begin{proof}
+The proof of this axiom is left as an exercise.
+\end{proof}
+
+\paragraph{Loops}
+
+How can we prove \m{\dbox{\pwhile{\ivr}{\ausprg}}{\ausfml}} in another way by rephrasing it equivalently in logic?
+What the loop \m{\pwhile{\ivr}{\ausprg}} does is to test whether formula $\ivr$ is true and, if so, run $\ausprg$, and then repeating that process until $\ivr$ is false (if it ever is, otherwise the loop just keeps running $\ausprg$ until the end of time).
+
+Let's try to understand that by cases.
+If $\ivr$ holds then \m{\dbox{\pwhile{\ivr}{\ausprg}}{\ausfml}} runs $\ausprg$ and then runs the while loop afterwards yet again.
+If $\ivr$ does not hold then the loop has no effect and just stops right away.
+That is why \m{\pwhile{\ivr}{\ausprg}} is equivalent to \m{\pifs{\ivr}{\plgroup\ausprg;\pwhile{\ivr}{\ausprg}\prgroup}}, because both have no effect if $\ivr$ is false but repeat $\ausprg$ as long as $\ivr$ is true.
+We can capture these thoughts in the following axiom:
+\[
+\cinferenceRule[whileiterateb|$\dibox{\text{unwind}}$]{unfold while loop}
+{\linferenceRule[equiv]
+  {\dbox{\pifs{\ivr}{\plgroup\ausprg;\pwhile{\ivr}{\ausprg}\prgroup}}{\ausfml}}
+  {\axkey{\dbox{\pwhile{\ivr}{\ausprg}}{\ausfml}}}
+}{}%
+\]
+The \irref{whileiterateb} axiom is sound, as shown in Figure~\ref{thm:unwind-sound}.
+\begin{theorem}
+\label{thm:unwind-sound}
+  The unwind axiom \irref{whileiterateb} is sound, i.e. all its instances are valid:
+  \[
+  \cinferenceRuleQuote{whileiterateb}
+  \]
+\end{theorem}
+\begin{proof}
+The simplest way to prove this axiom is to show that the semantics of $\pwhile{\ivr}{\ausprg}$ are exactly the same as those of $\pifs{\ivr}{\plgroup\ausprg;\pwhile{\ivr}{\ausprg}\prgroup}$, i.e.,
+\[
+\iaccess[\pwhile{\ivr}{\ausprg}]{\I}
+=
+\iaccess[\pifs{\ivr}{\plgroup\ausprg;\pwhile{\ivr}{\ausprg}\prgroup}]{\I}
+\]
+So begin by considering an arbitrary trace $\atrace \in \iaccess[\pwhile{\ivr}{\ausprg}]{\I}$. According to the semantics for while loops, there are three cases to consider.
+\begin{enumerate}
+\item $\atrace = \atrace^{(0)} \compose \atrace^{(1)} \compose \dots \compose \atrace^{(n)}$ for some $n\geq0$
+such that for all $0\leq i<n$:
+\textcircled{1} the loop condition is true \m{\atrace^{(i)}_0 \models \ivr} and
+\textcircled{2}
+\m{\atrace^{(i)} \in \iaccess[\ausprg]{\Iz[i]}}
+and \textcircled{3} $\atrace^{(n)}$ either does not terminate or it terminates in $\atrace^{(n)}_m$ and \m{\atrace^{(n)}_m \nonmodels \ivr} in the end.
+
+\item $\atrace = \atrace^{(0)} \compose \atrace^{(1)} \compose \atrace^{(2)} \compose \dots$ for all $i\in\naturals$:
+\textcircled{1} \m{\atrace^{(i)}_0 \models \ivr} and
+\textcircled{2}
+\m{\atrace^{(i)} \in \iaccess[\ausprg]{\Iz[i]}}.
+
+\item $\atrace = (\iget[state]{\I})$ and $\inonmodels{\I}{\ivr}$.
+\end{enumerate}
+
+In each case, we must show that $\sigma \in \iaccess[\pifs{\ivr}{\plgroup\ausprg;\pwhile{\ivr}{\ausprg}\prgroup}]{\I}$. The third case follows directly from the semantics of conditionals. The first two cases are best approached by an induction on the number of iterations $i$, which we leave as an exercise.
+
+To finish the proof, consider a trace $\atrace \in \iaccess[\pifs{\ivr}{\plgroup\ausprg;\pwhile{\ivr}{\ausprg}\prgroup}]{\I}$ and show that it is also in $\iaccess[\pwhile{\ivr}{\ausprg}]{\I}$. This will follow similar reasoning as in the other direction, and is also left as an exercise.
+
+\end{proof}
+
+By applying the \irref{ifb} axiom and the composition axiom \irref{composeb} on the right hand side of axiom \irref{whileiterateb}, we obtain the following minor variation of axiom \irref{whileiterateb} which we call \irref{unfold}.
+But on paper we might just as well accept either name, because both axioms follow essentially the same idea and one can easily tell which one we refer to:
+\[
+\cinferenceRule[unfold|$\dibox{\text{unfold}}$]{unfold while loop}
+{\linferenceRule[equiv]
+  {(\ivr\limply\dbox{\ausprg}{\dbox{\pwhile{\ivr}{\ausprg}}{\ausfml}}) \land (\lnot\ivr\limply\ausfml)}
+  {\axkey{\dbox{\pwhile{\ivr}{\ausprg}}{\ausfml}}}
+}{}%
+\]
+
+\begin{lemma}
+  The following axiom is a \dfn[axiom!derived]{derived axiom}, so can be proved from the other axioms in sequent calculus, and is, thus, sound:
+  \[
+  \cinferenceRuleQuote{unfold}
+  \]
+\end{lemma}
+\begin{proof}
+The axiom \irref{unfold} can be proved from the other axioms by using some of them in the backwards implication direction:
+\begin{sequentdeduction}[array]
+\linfer[composeb]
+{\linfer[ifb]
+  {\linfer[whileiterateb]
+    {\lclose}
+    {\lsequent{} {{\dbox{\pwhile{\ivr}{\ausprg}}{\ausfml}}\lbisubjunct
+ {\dbox{\pifs{\ivr}{\plgroup\ausprg;\pwhile{\ivr}{\ausprg}\prgroup}}{\ausfml}}}}
+ }
+  {\lsequent{} {{\dbox{\pwhile{\ivr}{\ausprg}}{\ausfml}}\lbisubjunct
+ {(\ivr\limply\dbox{\ausprg;\pwhile{\ivr}{\ausprg}}{\ausfml}) \land (\lnot\ivr\limply\ausfml)}}}
+}
+{\lsequent{} {{\dbox{\pwhile{\ivr}{\ausprg}}{\ausfml}}\lbisubjunct
+ {(\ivr\limply\dbox{\ausprg}{\dbox{\pwhile{\ivr}{\ausprg}}{\ausfml}}) \land (\lnot\ivr\limply\ausfml)}}}
+\end{sequentdeduction}
+\end{proof}
+
+Every time we need the derived axiom \irref{unfold}, we could instead write down this sequent proof to prove it.
+It just won't be very efficient, so instead we will settle for deriving axiom \irref{unfold} in the sequent calculus once and then just believing it from then on.
+
+\section{Summary and next steps}
+The axioms introduced in this lecture are summarize in \rref{fig:elementary-program-axioms}.
+\begin{figure}[tbp]
+  \begin{calculus}
+    \cinferenceRuleQuote{assignb}
+    \cinferenceRuleQuote{assertb}
+    \cinferenceRuleQuote{ifb}
+    \cinferenceRuleQuote{composeb}
+    \cinferenceRuleQuote{whileiterateb}
+    \cinferenceRuleQuote{unfold}
+  \end{calculus}
+  \caption{Axioms of the day}
+  \label{fig:elementary-program-axioms}
+\end{figure}
+
+Today we saw how the axioms of dynamic logic allow us to reason about contract safety properties by reducing such questions to simpler ones involving arithmetic. From a practical standpoint this is a win because there already exist automated tools for solving arithmetic formulas, and we can make good use of them to automatically determine whether a program is safe to run. But this isn't entirely true, as the \irref{unfold} and \irref{whileiterateb} axioms don't actually make things simpler---after applying them, we are left with a formula that is actually more complicated because it contains a copy of the original program! In the next lecture, we will study a technique called \emph{bounded model checking} that uses \irref{whileiterateb} to automatically verify safety properies up to a given execution depth. You will use bounded model checking on C code in the first lab to check for memory safety, but it is not an ideal technique in every setting so in subsequent lectures we will see how to address its shortcomings.
+
+\bibliography{platzer,bibliography}
+\end{document}

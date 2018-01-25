@@ -208,7 +208,7 @@ Note that if $\iget[state]{\I} = \errstate$ then the state does not map any vari
 The semantics of a program is comprised of the set of traces that is possible when running it. A trace $\atrace$ is either a finite sequence of states $(\sigma_0, \sigma_1, \ldots, \sigma_n)$ of some length $n \in \naturals$, or an infinite sequence of states, one for each natural number, of length $\infty$: $(\sigma_0, \sigma_1, \sigma_2, \ldots)$. We say that a trace \emph{terminates} if and only if it is finite, and its last state is not the error state \errstate. If a trace is finite and its last state is \errstate, we say that it \emph{aborts}. Otherwise, we say that the trace \emph{diverges} if it is infinite.
 
 \begin{definition}[Trace semantics of programs] \label{def:program-trace}
-  \newcommand{\ws}{\omega}\newcommand{\wt}{\nu}%
+  \newcommand{\ws}{\omega}\newcommand{\wt}{\nu}% 
   % \renewcommand{\I}{\iconcat[state=\ws]{\stdI}}%
   % \renewcommand{\It}{\iconcat[state=\wt]{\stdI}}%
   
@@ -479,60 +479,6 @@ But that is really easy in logic because we can simply use implication for the j
 And, indeed, this formula will now turn out to be valid, so true in all states.
 In particular, in every initial state it is true that if that initial state satisfies the \verb'@requires' preconditions \(b \ge 0\), then all states reached after running the \texttt{gcd} program will satisfy the \verb'@ensures' postconditions \(\texttt{post} \land \texttt{post2}\).
 If the initial state does not satisfy the precondition, then the implication does not claim anything, because it makes an assumption about the initial state that apparently is not presently met.
-
-\section{Dynamic Logic Semantics}
-
-One thing that dynamic logic does is to make the meaning of contracts, and later on more general safety properties, completely precise. Of course, we need a semantics to accomplish this, which is our next task.
-
-Like in the semantics for arithmetic formulas given in Definition~\ref{def:arithmetic-semantics}, the truth value of a dynamic logic formula depends on a state $\iget[state]{\I}$ that maps variables to values that we will assume are integers. The semantics for terms in Dynamic Logic is the same as before (Definition~\ref{def:term-semantics}), and so are the semantics for the predicate $\le,=$ and logical connectives $\land,\lor,\ldots$. We repeat the latter semantics below in Definition~\ref{def:DL-semantics} for completeness.
-
-\begin{definition}[Semantics of dynamic logic] \label{def:DL-semantics}
-The DL formula $\asfml$ is true in state $\iportray{\I}$, written \(\imodels{\I}{\asfml}\), as inductively defined by distinguishing the shape of formula $\asfml$:
-\begin{enumerate}
-\item \(\imodels{\I}{\astrm=\bstrm}\) iff \(\ivaluation{\I}{\astrm}=\ivaluation{\I}{\bstrm}\)
-
-\item \(\imodels{\I}{\astrm\leq\bstrm}\) iff \(\ivaluation{\I}{\astrm}\leq\ivaluation{\I}{\bstrm}\)
-
-\item \(\imodels{\I}{\asfml\land\bsfml}\) iff \(\imodels{\I}{\asfml}\) and \(\imodels{\I}{\bsfml}\).
-
-\item \(\imodels{\I}{\asfml\lor\bsfml}\) iff \(\imodels{\I}{\asfml}\) or \(\imodels{\I}{\bsfml}\).
-
-\item \(\imodels{\I}{\lnot\asfml}\) iff \(\inonmodels{\I}{\asfml}\), i.e. it is not the case that \(\imodels{\I}{\asfml}\).
-
-\item \(\imodels{\I}{\asfml\limply\bsfml}\) iff \(\inonmodels{\I}{\asfml}\) or \(\imodels{\I}{\bsfml}\).
-
-\item \(\imodels{\I}{\asfml\lbisubjunct\bsfml}\) iff both are true or both false, i.e., it is either the case that both \(\imodels{\I}{\asfml}\) and \(\imodels{\I}{\bsfml}\) or it is the case that \(\inonmodels{\I}{\asfml}\) and \(\inonmodels{\I}{\bsfml}\).
-
-\item \(\imodels{\I}{\lforall{x}{\asfml}}\) iff \(\imodels{\It}{\asfml}\) for all states $\iget[state]{\It}$ that only differ from $\iget[state]{\I}$ in the value of variable $x$.
-
-\item \(\imodels{\I}{\lexists{x}{\asfml}}\) iff \(\imodels{\It}{\asfml}\) for at least one state $\iget[state]{\It}$ that only differs from $\iget[state]{\I}$ in the value of variable $x$.
-
-\item \(\imodels{\I}{\dbox{\asprg}{\asfml}}\) iff \(\atrace_n \models \asfml\) for all final states $\atrace_n$ reachable on traces of $\asprg$ starting in $\iget[state]{\I}$, i.e.\ for all finite traces \((\atrace_0, \ldots, \atrace_n) \in \iaccess[\asprg]{\I}\) where $\atrace_0 = \omega$, it is true that \(\atrace_n \models \ausfml\).
-
-\item \(\imodels{\I}{\ddiamond{\asprg}{\asfml}}\) iff there is at least one finite trace $\atrace$ of $\asprg$ starting in $\iget[state]{\I}$ where the final state $\atrace_n \models \ausfml$, i.e.\ there exists \((\atrace_0, \ldots, \atrace_n) \in \iaccess[\asprg]{\I}\) where \(\atrace_n \models \ausfml\) and \(\atrace_0 = \iget[state]{\I}\).
-\end{enumerate}
-\end{definition}
-
-\begin{lemma}[Determinism] \label{lem:determinism}
-  The programs $\asprg$ from \rref{def:deterministic-program} are \dfn{deterministic}, that is, for every initial state $\iget[state]{\I}$ there is at most one trace $\atrace$ such that $\sigma \in \iaccess[\asprg]{\I}$ and $\sigma_0 = \iget[state]{\I}$.
-\end{lemma}
-\begin{proof}
-The proof is by induction on the structure of the program $\asprg$ and a good exercise.
-\end{proof}
-
-
-Because of determinacy, dynamic logic for the deterministic programs from \rref{def:deterministic-program} also satisfy another particularly close relationship of the box and the diamond modality:
-\begin{lemma}[Deterministic program modality relation]
-  Because the programs $\asprg$ from \rref{def:deterministic-program} are \emph{deterministic}, they make the following formula valid for all formulas $\asfml$:
-  \[
-  \ddiamond{\asprg}{\asfml} \limply \dbox{\asprg}{\asfml}
-  \]
-\end{lemma}
-\begin{proof}
-Suppose that $\omega \models \ddiamond{\asprg}{\ausfml}$. Then by the semantics of the diamond modality, there is at least one trace $\atrace \in \llbracket\asprg\rrbracket$, and moreover that trace is finite and the final state $\atrace_n \models \ausfml$. Because of \rref{lem:determinism}, there is at most one final state for any given initial state, which means that $\atrace$ is the \emph{only} trace with initial state $\atrace_0 = \omega$, so by the semantics of the box modality $\omega \models \dbox{\asprg}{\asfml}$.
-\end{proof}
-Colloquially, we also refer to this lemma as the ``one for all'' principle.
-We will occasionally have reason to work with a more general notion of programs that is no longer deterministic, so we should carefully mark all uses of this determinism principle to avoid getting confused about which results depend on determinism.
 
 \section{Next lecture}
 In this lecture we formalized safety properties in terms of the semantics of programs in our core language. We then zoomed in on one particular kind of safety property corresponding to program contracts, and saw how to make their meaning precise using dynamic logic. This is nice, but we didn't go to all the trouble of introducing (another) new logic just to write contracts down in a different way. In the next lecture, we will study several useful axioms of dynamic logic, and see how to use them in sequent calculus proofs of program safety. This will lay the groundwork for understanding how two important automated safety verification techniques, called \emph{bounded model checking} and \emph{symbolic execution}, work to identify safety vulnerabilities in real code.
