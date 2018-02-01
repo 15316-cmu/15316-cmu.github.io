@@ -1,0 +1,621 @@
+\documentclass[11pt,twoside]{scrartcl}
+%\documentclass[11pt,twoside]{article}
+
+%opening
+\newcommand{\lecid}{15-316}
+\newcommand{\leccourse}{Software Foundations of Security and Privacy}
+\newcommand{\lecdate}{} %e.g. {October 21, 2013}
+\newcommand{\lecnum}{6}
+\newcommand{\lectitle}{Memory Safety \& Software Fault Isolation}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecurl}{https://15316-cmu.github.io/index}
+
+\usepackage{varwidth}
+\usepackage{lecnotes}
+\usepackage[irlabel]{bugcatch}
+
+\usepackage{tikz}
+\usetikzlibrary{automata,shapes,positioning,matrix,shapes.callouts,decorations.text,patterns,trees,backgrounds}
+
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+\begin{document}
+
+\newcommand{\atrace}{\sigma}%
+%% the standard interpretation naming conventions
+\newcommand{\stdI}{\dTLint[state=\omega]}%
+\newcommand{\Ip}{\dTLint[trace=\atrace]}%
+\newcommand{\ws}{\omega}\newcommand{\wt}{\nu}% 
+
+\maketitle
+\thispagestyle{empty}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction \& Recap}
+
+In the previous lecture we talked about \emph{bounded model checking} and \emph{symbolic execution}, two fully-automated techniques for checking safety properties on programs. Bounded model checking relies on the \irref{unfold} axiom for while loops, applying it repeatedly on each loop in the program up to a bounded number of times. Once this bound is reached, other axioms are used to reduce the proof to a series of \emph{verification conditions} (VCs), or formulas of arithmetic whose validity implies the safety of the corresponding path, and can be discharged by an automated decision procedure.
+
+Bounded model checking is useful in that it checks safety on all paths of length up to the given bound. However, the fact that it is exhaustive in this way sometimes means that it is too expensive to apply to programs with many possible paths, even for a modest bound. An alternative approach is to use symbolic execution to select a subset of paths that are of particular interest according to some external heuristic. Symbolic execution then follows the same basic procedure as bounded model checking, using sound axioms to rewrite the safety property applied to a path until an arithmetic VC is obtained. 
+
+Both techniques are useful for finding safety violations in programs, but are of limited utility when it comes to proving the \emph{absence} of violations on all traces. There is good reason for this limitation, as the problem of proving the latter claim is undecidable. Our focus on this class is on making sure that security violations do not occur, so we need not limit ourselves to static proofs of correctness with respect to the policy. Another alternative is to take steps to change the execution of a program so that it does not violate safety. We will examine this further today, first extending our language to support pointer operations over memory, and then discussing memory safety as well as a more flexible mechanism for policy enforcement called \emph{software fault isolation}~\cite{Sehr2010,Yee2009}.
+
+\section{Pointers \& memory safety}
+
+So far the programs that we have studied are not too interesting. While it is possible to write some non-trivial programs in the simple imperative language like Euclidean division, lots of interesting functionality like searching and sorting would be tedious to implement without arrays or some other form of indexed storage. So let's add a new feature to address this.
+
+While most imperative programming languages support convenient dynamic memory allocation and access with syntax like \verb'malloc' and \verb'a[i]', at the end of the day this is nothing more than syntactic sugar for managing a large integer-indexed array of values. We can add basic support for this to our language by introducing pointers, and adding an integer-indexed memory to our program state. Now terms in our language will have the following syntax.
+\[
+  \astrm,\bstrm ~\bebecomes~
+  x
+  \alternative
+  c
+  \alternative
+  \astrm+\bstrm
+  \alternative
+  \astrm\cdot\bstrm
+  \alternative
+  \pderef{\astrm}
+\]
+The term $\pderef{\astrm}$ denotes the value obtained by evaluating $\astrm$ in the current state, and accessing the memory at the corresponding index. This takes care of reading from the memory array, now we add support for updating memory by introducing a new type of program command.
+\begin{equation*}
+  \asprg,\bsprg ~\bebecomes~
+  \pupdate{\pumod{x}{\astrm}}
+  \alternative
+  \pupdate{\pumod{\pderef{\astrm}}{\bstrm}}
+  \alternative
+  \passert{\ivr}
+  \alternative
+  \pif{\ivr}{\asprg}{\bsprg}
+  \alternative
+  \asprg;\bsprg
+  \alternative
+  \pwhile{\ivr}{\asprg}
+\end{equation*}
+The command $\pupdate{\pumod{\pderef{\astrm}}{\bstrm}}$ evaluates $\astrm$ and $\bstrm$ in the current state, and sets the value of memory indexed at the value of $\astrm$ to the value of $\bstrm$.
+
+Now for the semantics. We will need to track the value of variables as we did before with a mapping from variables to values. But we will also need to track the state of the memory, which we will formalize as a partial mapping from non-negative integers to values. Real machines don't have unlimited memory, which is why the mapping is partial: we assume that the memory can hold at most \maxmem values, so the mapping is only defined on $0 \le i \le \maxmem$. 
+
+We will continue to denote states by $\omega$, and write $\omega_V(x)$ to refer to the value of the variable mapping, and $\omega_M(x)$ to refer to the memory array. The semantics of terms can now be defined as follows.
+\begin{definition}[Semantics of terms]
+\label{def:term-semantics}
+The \emph{semantics of a term} $\astrm$ in a state $\omega$ is its value $\omega\llbracket\astrm\rrbracket$.
+It is defined inductively by distinguishing the shape of term $\astrm$ as follows:
+\begin{itemize}
+  \item \m{\omega\llbracket x\rrbracket = \omega_V(x)} for variable $x$
+  \item \m{\omega\llbracket c\rrbracket = c} for number literals $c$
+  \item \m{\omega\llbracket\astrm\odot\bstrm\rrbracket = \omega\llbracket\astrm\rrbracket \odot \omega\llbracket\bstrm\rrbracket}, where $\odot \in \{+,\times\}$
+  \item \m{\omega\llbracket\pderef{\astrm}\rrbracket = \omega_M(\omega\llbracket\astrm\rrbracket)} if $0 \le \omega\llbracket\astrm\rrbracket) < \maxmem$, else undefined
+\end{itemize}
+\end{definition}
+Adding pointers to our language has led to a complication: now terms can be undefined. Specifically, if $\astrm$ evaluates to a negative number, or a number larger than the maximum memory size \maxmem, then the term $\pderef{\astrm}$ is not defined.
+
+This complication manifests in how we define the semantics of formulas. Because terms can now be undefined in certain states, we need to account for this in the semantics of formulas that might include terms. Whenever a term in a formula is undefined in a particular state, then the value of the formula is as well.
+
+\begin{definition}[Semantics of arithmetic formulas] \label{def:arithmetic-semantics}
+The DL formula $\asfml$ is true in state $\iportray{\I}$, written \(\imodels{\I}{\asfml}\), as inductively defined by distinguishing the shape of formula $\asfml$:
+\begin{enumerate}
+\item \(\inonmodels{\I}{\mfalse}\), i.e., \mfalse is true in no states
+\item \(\imodels{\I}{\mtrue}\), i.e., \mtrue is true in all states
+\item \(\imodels{\I}{\astrm=\bstrm}\) iff \(\ivaluation{\I}{\astrm}=\ivaluation{\I}{\bstrm}\) and both terms are defined in $\omega$.
+\item \(\imodels{\I}{\astrm\leq\bstrm}\) iff \(\ivaluation{\I}{\astrm}\leq\ivaluation{\I}{\bstrm}\) and both terms are defined in $\omega$.
+\item \(\imodels{\I}{\asfml\land\bsfml}\) iff \(\imodels{\I}{\asfml}\) and \(\imodels{\I}{\bsfml}\) if $P$ and $Q$ are defined in $\omega$.
+\item \(\imodels{\I}{\asfml\lor\bsfml}\) iff \(\imodels{\I}{\asfml}\) or \(\imodels{\I}{\bsfml}\)  if $P$ and $Q$ are defined in $\omega$.
+\item \(\imodels{\I}{\lnot\asfml}\) iff \(\inonmodels{\I}{\asfml}\) if $P$ is defined in $\omega$.
+\item \(\imodels{\I}{\asfml\limply\bsfml}\) iff \(\inonmodels{\I}{\asfml}\) or \(\imodels{\I}{\bsfml}\) and $P$ and $Q$ are defined in $\omega$.
+\item \(\imodels{\I}{\asfml\lbisubjunct\bsfml}\) iff both are true or both false and $P$ and $Q$ are defined in $\omega$.
+\end{enumerate}
+\end{definition}
+
+Finally, we get to the semantics of programs. Obviously we need to add a new definition for the memory update command $\pupdate{\umod{\pderef{\astrm}}{\bstrm}}$. But programs may contain terms and formulas, which we now know can be undefined in some states. We define the semantics of a program with a term or formula that is undefined in a state as aborting in the next subsequent state.
+
+First some notation.
+If $\omega_M$ is a memory in state $\omega$, then we write $\memupd{\omega_M}{\astrm}{\bstrm}$ to denote the new memory obtained by copying $\omega_M$, and changing its mapping at $\omega\llbracket\astrm\rrbracket$ to map to $\omega\llbracket\bstrm\rrbracket$. So suppose that $\omega_M(0) = 1, \omega_M(1) = 2$. Then $\memupd{\omega_M}{1}{3}(0) = 1$ and  $(\memupd{\omega_M}{1}{3})(1) = 3$. We can apply this update notation multiple times, so that:
+\[
+\memupd{\memupd{\omega_M}{1}{3}}{0}{4}(0) = 4, \memupd{\memupd{\omega_M}{1}{3}}{0}{4}(1) = 3
+\]
+We'll adopt the convention that the rightmost update to a particular index is the one that we use when looking up values. So for example,
+\[
+\memupd{\memupd{\omega_M}{1}{3}}{1}{4}(1) = 4
+\]
+
+\begin{definition}[Trace semantics of programs] \label{def:program-trace}
+  % \newcommand{\ws}{\omega}\newcommand{\wt}{\nu}% 
+  % \renewcommand{\I}{\iconcat[state=\ws]{\stdI}}%
+  % \renewcommand{\It}{\iconcat[state=\wt]{\stdI}}%
+  
+The \dfn[valuation!of~programs]{trace semantics $\iaccess[\alpha]{\I}$ of a program}~$\alpha$ is the set of all its possible traces and is defined inductively as follows:
+    % \index{_\tau(\alpha)_@$\tau(\alpha)$}%
+    \begin{enumerate}
+    \item
+      \m{\iaccess[\pupdate{\umod{x}{\astrm}}]{\I}}
+      =
+      \begin{tabular}{l}
+      \(\{(\iget[state]{\I},\iget[state]{\It}) \with \omega\llbracket\astrm\rrbracket~\text{is defined and}~
+      \iget[state]{\It}=\iget[state]{\I}~\text{except that}~ \nu_V(x)=\ivaluation{\I}{\astrm}\}\ \cup\) 
+      \\
+      \(\{(\iget[state]{\I},\errstate) \with \omega\llbracket\astrm\rrbracket~\text{is not defined}\}\)
+      \end{tabular}
+
+  \item \m{\iaccess[\pupdate{\umod{\pderef{\astrm}}{\bstrm}}]{\I}}
+          =
+          \begin{tabular}{l}
+          \(\{(\omega,\nu) \with 0 \le \omega\llbracket\astrm\rrbracket \le \maxmem, \omega\llbracket\bstrm\rrbracket~\text{defined}, \nu_M = \memupd{\omega_M}{\omega\llbracket\astrm\rrbracket}{\omega\llbracket\bstrm\rrbracket}\}\ \cup\) \\
+          \(\{(\iget[state]{\I},\errstate) \with \lnot(0 \le \omega\llbracket\astrm\rrbracket \le \maxmem)~\text{or}~\omega\llbracket\bstrm\rrbracket~\text{not defined}\}\)
+          \end{tabular}
+   
+   \item \(\iaccess[\passert{\ivr}]{\I}\)
+      =
+      \begin{tabular}{l}
+      \(\{(\ws) \with \omega\llbracket\astrm\rrbracket~\text{is defined and}~
+      \imodels{\I}{\ivr}\} \cup\) \\
+      \(\{(\ws,\errstate) \with \omega\models\ivr~\text{is not defined or}~
+      \inonmodels{\I}{\ivr}\}\)
+      \index{$\ptest{}$}
+      \end{tabular}
+    
+    \item \(\iaccess[\pif{\ivr}{\alpha}{\beta}]{\I}\) =
+      \begin{tabular}{l}
+      \(\{\atrace \in \iaccess[\alpha]{\I} \with \atrace_0\llbracket\astrm\rrbracket~\text{is defined and}~\atrace_0 \models \ivr\}\ \cup\) \\
+      \(\{\atrace \in \iaccess[\beta]{\I} \with \atrace_0\llbracket\astrm\rrbracket~\text{is defined and}~\atrace_0 \nonmodels \ivr\}\ \cup\) \\
+      \(\{(\omega,\errstate) \with \omega\models\ivr~\text{is not defined}\}\)
+      \end{tabular}
+    
+    \item \(\iaccess[{\alpha};{\beta}]{\I} =
+      \{\atrace \compose \varsigma \with \atrace\in\iaccess[\alpha]{\I} \mand \varsigma\in\iaccess[\beta]{\I}\}\);\\
+      the composition of~\m{\atrace=(\atrace_0,\atrace_1,\atrace_2,\dots)} and~\m{\varsigma=(\varsigma_0,\varsigma_1,\varsigma_2,\dots)} is
+      \[
+      \atrace \compose \varsigma \eqdef
+      \begin{cases}
+        (\atrace_0,\dots,\atrace_n,\varsigma_1,\varsigma_2,\dots) &\mylpmi[\text{if}~] \text{$\atrace$ terminates in $\atrace_n$}~\text{and}~\atrace_n=\varsigma_0\\
+        \atrace &\mylpmi[\text{if}~] \atrace~\text{does not terminate}
+      \end{cases}
+      \]
+    
+    \item \(\iaccess[\pwhile{\ivr}{\alpha}]{\I}\)
+      =
+      \begin{tabular}{l}
+        \(\{\atrace^{(0)} \compose \dots \compose \atrace^{(n)} \with\)
+          for all $0\leq i<n$:
+          $\atrace^{(i)}_0 \models \ivr$,
+          $\atrace^{(i)} \in \iaccess[\asprg]{\Iz[i]}$, and \\
+          \ \ $\atrace^{(n)}$ either doesn't terminate terminates where $\atrace^{(n)}_m \nonmodels \ivr\}~\cup$
+        \\
+        \(\{\atrace^{(0)} \compose \atrace^{(1)} \compose \atrace^{(2)} \compose \dots \with\)
+          for all $i\in\naturals$:
+          \m{\atrace^{(i)}_0 \models \ivr},
+          \m{\atrace^{(i)} \in \iaccess[\asprg]{\Iz[i]}}$\}~\cup$
+        \\
+        \(\{(\iget[state]{\I}) \with \inonmodels{\I}{\ivr}\}~\cup\)
+        \\
+        \(\{(\omega,\errstate) \with \omega\models\ivr~\text{not defined}\)
+      \end{tabular}
+    \end{enumerate}
+\end{definition}
+While it may be tedious to track the presence of undefined terms and formulas through the evaluation of a program, we will see that this is central to the very definition of what memory safety means for a particular programming language.
+
+\paragraph{Axioms and Proof Rules.}
+Now we have semantics for programs with pointers and indexed memory, the next logical thing to do is find some useful axioms to help us reason about them. 
+
+Just as we had an axiom for assignment to variables, we have a similar axiom for updates to a pointer. But in the assignment axiom, we performed a syntactic substitution of the target variable in the postcondition. In this case we can readily see that looking for mere occurrences of a pointer expression will not suffice. Consider the following:
+\begin{equation}
+\dbox{x:=1;y:=1;\pderef{x}:=0}{\pderef{y}\ne0}
+\end{equation}
+After executing the first two assignments, $\pderef{x}$ and $\pderef{y}$ point to the same memory location. So if we tried to close out a proof like the following:
+\begin{sequentdeduction}
+\linfer[assignb] {
+  \lsequent{\pderef{y}\ne0,x=1,y=1}{\pderef{y}\ne0}
+} {
+  \lsequent{\pderef{y}\ne0,x=1,y=1}{\dbox{\pderef{x}:=0}{\pderef{y}\ne0}}
+}
+\end{sequentdeduction}
+then we would be misled to say the least. Rather, we need to make sure that the update is reflected in any subsequent memory read to the same address, regardless of the syntactic form of the index term. Perhaps something like the following:
+\begin{equation}
+\label{eq:halfaxiom}
+\dbox{\pderef{\astrm}:=\bstrm}{p(\pderefop)}
+\lbisubjunct
+p(\memupd{\pderefop}{\astrm}{\bstrm})
+\end{equation}
+Now when we repeat the derivation from before,
+\begin{sequentdeduction}
+\linfer {
+  \lsequent{\pderef{y}\ne0,x=1,y=1}{\memupd{\pderefop}{x}{0}(y)\ne0}
+} {
+  \lsequent{\pderef{y}\ne0,x=1,y=1}{\dbox{\pderef{x}:=0}{\pderef{y}\ne0}}
+}
+\end{sequentdeduction}
+there is no way to close out the proof because $x=y$ and $\memupd{\pderefop}{x}{0}(y) = 0$. But this proof rule isn't sound, because what if $\astrm$ evaluates to an out-of-bounds value? 
+We need to add an assertion that the value of $\astrm$ is within the correct range. This leads to the \irref{mwrite} axiom, which combines Equation~\ref{eq:halfaxiom} with the in-bounds check.
+\[
+\cinferenceRule[mwrite|$\dibox{*}_{=}$]{mwrite}
+{\linferenceRule[equiv]
+  {p(\memupd{\pderefop}{\astrm}{\bstrm}) \land 0 \le \astrm < \maxmem}
+  {\axkey{\dbox{\pderef{\astrm}:=\bstrm}{p(\pderefop)}}}
+}{}%
+\]
+Axiom \irref{mwrite} takes care of what to do when we update memory, but we also need a way to reason about reads from memory. If we only ever reason about programs that never update memory, then this is easy because anything we need to know about its value at particular indices is already in our assumptions. We can then work with it like we would any other set of value, essentially treatig each index like a separate constant.
+
+But what about programs that update memory and then read from it afterwards? There are two cases to cover: reading from an index that was previously written to, and reading from one that was not. In the first case, we have some memory $\memupd{\pderefop}{\astrm}{\bstrm}$ and we perform an access $\memupd{\pderefop}{\astrm}{\bstrm}(\astrm')$ where $\astrm = \astrm'$ in the current state. Then the value that is read from memory will be $\bstrm$. But of course we also need to make sure that we are reading from an index in the appropriate range. This is captured in the \irref{mreadeq} rules.
+\[
+\cinferenceRule[mreadeq|$\dibox{*}_{1}$]{mreadeq}
+{\linferenceRule[sequent]
+  {
+    \lsequent{\Gamma}{\astrm=\astrm'}
+    &\lsequent{\Gamma}{0 \le \astrm < \maxmem}
+  }
+  {\lsequent{\Gamma}{\memupd{\pderefop}{\astrm}{\bstrm}(\astrm')=\bstrm}}
+}{}%
+\]
+In the case where $\astrm\ne\astrm'$, we use similar reasoning to conclude that $\memupd{\pderefop}{\astrm}{\bstrm}(\astrm')$ takes whatever the value at index $\astrm'$ in $\pderefop$ was \emph{before} the update, i.e. $\pderef{\astrm'}$. This gives us the \irref{mreadneq} rules.
+\[
+\cinferenceRule[mreadneq|$\dibox{*}_{2}$]{mreadneq}
+{\linferenceRule[sequent]
+  {
+    \lsequent{\Gamma}{\astrm\ne\astrm'}
+    &\lsequent{\Gamma}{0 \le \astrm < \maxmem}
+  }
+  {\lsequent{\Gamma}{\memupd{\pderefop}{\astrm}{\bstrm}(\astrm')=\pderef{\astrm'}}}
+}{}%
+\]
+The axiom \irref{mwrite} and rules \irref{mreadeq}, \irref{mreadneq} are sufficient to prove safety properties about programs with pointer operations. 
+
+\paragraph{Memory safety.} The term \emph{memory safety} refers to a set of properties that depends on the particulars of the language and instruction set architecture on which the program ultimately executes. But the common intent shared by all such properties is that programs satisfying memory safety never use pointers in a way that causes undefined behavior or forces the program to abort. 
+
+In our simplified language with pointers, any ``bad'' use of memory immediately leads to an abort on the corresponding trace, so we can define memory safety as the set of traces that do not abort due to a pointer read or write.
+
+\begin{definition}[Memory safety]
+A program $\asprg$ satisfies memory safety if and only if for all $\sigma\in\llbracket\asprg\rrbracket$, whenever $\sigma$ is finite and $\sigma_n = \errstate$ then the last command executed on $\sigma$ was not a pointer read or write. 
+\end{definition}
+
+One thing to notice is that when we use these axioms to prove \emph{any} property about a program that uses pointers, we are forced to prove memory safety as well. The only case that me might forget to prove memory safety for is when a read is performed on memory without first having updated it. We can help ourselves remember to do this by replacing each command $\asprg$ that reads from memory in term $\pderef{\astrm}$ with the following composed command:
+\begin{equation}
+\label{eq:memorysafe}
+\passert{0 \le \astrm < \maxmem};\asprg
+\end{equation}
+
+This is a theorem that we are able to prove, in fact.
+\begin{theorem}
+For any formula $\ausfml$ and program $\asprg$ that has been rewritten according to (\ref{eq:memorysafe}), if $\lsequent{\Gamma}{\dibox{\asprg}{\ausfml}}$, i.e. $\dibox{\asprg}{\ausfml}$ is provable from assumptions $\Gamma$ using \irref{mwrite}, \irref{mreadeq}, and \irref{mreadneq} in addition to other axioms of dynamic logic, then $\asprg$ satisfies memory safety.
+\end{theorem}
+\begin{proof}
+The way to prove this is by induction on the structure of proofs, just as we did to prove the soundness of the propositional sequent calculus and will do to prove Theorem~\ref{thm:sfi-correctness} later in this lecture. This is a good exercise to complete on your own.
+\end{proof}
+
+\section{Software Fault Isolation}
+Memory safety is an important policy in that we would want any useful program to be memory safe. But there are other sorts of safety policies on memory that we might want to enforce more selectively on only certain programs. For example, consider the following pseudocode that checks a configuration variable to determine whether or not to display and advertisement. If so, then the program runs $\asprg$ to render an ad on the screen.
+\[
+\pif{\textit{display ads}}{\asprg}{\textit{continue without ads}}
+\]
+Suppose that $\asprg$ was provided by the ad network, then we may have good reason not to trust $\asprg$. Perhaps the ad network hires dumb programmers, and we fully expect their $\asprg$ to accidentially trample on memory that it isn't supposed to. Or maybe we got a great deal from \emph{Vladimir's Fancy Bear Ad Network}, and despite Valdimir's assurances that his rendering code is ``Totally 100\% safe!'', there are lingering doubts. 
+
+Luckily we know all about proving safety, so perhaps we can use logic and deduction to show that our program remains safe. What could $\asprg$ do to ruin our day? One thing is that because it executes in the state space of our original code, it can change the values of any variables at will to whatever it likes. Perhaps that's not so bad, because our program only uses a limited number of variables and we have a lot of memory to work with. But $\asprg$ could also change memory arbitrarily, and this is certainly a bad thing. It could also read the contents of memory and render them to the screen, or worse yet, send them back to the ad network. This is also a bad thing that we want to prevent.
+
+\subsection{Sandboxing safety}
+One solution is to create a virtual sandbox for $\asprg$ to play in. We will give it free reign over a limited region of memory, and construct our program so that by the time $\asprg$ runs, our correctness doesn't depend on the contents of that region. We will also let it do whatever it wants with the variables, isolating the rest of our program from the effects of these operations by first saving all of our variables to a part of memory outside $\asprg$'s sandbox region, and restoring them after $\asprg$ finishes.
+
+Supposing our machine only has a very limited 16-element memory, our segmentation would look something like the following with the parts shaded green comprising the safe memory set aside for our program, and the parts in red the sandbox for $\asprg$.
+
+\begin{center}
+\begin{tikzpicture}[%
+    arraynode/.style={
+        draw,
+        node contents={[\the\numexpr\pgfmatrixcurrentrow-2\relax][\the\numexpr\pgfmatrixcurrentcolumn-2\relax]},
+        alias=n\the\numexpr\pgfmatrixcurrentrow-2\relax\the\numexpr\pgfmatrixcurrentcolumn-2\relax
+        },
+    columnlabel/.style={
+        minimum size=0pt,
+        draw=none,
+        red,
+        node contents={\the\numexpr\pgfmatrixcurrentcolumn-2\relax},
+        alias=c\the\numexpr\pgfmatrixcurrentcolumn-2\relax
+        },      
+    rowlabel/.style={
+        minimum size=0pt,
+        draw=none,
+        red,
+        node contents={\the\numexpr\pgfmatrixcurrentrow-2\relax},
+        alias=r\the\numexpr\pgfmatrixcurrentrow-2\relax
+        },      
+    emptynode/.style={node contents=~, draw=none},
+    font=\ttfamily,
+    array/.style={%
+        matrix of nodes,
+        nodes = arraynode,
+        column sep=-\pgflinewidth,
+        row sep=-\pgflinewidth, 
+        nodes in empty cells,
+        row 1/.style={nodes=columnlabel},
+        column 1/.style={nodes=rowlabel},
+        row 1 column 1/.style={%
+            nodes=emptynode}}, 
+    rowlabel2/.style={
+        inner sep=2pt,
+        draw=none,
+        font=\small\ttfamily,
+        node contents={\the\numexpr-1+\pgfmatrixcurrentcolumn\relax},
+        alias=m\the\numexpr-1+\pgfmatrixcurrentcolumn\relax
+        },      
+    memoryrow/.style={%
+        matrix of nodes,
+        row 1/.style={nodes = {draw, minimum size=7mm}},
+        column sep=-\pgflinewidth,
+        row sep=-\pgflinewidth, 
+        nodes in empty cells,
+        row 2/.style={nodes=rowlabel2}}, 
+    memory/.style={%
+        matrix of nodes,
+        nodes={draw, minimum size=6mm, anchor=center},
+        row 1/.style={nodes = {columnlabel, black}},
+        column 1/.style={nodes = {rowlabel, black}},
+        row 1 column 1/.style={nodes = emptynode},
+        column sep=-\pgflinewidth,
+        row sep=-\pgflinewidth, 
+        nodes in empty cells,
+    } 
+]
+
+\begin{scope}[yshift=-4cm]
+
+\matrix[memoryrow] (memrow) {
+&&&&&&&&&&&&&&&\\
+&&&&&&&&&&&&&&&\\};
+
+\node[above right=1mm and 0 of memrow-1-1.north west] {Memory};
+\draw[thick] (memrow-1-1.north west) rectangle (memrow-1-16.south east);
+
+\begin{scope}[on background layer]
+\fill[red!30] (memrow-1-9.north west) rectangle (memrow-1-16.south east);
+\fill[green!30] (memrow-1-1.north west) rectangle (memrow-1-8.south east);
+\end{scope}
+\end{scope}
+
+\end{tikzpicture}
+\end{center}
+
+Now that we have decided on a safety policy with which to execute $\asprg$, we need to figure out how to actually enforce it in our program. Intuitively, our policy defines a ``bad thing'' that is any memory access outside of the sandbox region defined by upper and lower bounds $s_l, s_h$. So we might reasonably enforce the policy by first checking that the index $i$ of any memory access operation in $\asprg$ satisfies $s_l \le i \le s_h$ before executing the operation. Luckily our language contains $\passert{\ivr}$ commands, which come in handy when implementing such checks: if the check fails, the trace aborts rather than violating the policy.
+
+So taking stock of our language, we propose to do the following \emph{instrumentation} of $\asprg$.
+\begin{itemize}
+  \item Replace each command of the form $\pderef{\astrm}:=\bstrm$ with a new composed command:
+  \[
+  \passert{s_l \le \astrm \le s_h}; \pderef{\astrm}:=\bstrm
+  \]
+  This will ensure that $\asprg$ doesn't update any locations outside the sandbox.
+
+  \item Replace any command $\bsprg$ containing the term $\pderef{\astrm}$ with the command:
+  \[
+  \passert{s_l \le \astrm \le s_h}; \bsprg
+  \]
+  This will ensure that $\asprg$ doesn't read any locations outside the sandbox.
+\end{itemize}
+This seems pretty convincing. Our language is fairly simple, so we're pretty sure that all our bases our covered in terms of sandboxing $\asprg$. The assertions themselves are a straightforward reflection of our sandboxing policy.
+
+The downside to this type of enforcement is that any violation of the sandboxing policy, regardless of whether it is inadvertent or intentionally malicious, will cause our entire program to abort. This is less than ideal, as the malice or incompetence of $\asprg$'s developers still has a direct impact on the functioning of our code. Perhaps we can do better.
+
+\subsection{Isolating policy violations}
+Rather than checking whether memory accesses are safe and aborting if the check fails, perhaps we can force all untrusted accesses to be within the sandbox. In the diagram above, we use the specific sandbox policy $s_l=8, s_h=15$. Let us assume that our language operates over machine integers, so that the sandbox boundaries are the binary constants:
+\[
+s_l = \verb'0b1000', s_h = \verb'0b1111'
+\]
+So the range of valid sandbox addresses is \verb'0b1000', \verb'0b1001', \verb'0b1010', \ldots, \verb'0b1111'. Any valid address will have the fourth bit set, and all greater bits unset. Given an arbitrary term $\astrm$, we can use bitwise operations to force it to a value in this range:
+\begin{equation}
+\label{eq:sfiex}
+(\astrm \bitand \verb'0b1111') \bitor \verb'0b1000'
+\end{equation}
+From now on, we will use hexadecimal rather than binary when writing such constants, so Equation~\ref{eq:sfiex} becomes $(\astrm \bitand \verb'0xF') \bitor \verb'0x8'$. If we assume that our sandbox regions always comprise integral boundaries (i.e., \verb'0x0000'-\verb'0x00FF', \verb'0x0100'-\verb'0x01FF', \verb'0x0200'-\verb'0x02FF'), then we can generalize this to:
+\begin{equation}
+\label{eq:sfiex}
+(\astrm \bitand s_h) \bitor s_l
+\end{equation}
+With this in mind, we change the way we instrument programs.
+\begin{itemize}
+  \item Replace each command of the form $\pderef{\astrm}:=\bstrm$ with a new composed command:
+  \[
+  \pderef{(\astrm \bitand s_h) \bitor s_l}:=\bstrm
+  \]
+  This will ensure that $\asprg$ doesn't update any locations outside the sandbox.
+
+  \item For any command $\bsprg$ containing the term $\pderef{\astrm}$, replace $\pderef{\astrm}$ with $\pderef{(\astrm \bitand s_h) \bitor s_l}$.
+  This will ensure that $\asprg$ doesn't read any locations outside the sandbox.
+\end{itemize}
+This is called \emph{software fault isolation} (SFI).
+The benefit of this approach is that as long as the sandbox is configured correctly for the memory, so that
+\begin{equation}
+0 \le s_l \le s_h < \maxmem
+\end{equation}
+Then after instrumenting the untrusted program $\asprg$, we know that \emph{(1)} it will not violate the sandbox safety policy, and \emph{(2)} it will also be memory safe! 
+
+The semantics of the instrumented program will certainly differ from the original $\asprg$, in particular if it made unsafe memory accesses, and this may lead to bugs in the instrumented code that cause it to behave otherwise than expected. But this need not concern us, as our program will be completely isolated from the effect of these bugs.
+
+\paragraph{Correctness of write instrumentation.} But how do we know that the instrumented program will actually satisfy the sandbox safety policy? Before when we used $\passert{\ivr}$ commands, we might have gotten away with an informal argument because the correctness was totally obvious. But now our instrumentation does strange things with bitwise operators to force certain behaviors. We should really be more formal about this to make sure we didn't screw things up with a bad assumption.
+
+The question becomes, how do we formalize the correctness of our sandbox policy as a safety property? Before we reasoned that the ``bad thing'' is a certain type of event, i.e. a read or write to memory locations outside the sandbox. We don't know how to prove things about these sorts of events, because all of the properties we have looked at so far define bad things  directly in terms of state. Perhaps we can think in terms of the effect that violations will have on program state instead of the events that bring those effects into being.
+
+The first type of instrumentation purports to cover all write events. If $\asprg$ violates the policy by writing outside the sandbox, then the bad thing in terms of state would be that the contents of non-sandbox memory after $\asprg$ terminates differ from their contents prior to running $\asprg$. This sounds like something that we can formalize in dynamic logic using familiar properties, i.e. contracts.
+\begin{equation}
+\label{eq:sfi-integrity}
+\forall i . \lnot(s_l \le i \le s_h)  \land \pderef{i}=v_i \limply \dbox{\asprg}{\pderef{i}=v_i}
+\end{equation}
+But how can we prove this without knowing anything about what $\asprg$ is? We can reason inductively on the syntax of programs, which is what the proof of Theorem~\ref{thm:sfi-correctness} does.
+
+\begin{theorem}
+\label{thm:sfi-correctness}
+Let $\asprg$ be a program whose memory update commands have been instrumented as prescribed by software fault isolation. Then all valid memory indices outside the sandbox retain the same value after executing $\asprg$ as they had prior to executing it. In other words, Equation~\ref{eq:sfi-integrity} is valid.
+\end{theorem}
+\begin{proof}
+We will proceed by induction on the structure of $\asprg$. That is, we will show that for all of the simplest (base case) forms that $\asprg$ can take, the claim holds. Then we will use the inductive hypothesis for more complex forms of $\asprg$, showing that the claim holds whenever we assume that it does for any subprograms inside of $\asprg$. The inductive case thus covers all possible programs that can be constructed according to the syntax we introduced at the beginning of the lecture. This means that regardless of how $\asprg$ is implemented, the safety claim will hold.
+
+The base cases of this proof correspond to programs that contain no other program constituents, i.e. $x:=\astrm$, $\pderef{\astrm}:=\bstrm$, and $\passert{\ivr}$. The inductive cases are programs that contain other programs, i.e. $\asprg;\bsprg$, $\pif{\ivr}{\asprg}{\bsprg}$, and $\pwhile{\ivr}{\asprg}$. We will complete the most challenging base case to outline the form of the proofs of the others, and leave the remaining ones as an exercise. We will do the same for one inductive case, leaving the rest as an exercise.
+
+\paragraph{\textbf{Base case} $\pderef{\astrm}:=\bstrm$:} 
+The instrumentation will replace this command with: 
+\[
+  \pderef{(\astrm \bitand s_h) \bitor s_l}:=\bstrm
+\]
+Then the following sequent derivation demonstrates correctness. Note that we use \irref{allr}, which is detailed in the aside at the end of these notes.
+\begin{sequentdeduction}
+\linfer[allr] {
+  \linfer[implyr+andl] {
+    \linfer[mwrite] {
+      \lsequent{\lnot(s_l \le i \le s_h), \pderef{i}=v_i}{\memupd{\pderefop}{(\astrm \bitand s_h) \bitor s_l}{\bstrm}(i)=v_i}
+    } {
+      \lsequent{\lnot(s_l \le i \le s_h), \pderef{i}=v_i}{\dbox{\pderef{(\astrm \bitand s_h) \bitor s_l}:=\bstrm}{\pderef{i}=v_i}}
+    }
+  } {
+    \lsequent{}{\lnot(s_l \le i \le s_h)  \land \pderef{i}=v_i \limply \dbox{\pderef{(\astrm \bitand s_h) \bitor s_l}:=\bstrm}{\pderef{i}=v_i}}
+  }
+} {
+  \lsequent{}{\forall i . \lnot(s_l \le i \le s_h)  \land \pderef{i}=v_i \limply \dbox{\pderef{(\astrm \bitand s_h) \bitor s_l}:=\bstrm}{\pderef{i}=v_i}}
+}
+\end{sequentdeduction}
+At this point we need to split into cases, because it could either be that $i = (\astrm \bitand s_h) \bitor s_l$ or $i \ne (\astrm \bitand s_h) \bitor s_l$. Depending on which case it is, we use \irref{mreadeq} or \irref{mreadneq}. We case split with the \irref{cut} rule. In the following, let
+\[
+P_1 \equiv i = (\astrm \bitand s_h) \bitor s_l, P_2 \equiv i \ne(\astrm \bitand s_h) \bitor s_l, P \equiv P_1 \lor P_2
+\]
+Then we continue with the proof as follows:
+\begin{sequentdeduction}
+\linfer[cut] {
+  \linfer[qmear] {\lclose} {\lsequent{}{P}}
+  &\ \ \linfer[orl] {
+    \textcircled{1}
+    &\textcircled{2}
+  } {
+    \lsequent{\lnot(s_l \le i \le s_h), \pderef{i}=v_i,P}{\memupd{\pderefop}{(\astrm \bitand s_h) \bitor s_l}{\bstrm}(i)=v_i}
+    % \lsequent{\lnot(s_l \le i \le s_h), \pderef{i}=v_i,P}{Q}
+  }
+} {
+  \lsequent{\lnot(s_l \le i \le s_h), \pderef{i}=v_i}{\memupd{\pderefop}{(\astrm \bitand s_h) \bitor s_l}{\bstrm}(i)=v_i}
+}
+\end{sequentdeduction}
+Continuing with subtree \textcircled{1}:
+\begin{sequentdeduction}
+\linfer[notl] {
+  \linfer[G] {
+    \linfer[qmear] {\lclose} {\lsequent{i = (\astrm \bitand s_h) \bitor s_l}{s_l \le i \le s_h}}
+  } {
+    \lsequent{\pderef{i}=v_i,i = (\astrm \bitand s_h) \bitor s_l}{s_l \le i \le s_h,\memupd{\pderefop}{(\astrm \bitand s_h) \bitor s_l}{\bstrm}(i)=v_i}
+  }
+} {
+  \lsequent{\lnot(s_l \le i \le s_h), \pderef{i}=v_i,i = (\astrm \bitand s_h) \bitor s_l}{\memupd{\pderefop}{(\astrm \bitand s_h) \bitor s_l}{\bstrm}(i)=v_i}
+}
+\end{sequentdeduction}
+We used the generalization rule to reduce the obligation to a claim about machine arithmetic, namely:
+\begin{equation}
+i = (\astrm \bitand s_h) \bitor s_l \limply s_l \le i \le s_h
+\end{equation}
+The generalization rule is given below.
+\[
+\cinferenceRule[G|G]{$\dbox{}{}$ generalization} %|$gen$
+{\linferenceRule[formula]
+  {\lsequent{\Gamma_1}{\ausfml}}
+  {\lsequent{\Gamma_1,\Gamma_2}{\ausfml,\Delta}}
+}{}%
+\]
+Intuitively, all that \irref{G} says is that if we want to prove that either $P$ or $\Delta$ holds under assumptions $\Gamma_1,\Gamma_2$, then it suffices to prove that $P$ holds only assuming $\Gamma_1$. The statement $\lsequent{\Gamma_1}{P}$ is more general than $\lsequent{\Gamma_1,\Gamma_2}{P,\Delta}$, and in fact encompasses the cases where $\Gamma_2$ is also assumed or $\Delta$ is also true.
+
+Now we complete this case by deriving \textcircled{2}.
+\begin{sequentdeduction}
+\linfer[G] {
+  \linfer[cut] {
+    \linfer[mreadneq] {
+      \linfer[id]{\lclose}{\lsequent{\pderef{i}=v_i,i \ne (\astrm \bitand s_h) \bitor s_l}{i \ne (\astrm \bitand s_h) \bitor s_l}}
+      &\linfer{\vdots}{\lsequent{\pderef{i}=v_i,i \ne (\astrm \bitand s_h) \bitor s_l}{0 \le i < \maxmem}}
+    } {
+      \lsequent{\pderef{i}=v_i,i \ne (\astrm \bitand s_h) \bitor s_l}{\memupd{\pderefop}{(\astrm \bitand s_h) \bitor s_l}{\bstrm}(i)=\pderef{i}}
+    }
+  } {
+    \lsequent{\pderef{i}=v_i,i \ne (\astrm \bitand s_h) \bitor s_l}{\memupd{\pderefop}{(\astrm \bitand s_h) \bitor s_l}{\bstrm}(i)=v_i}
+  }
+} {
+  \lsequent{\lnot(s_l \le i \le s_h), \pderef{i}=v_i,i \ne (\astrm \bitand s_h) \bitor s_l}{\memupd{\pderefop}{(\astrm \bitand s_h) \bitor s_l}{\bstrm}(i)=v_i}
+}
+\end{sequentdeduction}
+The unfinished portion of the proof is covered by the theorem's claim: that all \emph{valid} memory indices remain the same. We chose not to formalize that indices are valid as an assumption, mainly to keep the proof less cluttered. But adding it and closing out this remaining branch is not difficult.
+
+\paragraph{Inductive case $\asprg;\bsprg$:}
+Suppose that the program is a composition of $\asprg$ and $\bsprg$. The inductive hypothesis lets us assume that:
+\begin{align}
+\forall i . \lnot(s_l \le i \le s_h)  \land \pderef{i}=v_i &\limply \dbox{\asprg}{\pderef{i}=v_i} \\
+\forall i . \lnot(s_l \le i \le s_h)  \land \pderef{i}=v_i &\limply \dbox{\bsprg}{\pderef{i}=v_i}
+\end{align}
+Then consider $(\omega,\ldots,\mu) \in \llbracket\asprg\rrbracket$ and $(\mu,\ldots,\nu) \in \llbracket\bsprg\rrbracket$. We have the following:
+\begin{align}
+\label{eq:trans1}
+\forall i . \lnot(s_l \le i \le s_h)  \land \omega_M(i)=v_i &\limply \mu_M(i)=v_i \\
+\label{eq:trans2}
+\forall i . \lnot(s_l \le i \le s_h)  \land \mu_M(i)=v_i &\limply \nu_M(i)=v_i
+\end{align}
+By the semantics of $\asprg;\bsprg$ and the transitive property of equality, it must be that for all $(\omega,\ldots,\nu)\in\llbracket\asprg;\bsprg\rrbracket$ it is the case that:
+\begin{equation}
+\label{eq:transc}
+\forall i . \lnot(s_l \le i \le s_h)  \land \omega_M(i)=v_i \limply \nu_M(i)=v_i
+\end{equation}
+Then (\ref{eq:transc}) and the semantics of $\dbox{\asprg;\bsprg}$ tell us that 
+\begin{equation}
+\forall i . \lnot(s_l \le i \le s_h)  \land \pderef{i}=v_i \limply \dbox{\asprg;\bsprg}{\pderef{i}=v_i}
+\end{equation}
+This completes the proof.
+
+\paragraph{Rest of the proof:}
+The remaining cases are left as exercises. The remaining base cases are easy to complete, because they correspond to program forms that do not affect the memory state at all. The inductive cases follow the form outlined for $\asprg;\bsprg$ above, using the inductive hypothesis as well as the semantics of programs and dynamic logic to conclude that whenever subprograms satisfy the sandbox policy, the larger programs that contain them do as well.
+\end{proof}
+So we have now concluded that software fault isolation prevents memory write operations from working outside the designated sandbox. What about read operations? The second form of instrumentation is applied to terms that read from the current memory state, and we expect that they will prevent programs from unauthorized reads for the same reasons that write operations are safe.
+
+\paragraph{Correctness of read instrumentation.}
+We based our proof of write operations on the fact that it can be formalized as a safety property over program state. We reasoned that if the instrumentation were not sufficient, then there would be evidence at the end of $\asprg$'s execution in the form of memory contents that were modified from their initial value. But can we say something similar about memory read operations? What evidence in the state will there be if the instrumentation is not correct, and $\asprg$ succeeds at reading a memory location outside the sandbox?
+
+We might say that if there was a successful read outside the sandbox, then one of the program variables, or perhaps one of the sandbox memory cells, will contain a value that was initially in the memory outside the sandbox. But this need not be the case, because what if $\asprg$ makes an unauthorized read, and then performs an operation in the result before storing it in a variable or memory? On the other hand, suppose that in $\asprg$'s final state, one of the variables \emph{did} take the same value as an unauthorized memory location. Are we certain that it took this value because of an unauthorized read, or could it be mere chance the $\asprg$ happened to compute a value that overlapped with outside memory?
+
+This question drives to a fundamental difference between safety and information flow properties. We've learned that safety properties can be viewed as collections of traces, so all that we need to do to reason about whether a program satisfies such a property is make sure all of its traces are in the property. This is what SFI accomplishes when it forces memory accesses to a particular range, because the property says that all traces must only make accesses within that range. Likewise, this is what we prove when we use dynamic logic sequent calculus deductions to reason about safety: that all terminating traces are in the set described by the property.
+
+But information flow properties are fundamentally different. They cannot be described as sets of traces, and in fact must consider what \emph{might} have happened on a different trace if some variable or memory location had taken a different value. To reason convincingly about the correctness of the read operations we need to be able to refer to and prove things about information flow properties, i.e. that information outside the sandbox does not flow into any of the variables or memory locations within the sandbox. This will be a topic of future lectures, where we will take a completely different approach to policy enforcement.
+
+\begin{figure}[p]
+\fbox{
+\begin{minipage}{\textwidth}
+\textbf{Aside}: Rules for quantifiers
+\\[1ex]
+Our proof of \textcircled{4} used a rule that we have not seen before: $\forall\rightrule$. The rule allows us to remove the quantifier, replacing the bound variable with a new variable that does not appear anywhere else in the sequent. This is equivalent to saying that if we can prove that $F(y)$ holds on some $y$ for which we make no prior assumptions, then we can conclude that it holds universally. The corresponding left rule ($\forall\leftrule$) says that if we can prove something assuming $F$ holds for a particular term, say $\astrm$, then we can prove it assuming that $F$ holds universally. Intuitively, we've only made our assumptions stronger by assuming that $F$ holds universally.
+\[
+\cinferenceRule[allr|$\forall$\leftrule]{forall left}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma,F(\astrm)}{{}\Delta}}
+  {\lsequent{\Gamma,\forall x.F(x)}{{}\Delta}}
+}{}
+\quad
+\cinferenceRule[allr|$\forall$\rightrule]{forall right}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma}{{}F(y),\Delta}}
+  {\lsequent{\Gamma}{{}\forall x.F(x),\Delta}}
+}{\text{$y$ new}}
+\]
+The rules for existential quantifiers are similar, but in this case, it is the left rule in which we need to be careful about renaming. Similarly to the $\forall\rightrule$, if we can use the fact that $F(y)$ holds to prove $\Delta$, and nothing in our assumptions or $\Delta$ mentions specific things about $y$, then we can conclude that the details of $y$ don't matter for the conclusion, and the only important fact is that some value establishing $F(y)$ exists. The $\exists\rightrule$ simply says that if we can prove that $F$ holds for term $\astrm$, then we can conclude that it must hold for some value, even if we leave the value unspecified.
+\[
+\cinferenceRule[existsr|$\exists$\leftrule]{exists left}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma,F(y)}{{}\Delta}}
+  {\lsequent{\Gamma,\exists x.F(x)}{{}\Delta}}
+}{\text{$y$ new}}
+\quad
+\cinferenceRule[existsr|$\exists$\rightrule]{exists right}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma}{{}F(\astrm),\Delta}}
+  {\lsequent{\Gamma}{{}\exists x.F(x),\Delta}}
+}{}
+\]
+\end{minipage}
+}
+\end{figure}
+
+\bibliographystyle{abbrv}
+\bibliography{bibliography}
+\end{document}
