@@ -47,7 +47,7 @@ In the previous lecture we talked about \emph{bounded model checking} and \emph{
 
 Bounded model checking is useful in that it checks safety on all paths of length up to the given bound. However, the fact that it is exhaustive in this way sometimes means that it is too expensive to apply to programs with many possible paths, even for a modest bound. An alternative approach is to use symbolic execution to select a subset of paths that are of particular interest according to some external heuristic. Symbolic execution then follows the same basic procedure as bounded model checking, using sound axioms to rewrite the safety property applied to a path until an arithmetic VC is obtained. 
 
-Both techniques are useful for finding safety violations in programs, but are of limited utility when it comes to proving the \emph{absence} of violations on all traces. There is good reason for this limitation, as the problem of proving the latter claim is undecidable. Our focus on this class is on making sure that security violations do not occur, so we need not limit ourselves to static proofs of correctness with respect to the policy. Another alternative is to take steps to change the execution of a program so that it does not violate safety. We will examine this further today, first extending our language to support pointer operations over memory, and then discussing memory safety as well as a more flexible mechanism for policy enforcement called \emph{software fault isolation}~\cite{Sehr2010,Yee2009}.
+Both techniques are useful for finding safety violations in programs, but are of limited utility when it comes to proving the \emph{absence} of violations on all traces. There is good reason for this limitation, as the problem of proving the latter claim is undecidable. Our focus in this class is on making sure that security violations do not occur, so we need not limit ourselves to static proofs of correctness with respect to the policy. Another alternative is to take steps to change the execution of a program so that it does not violate safety. We will examine this further today, first extending our language to support pointer operations over memory, and then discussing memory safety as well as a more flexible mechanism for policy enforcement called \emph{software fault isolation}~\cite{Sehr2010,Yee2009}.
 
 \section{Pointers \& memory safety}
 
@@ -94,7 +94,7 @@ It is defined inductively by distinguishing the shape of term $\astrm$ as follow
   \item \m{\omega\llbracket x\rrbracket = \omega_V(x)} for variable $x$
   \item \m{\omega\llbracket c\rrbracket = c} for number literals $c$
   \item \m{\omega\llbracket\astrm\odot\bstrm\rrbracket = \omega\llbracket\astrm\rrbracket \odot \omega\llbracket\bstrm\rrbracket}, where $\odot \in \{+,\times\}$
-  \item \m{\omega\llbracket\pderef{\astrm}\rrbracket = \omega_M(\omega\llbracket\astrm\rrbracket)} if $0 \le \omega\llbracket\astrm\rrbracket) < \maxmem$, else undefined
+  \item \m{\omega\llbracket\pderef{\astrm}\rrbracket = \omega_M(\omega\llbracket\astrm\rrbracket)} if $0 \le \omega\llbracket\astrm\rrbracket < \maxmem$, else undefined
 \end{itemize}
 \end{definition}
 Adding pointers to our language has led to a complication: now terms can be undefined. Specifically, if $\astrm$ evaluates to a negative number, or a number larger than the maximum memory size \maxmem, then the term $\pderef{\astrm}$ is not defined.
@@ -197,7 +197,7 @@ The \dfn[valuation!of~programs]{trace semantics $\iaccess[\alpha]{\I}$ of a prog
         \\
         \(\{(\iget[state]{\I}) \with \inonmodels{\I}{\ivr}\}~\cup\)
         \\
-        \(\{(\omega,\errstate) \with \omega\models\ivr~\text{not defined}\)
+        \(\{(\omega,\errstate) \with \omega\models\ivr~\text{not defined}\}\)
       \end{tabular}
     \end{enumerate}
 \end{definition}
