@@ -1,0 +1,531 @@
+\documentclass[11pt,twoside]{scrartcl}
+%\documentclass[11pt,twoside]{article}
+
+%opening
+\newcommand{\lecid}{15-316}
+\newcommand{\leccourse}{Software Foundations of Security and Privacy}
+\newcommand{\lecdate}{} %e.g. {October 21, 2013}
+\newcommand{\lecnum}{8}
+\newcommand{\lectitle}{Control Flow Safety \& Security Automata}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecurl}{https://15316-cmu.github.io/index}
+
+\usepackage{varwidth}
+\usepackage{lecnotes}
+\usepackage[irlabel]{bugcatch}
+
+\usepackage{tikz}
+\usetikzlibrary{automata,shapes,positioning,matrix,shapes.callouts,decorations.text,patterns,trees,backgrounds}
+
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+\begin{document}
+
+\newcommand{\atrace}{\sigma}%
+%% the standard interpretation naming conventions
+\newcommand{\stdI}{\dTLint[state=\omega]}%
+\newcommand{\Ip}{\dTLint[trace=\atrace]}%
+\newcommand{\ws}{\omega}\newcommand{\wt}{\nu}% 
+
+\maketitle
+\thispagestyle{empty}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction \& Recap}
+
+In the last lecture we talked about enforcing a more granular type of memory safety policy to ensure that parts of our program don't read or write portions they aren't supposed to. This was motivated by our hypothetical career as an app developer who wants to monetize with advertising, and is thus compelled by Vladimir's discount ad shop to run untrusted rendering code within our program:
+\[
+\pif{\textit{display ads}}{\asprg}{\textit{continue without ads}}
+\]
+We discussed sandboxing policies where a region of memory is designated for the untrusted $\asprg$ to ``play'' in, such as the upper portion of memory at addresses 8-15 in the diagram below.
+\begin{center}
+\begin{tikzpicture}[%
+    arraynode/.style={
+        draw,
+        node contents={[\the\numexpr\pgfmatrixcurrentrow-2\relax][\the\numexpr\pgfmatrixcurrentcolumn-2\relax]},
+        alias=n\the\numexpr\pgfmatrixcurrentrow-2\relax\the\numexpr\pgfmatrixcurrentcolumn-2\relax
+        },
+    columnlabel/.style={
+        minimum size=0pt,
+        draw=none,
+        red,
+        node contents={\the\numexpr\pgfmatrixcurrentcolumn-2\relax},
+        alias=c\the\numexpr\pgfmatrixcurrentcolumn-2\relax
+        },      
+    rowlabel/.style={
+        minimum size=0pt,
+        draw=none,
+        red,
+        node contents={\the\numexpr\pgfmatrixcurrentrow-2\relax},
+        alias=r\the\numexpr\pgfmatrixcurrentrow-2\relax
+        },      
+    emptynode/.style={node contents=~, draw=none},
+    font=\ttfamily,
+    array/.style={%
+        matrix of nodes,
+        nodes = arraynode,
+        column sep=-\pgflinewidth,
+        row sep=-\pgflinewidth, 
+        nodes in empty cells,
+        row 1/.style={nodes=columnlabel},
+        column 1/.style={nodes=rowlabel},
+        row 1 column 1/.style={%
+            nodes=emptynode}}, 
+    rowlabel2/.style={
+        inner sep=2pt,
+        draw=none,
+        font=\small\ttfamily,
+        node contents={\the\numexpr-1+\pgfmatrixcurrentcolumn\relax},
+        alias=m\the\numexpr-1+\pgfmatrixcurrentcolumn\relax
+        },      
+    memoryrow/.style={%
+        matrix of nodes,
+        row 1/.style={nodes = {draw, minimum size=7mm}},
+        column sep=-\pgflinewidth,
+        row sep=-\pgflinewidth, 
+        nodes in empty cells,
+        row 2/.style={nodes=rowlabel2}}, 
+    memory/.style={%
+        matrix of nodes,
+        nodes={draw, minimum size=6mm, anchor=center},
+        row 1/.style={nodes = {columnlabel, black}},
+        column 1/.style={nodes = {rowlabel, black}},
+        row 1 column 1/.style={nodes = emptynode},
+        column sep=-\pgflinewidth,
+        row sep=-\pgflinewidth, 
+        nodes in empty cells,
+    } 
+]
+
+\begin{scope}[yshift=-4cm]
+
+\matrix[memoryrow] (memrow) {
+&&&&&&&&&&&&&&&\\
+&&&&&&&&&&&&&&&\\};
+
+\node[above right=1mm and 0 of memrow-1-1.north west] {Memory};
+\draw[thick] (memrow-1-1.north west) rectangle (memrow-1-16.south east);
+
+\begin{scope}[on background layer]
+\fill[red!30] (memrow-1-9.north west) rectangle (memrow-1-16.south east);
+\fill[green!30] (memrow-1-1.north west) rectangle (memrow-1-8.south east);
+\end{scope}
+\end{scope}
+
+\end{tikzpicture}
+\end{center}
+As long as we can enforce this policy, and we are careful about writing our program to save and restore variable state, then we can ensure that whatever the sandbox does will not affect the rest of our program's execution.
+
+We discussed an approach called \emph{software fault isolation}~\cite{Sehr2010,Yee2009} (SFI) for properly isolating the malicious or buggy effects of $\asprg$ from the rest of our program. SFI works by inlining enforcement directly into $\asprg$, changing its behavior so that it can't violate the sandbox policy and if it attempts to do so then it still won't have any effect on the rest of our execution. SFI is a very practical technique, and has been used effectively in real applications to isolate untrusted code execution from browsers, operating systems, and other critical applications. In the next lab, you will implement a prototype SFI policy for your server.
+
+Today we will look at a related technique called \emph{control flow integrity}~\cite{Abadi2009}, which ensures that the attacker cannot influence the control flow of a program to diverge from a pre-defined control flow policy. But in order for this defense to have any purpose, we need to introduce indirect control flow commands into our language, bringing it closer yet to the features that real platforms in need of rigorous security defenses have in practice. We will then generalize the safety enforcement techniques discussed so far, introducing a flexible and practical method for enforcing safety policies provided as \emph{security automata}~\cite{Schneider2000}.
+
+
+\section{Indirect control flow}
+So far the programs that we have considered have a particularly nice property. Namely, once the programmer decides which commands are in the program and how they are sequenced together with compositions, conditionals, and while loops, then all of the possible sequences of commands that the program will ever execute are fixed once and for all. There is no way for a user to provide data that could cause some of the commands to be skipped over or added, and as long as the program is executed faithfully to the semantics, the control flow will be as the programmer envisioned when the program was written.
+
+Programs executed on ``real'' machines do not enjoy this property, thanks to indirect transfers of control flow. An indirect control flow transfer is commonly implemented using a function pointer in high-level languages, or a \verb'jmp' instruction with a pointer operand. We'll add this functionality to our language by considering a program command of the form:
+\begin{equation}
+\label{eq:ifjump}
+\pifjump{\ivr}{\astrm}
+\end{equation}
+The command in (\ref{eq:ifjump}) first tests whether a formula $\ivr$ is true in the current state. If it is, then control transfers to the instruction indexed by the term $\astrm$. Otherwise, control proceeds to the next instruction.
+
+But this doesn't make much since yet, because we haven't discussed indexing of instructions. Programs in the simple imperative language are themselves just commands, which can be built from other commands by connecting them with composition, conditional, and looping constructs. We will now change the language so that rather than having structured high-level commands like $\pif{\ivr}{\asprg}{\bsprg}$ and $\pwhile{\ivr}{\asprg}$, we will assume that programs are sequences of unstructured ``atomic'' commands. So the commands are defined by the syntax:
+\begin{equation*}
+  \asprg ~\bebecomes~
+  \pupdate{\pumod{x}{\astrm}}
+  \alternative
+  \pupdate{\pumod{\pderef{\astrm}}{\bstrm}}
+  \alternative
+  \passert{\ivr}
+  \alternative
+  \pifjump{\ivr}{\astrm}
+\end{equation*}
+Then a program $\Pi$ is a finite sequence of commands,
+\begin{equation}
+\Pi = (\asprg_0,\asprg_1,\ldots,\asprg_n)
+\end{equation}
+We will write $\Pi(i)$, where $0 \le i \le n$, to refer to the command $\asprg_i$ in program $\Pi$. If $i$ is negative, or $n < i$, then $\Pi(i)$ is undefined.
+
+Think of this language as a simplified version of assembly language. Memory update commands $\pumod{\pderef{\astrm}}{\bstrm}$ correspond to store instructions (i.e., \verb'mov' into a memory cell), memory dereference terms $\pderef{\astrm}$ correspond to memory fetch instructions (i.e., \verb'mov' from a memory cell to a register), and $\pifjump{\ivr}{\astrm}$ to conditional \verb'jmp' instructions. We don't have an explicit stack or notion of procedure to worry about, but if we did then $\phalt$ commands would correspond to \verb'ret' instructions.
+
+\paragraph{Semantics.}
+Recall that program states $\omega$ are composed of a variable map $\omega_V$ and memory $\omega_M$. Now that programs $\Pi$ are composed of indexed commands, and can transfer control to any command in $\Pi$, states will also need to track a program counter $\omega_i$ that determines which command executes next. The program counter will range from $i \in 0$ to $n$, denoting that the command $\Pi_i$ executes next.
+
+\begin{definition}[Operational semantics of programs]
+The small-step transition relation $\smallstep_\Pi$ of program $\Pi$ composed of commands $\asprg_0,\ldots,\asprg_n$ in state $\omega = (\omega_i,\omega_V,\omega_M)$ is given by the following cases:
+\[
+(\omega_i,\omega_V,\omega_M) \smallstep_\Pi
+\left\{
+\begin{array}{lcl}
+(\omega_i+1, \memupd{\omega_V}{x}{\omega\llbracket\astrm\rrbracket}, \omega_M) & \textit{if} & \Pi_i = \pumod{x}{\astrm}~\text{and}~\omega\llbracket\astrm\rrbracket~\text{is defined}
+
+\\
+
+(\omega_i+1, \omega_V, \memupd{\omega_M}{\omega\llbracket\astrm\rrbracket}{\omega\llbracket\bstrm\rrbracket}) & \textit{if} & \Pi_i = \pumod{\pderef{\astrm}}{\bstrm}~\text{and} \\
+ & & \omega\llbracket\bstrm\rrbracket~\text{is defined}~\text{and}~0\le\astrm<\maxmem
+
+\\
+
+(\omega_i+1, \omega_V, \omega_M) & \textit{if} & \Pi_i = \passert{\ivr}~\text{and}~\omega\models\ivr
+
+\\
+
+(\omega\llbracket\astrm\rrbracket, \omega_V, \omega_M) & \textit{if} & \Pi_i = \pifjump{\ivr}{\astrm}~\text{and} \\
+ & & 0 \le \omega\llbracket\astrm\rrbracket \le n~\text{and}~\omega\models\ivr
+
+\\
+
+(\omega_i+1, \omega_V, \omega_M) & \textit{if} & \Pi_i = \pifjump{\ivr}{\astrm}~\text{and}~ \\
+ & & 0 \le \omega\llbracket\astrm\rrbracket \le n~\text{and}~\omega\models\lnot\ivr
+
+\\
+
+\errstate & \textit{if} & \text{otherwise and}~0\le \omega_i \le n
+
+\end{array}
+\right.
+\]
+\end{definition}
+
+Having defined the small-step transition semantics, we can define the trace semantics as all sequences of states $\omega_1, \omega_2, \ldots$ that either terminate, diverge (i.e. terminate in no state and run forever), or abort by terminating in $\omega = \errstate$.
+
+\begin{definition}[Trace semantics]
+Given a program $\Pi$ composed of commands $\asprg_0,\ldots,\asprg_n$, the trace semantics $\llbracket\Pi\rrbracket$ is the set of traces obtainable by repeated application of the small-step relation $\smallstep_\Pi$.
+\[
+\llbracket\Pi\rrbracket =
+\{
+(\omega_0,\omega_1,\ldots) \with \omega_{i} \smallstep_\Pi \omega_{i+1}~\text{for all indices}~0 \le i~\text{of the trace}
+\}
+\]
+The definitions of terminating, diverging, and aborting traces are the same as they were in previous definitions of the trace semantics.
+\end{definition}
+
+\paragraph{Example.}
+Consider the following program to illustrate how the operational and trace semantics work.
+\[
+\begin{array}{ll}
+\keywordfont{0:} & \passert{0 \le x} \\
+\keywordfont{1:} & \pumod{\pderef{0}}{\pderef{0}+1} \\
+\keywordfont{2:} & \pumod{x}{x-1} \\
+\keywordfont{3:} & \pifjump{0 \le x}{1} \\
+\end{array}
+\]
+Suppose that we begin in the following state:
+\[
+\begin{array}{l}
+\omega_i = 0 \\
+\omega_V(x) = 2~\text{and all other variables map to}~0 \\
+\omega_M(i) = 0~\text{for all}~0 \le i < U
+\end{array}
+\]
+Then consulting the operational semantics, we see that $\Pi_0 = \passert{0 \le x}$ and $\omega \models 0 \le x$, so the next state is $(\omega_i+1, \omega_V, \omega_M)$.
+\[
+\begin{array}{l}
+(0, \omega_V, \omega_M) \smallstep_\Pi \\[1ex] 
+(1, \omega_V, \omega_M)
+\end{array}
+\]
+Now $\Pi_1 = \pumod{\pderef{0}}{\pderef{0}+1}$ and $\pderef{0} = 0$. So the next state is $(2, \omega_V, \memupd{\omega_M}{0}{1})$.
+\[
+\begin{array}{l}
+(0, \omega_V, \omega_M) \smallstep_\Pi \\[1ex] 
+(1, \omega_V, \omega_M) \smallstep_\Pi \\[1ex]
+(2, \omega_V, \memupd{\omega_M}{0}{1})
+\end{array}
+\]
+Now $\Pi_2 = \pumod{x}{x-1}$ and the semantics tell us to update $\omega_V$ at $x$.
+\[
+\begin{array}{l}
+(0, \omega_V, \omega_M) \smallstep_\Pi \\[1ex] 
+(1, \omega_V, \omega_M) \smallstep_\Pi \\[1ex]
+(2, \omega_V, \memupd{\omega_M}{0}{1}) \smallstep_\Pi \\[1ex] 
+(3, \memupd{\omega_V}{x}{0}, \memupd{\omega_M}{0}{1})
+\end{array}
+\]
+We now get to the jump because $\Pi_3 = \pifjump{0 \le x}{1}$. The number of instructions $n=3$, so the next state has program counter 1.
+We continue in this way, until we reach the conditional jump again. At this point $\omega_V(x) = -1$, and so the program counter increments to 4.
+\[
+\begin{array}{l}
+(0, \omega_V, \omega_M) \smallstep_\Pi \\[1ex]
+(1, \omega_V, \omega_M) \smallstep_\Pi \\[1ex] 
+(2, \omega_V, \memupd{\omega_M}{0}{1}) \smallstep_\Pi \\[1ex] 
+(3, \memupd{\omega_V}{x}{0}, \memupd{\omega_M}{0}{1}) \smallstep_\Pi \\[1ex]
+(1, \memupd{\omega_V}{x}{0}, \memupd{\omega_M}{0}{1}) \smallstep_\Pi \\[1ex]
+(2, \memupd{\omega_V}{x}{0}, \memupd{\memupd{\omega_M}{0}{1}}{0}{2}) \smallstep_\Pi \\[1ex]
+(3, \memupd{\memupd{\omega_V}{x}{0}}{x}{-1}, \memupd{\memupd{\omega_M}{0}{1}}{0}{2}) \smallstep_\Pi \\[1ex]
+(4, \memupd{\memupd{\omega_V}{x}{0}}{x}{-1}, \memupd{\memupd{\omega_M}{0}{1}}{0}{2})
+\end{array}
+\]
+Now the program counter is outside the instruction bounds in $\Pi$. The operational semantics does not define a next state, so the computation effectively terminates.
+
+\section{Control Flow Integrity}
+
+Let's return to our problem with untrusted advertising code.
+Now that the language $\asprg$ is written in can make indirect jumps, what could go wrong? Assuming that we are using SFI to enforce a sandboxing policy, there is still no way for $\asprg$ to read or write memory outside the sandbox. Is this true? Consider the following situation, where we can assume that SFI has been applied to the untrusted $\asprg$ starting at command 20.
+\[
+\begin{array}{l}
+\phantom{\asprg\Big\{\ }
+\begin{array}{ll}
+& \vdots \\
+\keywordfont{10:} & \pumod{z}{\pderef{x}} \\
+\keywordfont{11:} & \pifjump{i\ge0}{y} \\
+& \vdots \\
+\end{array}
+\\
+\asprg\left\{
+\begin{array}{ll}
+\keywordfont{20:} & \pumod{i}{0} \\
+\keywordfont{21:} & \pumod{x}{\textit{attacker's desired address}} \\
+\keywordfont{22:} & \pumod{y}{24} \\
+\keywordfont{23:} & \pifjump{0=0}{10} \\
+\keywordfont{24:} & \textit{copy memory contents from}~z~ \\
+& \vdots \\
+\end{array}
+\right.
+\end{array}
+\]
+Here, our original program (not the untrusted $\asprg$) dereferences memory and makes use of indirect control flow transfer. More specifically,
+\begin{enumerate}
+\item At command 10, it dereferences memory on the variable $x$ and stores the result into $z$. Because this command is not in the untrusted portion $\asprg$, it was not rewritten with SFI and can readily access memory outside the sandbox.
+\item At command 11, the program tests $i\ge0$, and if the test holds then jumps to whatever command is currently in $y$.
+\item The untrusted code sets up the program state: \emph{(i)} the indirect jump at 11 will occur by setting $i:=0$ on line 20; \emph{(ii)} the indirect jump at line 11 will return control to $\asprg$ by setting $y:=24$; \emph{(iii)} setting $x:=\ldots$ at 21 so that the address read at line 10 will be whatever the attacker wants, presumably outside the sandbox bounds.
+\item The command at 23 then executes an indirect jump on a trivial test, targeting 10 so that the attacker's choice of memory is read and control returns to $\asprg$ after the indirect jump at 11.
+\end{enumerate}
+To summarize, the attacker identifies a sequence of commands in the trusted portion of the program, and sets things up in a way so that unauthorized memory is copied into a variable that the attacker can later access once control is returned to the untrusted code. This should remind you of a \emph{return-oriented programming} (ROP) attacks~\cite{Hovav07} that you learned about in 15-213. If we assume that the attacker knows the text of our program, then it is possible for them to identify ``gadgets'' in \emph{code that we wrote} to do their bidding. But this crucially relies on the ability to change control flow using indirection so that commands are executed in the order needed by the attacker to carry out their goals.
+
+\subsection{Coarse-grained safety}
+How can we prevent this? One idea is to use the same approach as we did for SFI. In that case, we designed a sandbox between memory address $s_l$ and $s_h$, and then rewrote the indices in all memory operations to ensure that accesses stayed within those bounds. Perhaps we can do a very similar thing here, by assigning a ``code sandbox'' between commands at $\pc_l$ and $\pc_h$. Then we can rewrite indirect jump commands to ensure that their target always lies within these bounds.
+\begin{equation}
+\textit{Rewrite all}~~\pifjump{\ivr}{\astrm}~~\textit{commands as}~~\pifjump{\ivr}{(\astrm \bitand \pc_h) \bitor \pc_l}
+\end{equation}
+This is a form of \emph{control flow integrity} (CFI)~\cite{Abadi2009}, a technique for enforcing a broad class of safety properties that place limits on the allowed control flow paths in a program.
+As long as we choose $\pc_l$ and $\pc_h$ to satisfy similar conditions as those used in Theorem~\ref{thm:sfi-correctness}, i.e.
+\begin{equation}
+0 \le \pc_l \le (\astrm \bitand \pc_h) \bitor \pc_l \le \pc_h \le n
+\end{equation}
+then we can ensure that the untrusted code will never jump out of its sandbox. This seems to address our concerns with the advertising scenario, when everything untrusted resides in a well-specified region of code known in advance.
+
+\subsection{Finer-grained control-flow safety}
+But what if this isn't the case? Suppose that we want to enforce other invariants on untrusted code, such as that they do not modify a protected variable under certain conditions. So for example if $x$ is negative, then we want to jump over any assignment to $x$. We make the following replacements, among others:
+\begin{center}
+\begin{tabular}{lcl}
+$
+\begin{array}{ll}
+\keywordfont{i:} & x := \astrm
+\end{array}
+$
+&
+\ \ \ \ becomes\ \ \ \ 
+&
+$
+\begin{array}{rl}
+\keywordfont{i:} & \pifjump{x < 0}{i+2} \\
+\keywordfont{i+1:} & x := \astrm
+\end{array}
+$
+\end{tabular}
+\end{center}
+Now if we use the coarse-grained CFI policy from before, can we actually enforce the policy using this approach? It would seem not, at least as long as the attacker knows that this is how we will attempt to do so. The problem arises because of the fact that according to the coarse-grained CFI policy, any address in the untrusted code is an allowed target of a jump. So it is perfectly acceptable (according to the coarse-grained policy) for the attacker to jump directly past the inlined check.
+
+To see this more concretely, consider the following proof-of-concept attack code. Suppose that the attacker wants to set $x$ to 0 regardless of what its value is before the untrusted code executes. This obviously violates the policy, and to accomplish it the attacker will provide a program that takes the inline enforcement code into account. So after providing the code on the left,
+\begin{center}
+\begin{tabular}{lcl}
+$
+\begin{array}{rl}
+\keywordfont{i-1:} & \pifjump{0=0}{i+1} \\
+\keywordfont{i:} & x := 0
+\end{array}
+$
+&
+\ \ \ \ becomes\ \ \ \ 
+&
+$
+\begin{array}{rl}
+\keywordfont{i-1:} & \pifjump{0=0}{(i+1 \bitand s_h) \bitor s_l} \\
+\keywordfont{i:} & \pifjump{x < 0}{i+2} \\
+\keywordfont{i+1:} & x := 0
+\end{array}
+$
+\end{tabular}
+\end{center}
+In short, the attacker sets up the program to jump directly over the enforcement code.
+
+\paragraph{Enforcing the control flow graph.} To address this, we can rely on the control flow graph (CFG) of the untrusted code. Recall from lecture 5 that a program's CFG is a graph that encodes all of the possible valid transitions between commands in the program. In this case, we will obtain a control flow graph for the original untrusted program\footnote{Obtaining the CFG for an arbitrary program with indirect jumps is a difficult problem indeed. It may not always be possible to do so, and we will come back to this in later lectures. For now, we will just assume that we have obtained the correct CFG for $\asprg$ by some unknown means.}, and ensure that the program instrumented with inline safety checks follows the same CFG modulo any checks.
+
+So in this case, the original control flow graph is given on the left of the diagram below. Obviously it is not the case that $0 \ne 0$, so the edge from \keywordfont{i-1} to \keywordfont{i} is never taken. After the invariant instrumentation is inserted, the correct translation of the control flow, preserving the relative edges from the original CFG, is shown on the right. The instrumentation replaced the instruction originally at \keywordfont{i} with an inline check, and shifted all of the subsequent instructions up by one address. So this moves \keywordfont{i} to \keywordfont{i+1}, and \keywordfont{i+1} to \keywordfont{i+2}. To make this clear in the diagram, the nodes and edges corresponding to instrumentation are marked in blue.
+\begin{center}
+\begin{tikzpicture}
+[
+  highlight/.style={draw=blue, text=blue},
+  shorten >=1pt,
+  node distance=2cm,
+  on grid,
+  auto,
+  /tikz/initial text={},
+  font=\footnotesize,
+  thick
+]
+ \node[state,initial above,inner sep=1pt,minimum size=0.75cm] (l0)  {\keywordfont{i-1}};
+ \node[state,inner sep=1pt,minimum size=0.75cm,yshift=1em] (l1) [below=of l0] {\keywordfont{i}};
+ \node[state,inner sep=1pt,minimum size=0.75cm,yshift=1em] (l2) [below=of l1] {\keywordfont{i+1}};
+ \node[state,draw=none,inner sep=1pt,minimum size=0.75cm,yshift=3.15em] (l3) [below=of l2] {};
+
+  \path[->] 
+    (l0) edge node [right] {$0 \ne 0$} (l1)
+    (l1) edge node [right] {} (l2)
+    (l0) edge [bend right] node [left] {$0 = 0$} (l2);
+\end{tikzpicture}
+\hspace{3em}
+\begin{tikzpicture}
+[
+  highlight/.style={draw=blue, text=blue},
+  shorten >=1pt,
+  node distance=2cm,
+  on grid,
+  auto,
+  /tikz/initial text={},
+  font=\footnotesize,
+  thick
+]
+ \node[state,initial above,inner sep=1pt,minimum size=0.75cm] (l0)  {\keywordfont{i-1}};
+ \node[state,fill=blue!30,inner sep=1pt,minimum size=0.75cm,yshift=1em] (l1) [below=of l0] {\keywordfont{i}};
+ \node[state,inner sep=1pt,minimum size=0.75cm,yshift=1em] (l2) [below=of l1] {\keywordfont{i+1}};
+ \node[state,inner sep=1pt,minimum size=0.75cm,yshift=1em] (l3) [below=of l2] {\keywordfont{i+2}};
+
+  \path[->] 
+    (l0) edge node [right] {$0 \ne 0$} (l1)
+    (l1) edge [blue] node [right] {$x \ge 0$} (l2)
+    (l0) edge [bend right] node [left] {$0 = 0$} (l3)
+    (l1) edge [blue,bend left=70] node [right] {$x < 0$} (l3)
+    (l2) edge node [right] {} (l3);
+\end{tikzpicture}
+\end{center}
+Now to correctly enforce the safety policy that the CFG on the right is respected by the code, the original jumps are rewritten accordingly.
+\[
+\begin{array}{rl}
+\keywordfont{i-1:} & \pifjump{0=0}{i+2} \\
+\keywordfont{i:} & \pifjump{x < 0}{i+2} \\
+\keywordfont{i+1:} & x := 0
+\end{array}
+\]
+By enforcing the original control flow of the program, after taking any added instrumentation into account with dealing with instruction addresses, we prevented the attacker from bypassing our inlined safety policy enforcement. But notice that it didn't really matter what control flow graph we started out with. It could have been arbitrary, perhaps completely different from the actual CFG of the original program, and we could still enforce it by inserting and replacing conditional jumps.
+
+\section{Security automata}
+
+The point mentioned at the end of the previous section raises some interesting possibilities. What if we want to enforce a more general safety property that takes aspects of control flow and program state into account? For example, suppose that our language from the previous two sections has the ability to make three types of system calls, \psend and \precv from the network and \pread from a local file. Then we quite naturally might want to enforce a safety policy on untrusted code which says that \psend cannot be called after \pread.
+
+We can encode such a policy using a \emph{security automaton}~\cite{Schneider2000}. Depicted below is a security automaton for the safety policy ``no send after read''. The states are abstract in the sense that they do not reflect anything about the state of the program or what it is currently doing. Rather, they represent the state at which the policy is currently in. The transitions reflect facts about program state that must be true in order for the automaton to transition. In this case, $\pc$ denotes the current program counter, and $\pcderef$ its contents. So for example $\pcderef \ne \pread$ corresponds to states in which the current instruction pointed to by the program counter is not a network read \pread.
+\begin{center}
+\scalebox{1.2}{%
+\begin{tikzpicture}
+[
+  highlight/.style={draw=blue, text=blue},
+  shorten >=1pt,
+  node distance=2cm,
+  on grid,
+  auto,
+  /tikz/initial text={},
+  font=\footnotesize,
+  thick
+]
+ \node[state,thick,initial left,inner sep=1pt,minimum size=0.75cm] (l0) {};
+ \node[state,thick,inner sep=1pt,minimum size=0.75cm] (l1) [right=3cm of l0] {};
+
+  \path[->] 
+    (l0) edge [thick,loop above] node [above] {$\pcderef \ne \pread$} (l0)
+    (l0) edge [thick] node [above] {$\pcderef = \pread$} (l1)
+    (l1) edge [thick,loop above] node [above] {$\pcderef \ne \psend$} (l1);
+\end{tikzpicture}
+}
+\end{center}
+Notice that the only arrow going out of the rightmost state is a self-loop labeled $\pcderef \ne \psend$. There are no accepting states in a security automaton, and the way to interpret them is that as long as the automaton can transition from some arrow in its current state, then the policy has not been violated. So in this case, if the current policy state were the rightmost one, and the program entered into a state where $\pcderef = \psend$, then there would be no arrow to transition from and the policy would become violated.
+
+Another way to think about it is that there is a ``hidden'' error state which corresponds to the policy being violated. Every node has a transition to the error state on the condition that is the negation of all other outgoing transitions from that state, as shown in the diagram below.
+\begin{center}
+\scalebox{1}{%
+\begin{tikzpicture}
+[
+  highlight/.style={draw=blue, text=blue},
+  shorten >=1pt,
+  node distance=2cm,
+  on grid,
+  auto,
+  /tikz/initial text={},
+  font=\footnotesize,
+  thick
+]
+ \node[state,thick,inner sep=1pt,minimum size=0.75cm] (l0) {};
+ \node[state,thick,inner sep=1pt,minimum size=0.75cm,yshift=2cm] (l1) [right=3.5cm of l0] {};
+ \node[state,thick,inner sep=1pt,minimum size=0.75cm] (l2) [below=1cm of l1] {};
+ \node[state,thick,inner sep=1pt,minimum size=0.75cm,draw=none] (l3) [right=3.5cm of l0] {\vdots};
+ \node[state,thick,inner sep=1pt,minimum size=0.75cm,yshift=-2cm] (l5) [right=3.5cm of l0] {};
+ \node[state,thick,inner sep=1pt,minimum size=0.75cm] (l4) [above=1cm of l5] {};
+ \node[state,thick,inner sep=1pt,minimum size=0.75cm,fill=red] (l6) [left=3.5cm of l0] {$\errstate$};
+
+  \path[->] 
+    (l0) edge [thick] node [below] {$P_1$} (l1)
+    (l0) edge [thick] node [below] {$P_2$} (l2)
+    (l0) edge [thick] node [below,xshift=1ex] {$P_{n-1}$} (l4)
+    (l0) edge [thick] node [below] {$P_{n}$} (l5)
+    (l0) edge [thick] node [above] {$\lnot(P_1 \lor \cdots \lor P_n)$} (l6);
+\end{tikzpicture}
+}
+\end{center}
+These definitions are equivalent, and we will continue using the convention that does not explicitly list the error state as this will reduce clutter in our diagrams.
+
+\subsection{Enforcing security automata policies}
+
+The primary means of enforcing policies defined using security automata is with a \emph{reference monitor} (RM). The RM is a mechanism that examines the program as it executes, using information about the current and past states to decide whether the policy has been violated. This is done according to Definition~\ref{def:sa}, and was sketched out at the beginning of this section.
+
+\begin{definition}[Security automaton enforcement]
+\label{def:sa}
+Let $S$ be the current set of states that the security automaton is in, and $\delta(S,\omega)$ be a transition function that specifies a new set of states to enter given $S$ and program state $\omega$. Then for each step that the program is about to take resulting in new state $\omega$, the reference monitor  does one of two things.
+\begin{enumerate}
+\item If the automaton can transition, i.e. $\delta(S,\omega) \ne \emptyset$, then the program is allowed to enter state $\omega$ and the automaton updates its current states to $\delta(S,\omega)$.
+\item If the automaton cannot transition, i.e. $\delta(S,\omega) = \emptyset$, then the program is not allowed to enter state $\omega$ and the reference monitor takes remedial action.
+\end{enumerate}
+\end{definition}
+
+As long as the policy is not violated, then the RM allows the program to continue executing as it otherwise would. If the policy is violated, then the RM intervenes on the program execution to take some remedial action. This could mean simply aborting the execution, or something less drastic that prevents harm in other ways.
+
+\paragraph{Necessary assumptions.} As pointed out by Schneider in his seminal work on security automata~\cite{Schneider2000}, there are several assumptions that one must make in order to enforce these policies effectively with a reference monitor. First, the reference monitor needs to simulate the execution of the automaton as the program runs, so it must keep track of which state the policy is in on the actual hardware running the program. This means that the automaton cannot require an unbounded amount of memory, so automata that have an infinite number of states are not in general enforceable.
+
+Second, the RM must be able to prevent the program from entering a state that would result in a policy violation. This is called \emph{target control}, and is a more subtle issue that it may at first seem. Take for example the policy of ``real-time'' availability, which states that a principal should not be denied a resource for more than $n$ real-time seconds. How could a reference monitor enforce this policy? It might try to predict the amount of time that it takes to remediate a trace that is about to violate the policy, and take action earlier than necessary to prevent the violation. But how does it know that the policy would have actually been violated in this case? Unless the reference monitor can literally stop time, this is not an enforceable policy.
+
+Third, the program under enforcement must not be able to intervene directly on the state of the reference monitor. This is called \emph{enforcement mechanism integrity}, and is crucial for ensuring that the policy defined by the automaton is the one that is actually enforced on the target program. We dealt with an instance of this issue earlier in the lecture, when we used control flow integrity to make sure that inlined safety checks weren't bypassed by indirect jumps. But now that the policy itself has state, the enforcement mechansim must also guarantee that the target program does not make changes to that state or influence it in any way that doesn't follow the automaton transitions.
+
+\paragraph{Inline SA enforcement.} One approach to implementing security automata enforcement uses inlined checks to update and maintain state set aside to simulate the automaton. If we assume that formulas on SA transitions are formulas over program states, and there are $N$ security automata states, then we can set aside a region of $N$ memory cells at addresses $a_{\textit{sa}}$ through $a_{\textit{sa}}+N$ to hold the current state of the automaton. If $\pderef{a_{\textit{sa}}+i}$ is non-zero, then we assume that the automaton has entered into state $i$, and otherwise not.
+
+Next we need to implement the transition function, updating the contents of $\pderef{a_{\textit{sa}}} - \pderef{a_{\textit{sa}}+N}$ to simulate the automaton. Suppose that the automaton has an edge from states $i$ to $j$ labeled with formula $\ausfml$. Then for each instruction in the program we compute the verification condition of (\ref{eq:savc}).
+\begin{equation}
+\label{eq:savc}
+\dbox{\asprg}{\ausfml}
+\end{equation}
+If (\ref{eq:savc}) is satisfiable before executing $\asprg$, then it means that there may be a trace where $P$ is true after executing $\asprg$. This means that we need to insert instrumentation immediately before $\asprg$ that checks $\pderef{a_{\textit{sa}}+i} \ne 0 \land \dbox{\asprg}{\ausfml}$, and if it is true then sets $\pderef{a_{\textit{sa}+j}}$ to a non-zero value. Then for each state $i$ in the SA, we compute similar checks for transition to the ``error state''. If $i$ has outgoing edges labeled $P_1, \ldots, P_n$, we insert a check for:
+\begin{equation}
+\pderef{a_{\textit{sa}}+i} \ne 0 \land \dbox{\asprg}{\lnot(P_1 \lor \cdots \lor P_n)}
+\end{equation}
+If this check passes, it means that the automaton cannot transition from state $i$. If this holds for every state in the automaton, then the instrumentation aborts execution.
+
+The instrumentation described so far only addresses updates to the SA state. We must also take steps to ensure the integrity of the inlined mechanism, and there are two sources of vulnerability.
+\begin{itemize}
+\item The contents of $\pderef{a_{\textit{sa}}} - \pderef{a_{\textit{sa}}+N}$ must not be modified by any part of the program except the inserted instrumentation. Applying software fault isolation to the untrusted instructions can ensure that this aspect of integrity holds.
+\item The inserted instrumentation could be subverted by indirect control flow. Enforcing CFI on the untrusted code using the original control flow graph ensures that this will not happen.
+\end{itemize}
+This is sufficient to implement a basic inlined security automaton enforcement mechanism. However, it may impose a severe performance overhead due to all the safety checks. There are ways of mitigating this downside that rely on static analysis and techniques from compiler optimization, but they are outside the scope of this class. 
+
+\bibliographystyle{abbrv}
+\bibliography{bibliography}
+\end{document}
