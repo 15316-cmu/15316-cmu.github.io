@@ -292,9 +292,13 @@ Third, the program under enforcement must not be able to intervene directly on t
 Next we need to implement the transition function, updating the contents of $\pderef{a_{\textit{sa}}} - \pderef{a_{\textit{sa}}+N}$ to simulate the automaton. Suppose that the automaton has an edge from states $i$ to $j$ labeled with formula $\ausfml$. Then for each instruction in the program we compute the verification condition of (\ref{eq:savc}).
 \begin{equation}
 \label{eq:savc}
-\dbox{\asprg}{\ausfml}
+\dbox{\asprg}{\lnot\ausfml}
 \end{equation}
-If (\ref{eq:savc}) is satisfiable before executing $\asprg$, then it means that there may be a trace where $P$ is true after executing $\asprg$. This means that we need to insert instrumentation immediately before $\asprg$ that checks $\pderef{a_{\textit{sa}}+i} \ne 0 \land \dbox{\asprg}{\ausfml}$, and if it is true then sets $\pderef{a_{\textit{sa}+j}}$ to a non-zero value. Then for each state $i$ in the SA, we compute similar checks for transition to the ``error state''. If $i$ has outgoing edges labeled $P_1, \ldots, P_n$, we insert a check for:
+If (\ref{eq:savc}) is valid before executing $\asprg$, then it means that all traces after executing $\asprg$ will satisfy $\lnot\ausfml$. On the other hand, if it is not valid, then at least one trace of $\asprg$ may satisfy $\ausfml$. This means that we need to insert a check whenever Eq~\ref{eq:savc} is not valid.
+
+What check do we insert? At runtime, we will be in a particular state $\omega$. We want to know if after executing $\asprg$, $\ausfml$ will be true, and if it is, then update the state of the automaton. We can accomplish this by simply checking that $\omega \models \dbox{\asprg}{\ausfml}$. Of course, we will want to use axioms to remove the box modality so that the check is actually in terms of arithmetic, and can be easily evaluated.
+
+So we insert instrumentation immediately before $\asprg$ that checks $\pderef{a_{\textit{sa}}+i} \ne 0 \land \dbox{\asprg}{\ausfml}$, and if it is true then sets $\pderef{a_{\textit{sa}+j}}$ to a non-zero value. Then for each state $i$ in the SA, we compute similar checks for transition to the ``error state''. If $i$ has outgoing edges labeled $P_1, \ldots, P_n$, we insert a check for:
 \begin{equation}
 \pderef{a_{\textit{sa}}+i} \ne 0 \land \dbox{\asprg}{\lnot(P_1 \lor \cdots \lor P_n)}
 \end{equation}
