@@ -141,9 +141,9 @@ One natural approach is to enrich the semantics with precisely this information.
 \]
 This notation means that executing expression $e$ (resp. command $c$) in environment $\omega$ yields value $v$ (resp. state $\omega'$). Now we want to incorporate a notion of execution time corresponding to discrete steps into our semantics, and we will do so by annotating the relation $\Downarrow$ with a cost $r$.
 \[
-\langle \omega, e\rangle \Downarrow_r v
+\langle \omega, e\rangle \Downarrow^r v
 \quad\quad\quad\quad\quad\quad\quad\quad
-\langle \omega, c\rangle \Downarrow_r \omega'
+\langle \omega, c\rangle \Downarrow^r \omega'
 \]
 This notation means that executing expression $e$ (resp. command $c$) in environment $\omega$ yields value $v$ (resp. state $\omega'$) in exactly $r$ steps. In this case, $r$ is a non-negative integer, but we can take $r$ to be a value from a different domain to account for different types of cost. For example, we will see later how to define a cost semantics that accounts for memory access patterns using a different domain for $r$.
 An example cost semantics is shown in Figure~\ref{fig:costsemantics}, corresponding to the observation of the number of execution steps taken to execute an expression or command. 
@@ -233,15 +233,15 @@ An example cost semantics is shown in Figure~\ref{fig:costsemantics}, correspond
 
 \subsection{Side-channel security}
 
-Now that the information about runtime available to the attacker is evident in our semantics, we can now go about formalizing what it means for a program to be secure with respect to leakage through this channel. We want to express a condition which says that regardless of the values contained in the secret portions of state, the attacker's observations over the side channel remain constant. We can follow the basic form of noninterference (Equation~\ref{eq:nonint}, and write:
+Now that the information about runtime available to the attacker is evident in our semantics, we can now go about formalizing what it means for a program to be secure with respect to leakage through this channel. We want to express a condition which says that regardless of the values contained in the secret portions of state, the attacker's observations over the side channel remain constant. We can follow the basic form of noninterference (Equation~\ref{eq:nonint}), and write:
 \begin{equation}
 \label{eq:costnonint}
-\forall \omega_1,\omega_2 . \omega_1 \approx_\lowt \omega_2 \land \langle \omega_1, c\rangle \Downarrow_{r_1} \omega_1' \land \langle\omega_2, c\rangle\Downarrow_{r_2}\omega_2' \Longrightarrow r_1 = r_2
+\forall \omega_1,\omega_2 . \omega_1 \approx_\lowt \omega_2 \land \langle \omega_1, c\rangle \Downarrow^{r_1} \omega_1' \land \langle\omega_2, c\rangle\Downarrow^{r_2}\omega_2' \Longrightarrow r_1 = r_2
 \end{equation}
 This aligns perfectly with our intuition that observing the final execution cost is no different from observing the low-security portions of the final state. In either case, we formalize security by demanding equivalence of the final observations whenever we have equivalence of the initial observations. Note that Equation~\ref{eq:costnonint} doesn't account for observation of the low-security final state, but we can easily add this as follows.
 \begin{equation}
 \label{eq:costfull}
-\forall \omega_1,\omega_2 . \omega_1 \approx_\lowt \omega_2 \land \langle \omega_1, c\rangle \Downarrow_{r_1} \omega_1' \land \langle\omega_2, c\rangle\Downarrow_{r_2}\omega_2' \Longrightarrow r_1 = r_2 \land \omega_1' \approx_\lowt \omega_2'
+\forall \omega_1,\omega_2 . \omega_1 \approx_\lowt \omega_2 \land \langle \omega_1, c\rangle \Downarrow^{r_1} \omega_1' \land \langle\omega_2, c\rangle\Downarrow^{r_2}\omega_2' \Longrightarrow r_1 = r_2 \land \omega_1' \approx_\lowt \omega_2'
 \end{equation}
 
 Given definition of side-channel security, how might we go about designing a type system which ensures that they hold? What do we need to do differently from the case of basic noninterference when we prove soundness of such a type system? These are good questions to think about when preparing for an exam.
@@ -372,7 +372,7 @@ We can immeidately profit from this insight to design a type system that enforce
 \label{thm:sidechan-types}
 The type system in Figure~\ref{fig:const-types} enforces both non-interference and timing channel security. That is, if $\lsequent{\Gamma}{\asprg}$ by the rules in Figure~\ref{fig:const-types} then for all $\omega_1\approx_\lowt\omega_2$, 
 \[
-\langle \omega_1, c\rangle \Downarrow_{r_1} \omega_1' \land \langle\omega_2, c\rangle\Downarrow_{r_2}\omega_2' \Longrightarrow r_1 = r_2 \land \omega_1' \approx_\lowt \omega_2'
+\langle \omega_1, c\rangle \Downarrow^{r_1} \omega_1' \land \langle\omega_2, c\rangle\Downarrow^{r_2}\omega_2' \Longrightarrow r_1 = r_2 \land \omega_1' \approx_\lowt \omega_2'
 \]
 So $\asprg$ terminates in the same number of steps and in $\lowsec$-equivalent final states when initialized in either $\omega_1$ or $\omega_2$
 \end{theorem}
@@ -751,7 +751,7 @@ Finally, \irref{memuflow} also checks that the type of the index expression is \
 \label{thm:cache-types}
 The type system in Figure~\ref{fig:cachetypes} enforces both non-interference and cache side-channel security. That is, if $\lsequent{\Gamma}{\asprg}$ by the rules in Figure~\ref{fig:cachetypes} then for all $\omega_1\approx_\lowt\omega_2$, 
 \[
-\langle \omega_1, c\rangle \Downarrow_{r_1} \omega_1' \land \langle\omega_2, c\rangle\Downarrow_{r_2}\omega_2' \Longrightarrow r_1 = r_2 \land \omega_1' \approx_\lowt \omega_2'
+\langle \omega_1, c\rangle \Downarrow^{r_1} \omega_1' \land \langle\omega_2, c\rangle\Downarrow^{r_2}\omega_2' \Longrightarrow r_1 = r_2 \land \omega_1' \approx_\lowt \omega_2'
 \]
 So $\asprg$ terminates with the same memory access patterns and in $\lowsec$-equivalent final states when initialized in either $\omega_1$ or $\omega_2$
 \end{theorem}
