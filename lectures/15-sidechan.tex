@@ -1,0 +1,764 @@
+\documentclass[11pt,twoside]{scrartcl}
+%\documentclass[11pt,twoside]{article}
+
+%opening
+\newcommand{\lecid}{15-316}
+\newcommand{\leccourse}{Software Foundations of Security and Privacy}
+\newcommand{\lecdate}{} %e.g. {October 21, 2013}
+\newcommand{\lecnum}{15}
+\newcommand{\lectitle}{Side Channels}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecurl}{https://15316-cmu.github.io/index}
+
+\usepackage{varwidth}
+\usepackage{lecnotes}
+\usepackage[irlabel]{bugcatch}
+
+\usepackage{tikz}
+\usetikzlibrary{automata,shapes,positioning,matrix,shapes.callouts,decorations.text,patterns,decorations.pathreplacing}
+
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\sqsubseteqftrule{L}%
+% \def\rightrule{R}%
+
+\begin{document}
+
+\newcommand{\atrace}{\omega}%
+%% the standard interpretation naming conventions
+\newcommand{\stdI}{\dTLint[state=\omega]}%
+\newcommand{\Ip}{\dTLint[trace=\atrace]}%
+\newcommand{\ws}{\omega}\newcommand{\wt}{\nu}% 
+
+\newdimen{\linferenceRulehskipamount}
+\linferenceRulehskipamount=2em
+  \linferenceRulevskipamount=0.6em
+
+% \newcommand{\lowt}{\lowsec}
+% \newcommand{\hight}{\hisec}
+
+\lstdefinestyle{customc}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  language=C,
+  showstringspaces=false,
+  numbers=none,
+  % xleftmargin=1ex,
+  framexleftmargin=1ex,
+  % numbersep=5pt,
+  % numberstyle=\tiny\color{mygray},
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\color{blue},
+  commentstyle=\itshape\color{purple!40!black},  
+  stringstyle=\color{orange},
+  morekeywords={output,assume,observe,input,bool,then,fun,match,in,val,list,type,of,string,unit,let,bytes,mov,imul,add,sar,shr,function,forall,nat,requires,ensures,method,returns,assert,new,array,modifies,reads,old,predicate,lemma,seq,calc,nan,var,exists,invariant,decreases,datatype,declassify,uint8},
+  tabsize=2,
+  deletestring=[b]',
+  backgroundcolor=\color{gray!15},
+  frame=tb
+}
+\lstset{escapechar=@,style=customc}
+
+\maketitle
+\thispagestyle{empty}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+
+A \emph{side channel} is a means of obtaining information about secret program state that relies on observations that fall \emph{outside} the formal model of any information flow protections that are in place. In recent years, so-called \textbf{side channel attacks} that leave otherwise well-designed and implemented systems vulnerable to serious issues, such as leaked encryption keys and sensitive user data.
+
+What does it mean for an observation to fall outside the formal model? Think back to the way that we defined indistinguishability sets. In particular, we defined them with respect to a pair of observations $\omega_\lowt, \omega'_\lowt$. This pair constitutes the \textbf{observation model} of our information flow protections, and the guarantee that we obtain is contingent on the attacker's observations falling within the scope of this pair.
+
+Oftentimes, when programs are run on real systems, there are aspects of the ensuing execution that are not considered in the formal model used to design the protection mechanism. Some examples of these are:
+\begin{enumerate}
+\item Execution time
+\item Size of the program's memory footprint, memory access patterns
+\item Sequence of instructions executed by the program
+\item Electromagnetic radiation emitted from processor, other hardware components
+\item Power usage of hardware components
+\end{enumerate}
+If the attacker is able to make observations that are influenced by any of these aspects, then any information flow guarantees that rely on the incompatible observation model will not apply.
+
+\section{Revisiting \keywordfont{match}}
+
+Let's return to the \textbf{match} function that we've discussed several times before. Suppose that we chose to implement a version called \texttt{fastmatch} that compares two lists for equality in the following way.
+\\[-1ex]
+
+\begin{lstlisting}
+i = 0;
+auth := 1;
+while(i < len) {
+	if(pin(i) != guess(i)) {
+		auth := 0;
+		i := len;
+	}
+	i := i + 1;
+}
+\end{lstlisting}
+
+Is anything wrong with this implementation? Not according to the semantics we've studied previously. We can declassify the output of this function, and the only way an attacker can misuse the result to leak a secret is by making an exponential number of calls to this code.
+
+However, if we change the attacker's \emph{observation model} to include the amount of time it takes the code to complete, then the story changes. For now we'll just think of timing as the number of execution steps (informally defined at the moment) that it takes to execute the program. Obviously, obtaining such exact information in practice may be difficult, but this simplification will help us see the big picture first.
+
+Let's break this down further to see what information can be learned from this new observation.
+\begin{itemize}
+\item When the values differ on their first element, the function will return immediately. This is the least amount of time \texttt{fastmatch} can take.
+\item When the inputs are the same, \texttt{fastmatch} will execute the longest.
+\end{itemize}
+Combining these two facts, the attacker knows that the longer \texttt{fastmatch} executes, the more elements they have successfully guessed at the beginning of the list.
+Can we use this intuition to significantly decrease the exponential-time bound we studied last week? Consider the following attack, where $N$ is the number of possible characters that each position in a password or PIN number can take. We'll assume that this is finite, such as 10 or 256 (i.e., lists of digits or ASCII characters) or $2^{64}$ (i.e., machine integers).
+\begin{enumerate}
+	\item First try all one-character passwords ``$x_1$'', where $x$ is one of the possible values taken at indices of the password. Note the amount of time taken for \keywordfont{fastmatch} to return in a fresh variable $t_{x_1}$.
+	\item Take the first character of the password $p(0)$ to be $\argmax_x t_{x_1}$, i.e. the character that took the longest for \keywordfont{fastmatch} to terminate on.
+	\item Now try all two-character passwords ``$p(0)x_2$'' obtained by appending each possible character to the value decided for the first character.
+	\item As before, when done enumerating all two-character passwords that begin with the decided prefix $p(0)$, update the prefix $p(0)p(1)$ to $\argmax_x t_{x_1} + t_{x_2}$.
+	\item Continue appending characters that result in the longest execution of \keywordfont{fastmatch} until $\mathit{auth} = 1$ when it finishes.
+\end{enumerate}
+What is the complexity of this attack? Let $L$ be the length of the high-security PIN/password, and we'll assume that elements are coded in binary so there are $\log(N)$ bits in each element. The brute-force approach that would have been necessary without the timing information required $2^{L\log(N)} = N^L$ queries. With timing information, each element takes exactly $N$ guesses to find, and so now the attack will finish in $LN$ queries to \texttt{fastmatch}. In short, timing information reduced an exponential attack into a linear one. Obviously this poses a serious problem.
+
+\section{Side-channel information leaks}
+
+Thinking back to when we discussed declassification, we introduced the notion of an observation model that in turn defines an indistinguishability set for the attacker. The observation model that we used then was simply the low-security portions of the initial and final states, $(\omega_\lowt, \omega'_\lowt)$, we formalized information flow security as noninterference:
+\begin{equation}
+\label{eq:nonint}
+\forall \omega_1,\omega_2 . \omega_1 \approx_\lowt \omega_2 \land \langle \omega_1, c\rangle \Downarrow \omega_1' \land \langle\omega_2, c\rangle\Downarrow\omega_2' \Longrightarrow \omega_1' \approx_\lowt \omega_2'
+\end{equation}
+This worked out nicely because the observations $(\omega_\lowt, \omega'_\lowt)$ are accounted for directly by the semantic relation $\Downarrow$. But now that we are concerned with information leakage through timing information, the attacker's observations must also contain the number of execution steps taken until the program terminates. How do we incorporate such information in a formal definition of security?
+
+\subsection{Cost semantics}
+One natural approach is to enrich the semantics with precisely this information. Such a relation is called the \emph{cost semantics}, as the idea was originally conceived in the context of formalizing the performance of programs in terms of execution time~\cite{Hoffmann11}. To see how this works, recall our original semantic relations for expressions and commands.
+\[
+\langle \omega, e\rangle \Downarrow v
+\quad\quad\quad\quad\quad\quad\quad\quad
+\langle \omega, c\rangle \Downarrow \omega'
+\]
+This notation means that executing expression $e$ (resp. command $c$) in environment $\omega$ yields value $v$ (resp. state $\omega'$). Now we want to incorporate a notion of execution time corresponding to discrete steps into our semantics, and we will do so by annotating the relation $\Downarrow$ with a cost $r$.
+\[
+\langle \omega, e\rangle \Downarrow_r v
+\quad\quad\quad\quad\quad\quad\quad\quad
+\langle \omega, c\rangle \Downarrow_r \omega'
+\]
+This notation means that executing expression $e$ (resp. command $c$) in environment $\omega$ yields value $v$ (resp. state $\omega'$) in exactly $r$ steps. In this case, $r$ is a non-negative integer, but we can take $r$ to be a value from a different domain to account for different types of cost. For example, we will see later how to define a cost semantics that accounts for memory access patterns using a different domain for $r$.
+An example cost semantics is shown in Figure~\ref{fig:costsemantics}, corresponding to the observation of the number of execution steps taken to execute an expression or command. 
+
+\textbf{Question.} \emph{The cost semantics shown in Figure~\ref{fig:costsemantics} is rather simplistic in terms of the costs that it assigns to certain operations. For example, the same cost is assigned to evaluating an integer constant as looking a variable up in memory. This model won't have a precise correspondence with real execution time, even ignoring things like the cache. How might you refine the semantics to more faithfully account for timing? Can you incorporate empirical measurements, and if so, what is the best way to go about it?}
+
+\textbf{Question.} \emph{We've talked about two distinct observation models, but these semantics only account for one. Supposing we have two cost semantics that account for each observation model, how can we combine them into a single cost semantics that lets us reason about both types of observation?}
+
+\newcommand{\ceval}[4]{\langle #1, #2 \rangle \Downarrow_{#4} #3}
+\begin{figure}
+\centering
+\linferenceRule{}{\langle\omega,c\rangle \bigstep_{\mathbb{Z}}^1 c}
+\quad
+\linferenceRule{
+  \omega(x) = v
+}{
+  \langle\omega,x\rangle \bigstep_{\mathbb{Z}}^1 v
+}
+\quad
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}}^{r_1} v_1
+  &\langle\omega,\bstrm\rangle \bigstep_{\mathbb{Z}}^{r_2} v_2
+}{
+  \langle\omega,\astrm \odot \bstrm\rangle \bigstep_{\mathbb{Z}}^{r_1+r_2+1} v_1 \odot v_2
+}
+\quad
+\linferenceRule{}{\langle\omega,\mathtt{true}\rangle \bigstep_\mathbb{B}^1 \ltrue}
+\\[1em]
+\linferenceRule{}{\langle\omega,\mathtt{false}\rangle \bigstep_\mathbb{B}^1 \lfalse}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_\mathbb{B}^r b
+}{
+  \langle\omega,\odot\ausfml\rangle \bigstep_\mathbb{B}^{r+1} \odot b
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_\mathbb{B}^{r_1} b_1
+  &\langle\omega,\busfml\rangle \bigstep_\mathbb{B}^{r_2} b_2
+}{
+  \langle\omega,\ausfml~\odot~\busfml\rangle \bigstep_\mathbb{B}^{r_1+r_2+1} b_1 \odot b_2
+}
+\\[1em]
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}}^r v
+}{
+  \langle\omega,x := \astrm\rangle \bigstep^{r+1} \memupd{\omega}{x}{v}
+}
+\quad
+\linferenceRule{
+  \langle\omega,\asprg\rangle \bigstep^{r_1} \omega_1
+  &\langle\omega_1,\bsprg\rangle \bigstep^{r_2} \omega'
+}{
+  \langle\omega,\asprg;\bsprg\rangle \bigstep^{r_1+r_2} \omega'
+}
+\\[1em]
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}}^{r_1} \ltrue
+  &\langle\omega,\asprg\rangle \bigstep^{r_2} \omega'
+}{
+  \langle\omega,\pif{\ausfml}{\asprg}{\bsprg}\rangle \bigstep^{r_1+r_2} \omega'
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}}^{r_1} \lfalse
+  &\langle\omega,\bsprg\rangle \bigstep^{r_2} \omega'
+}{
+  \langle\omega,\pif{\ausfml}{\asprg}{\bsprg}\rangle \bigstep^{r_1+r_2} \omega'
+}
+\\[1em]
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}}^{r} \lfalse
+}{
+  \langle\omega,\pwhile{\ausfml}{\asprg}\rangle \bigstep^{r} \omega
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}}^{r_1} \ltrue
+  &\langle\omega,\asprg;\pwhile{\ausfml}{\asprg}\rangle \bigstep^{r_2} \omega'
+}{
+  \langle\omega,\pwhile{\ausfml}{\asprg}\rangle \bigstep^{r_1+r_2} \omega'
+}
+
+\caption{Step-execution cost semantics for the simple imperative language. The costs indicate the number of steps needed to execute the program in a given state.}
+\label{fig:costsemantics}
+\end{figure}
+
+\subsection{Side-channel security}
+
+Now that the information about runtime available to the attacker is evident in our semantics, we can now go about formalizing what it means for a program to be secure with respect to leakage through this channel. We want to express a condition which says that regardless of the values contained in the secret portions of state, the attacker's observations over the side channel remain constant. We can follow the basic form of noninterference (Equation~\ref{eq:nonint}, and write:
+\begin{equation}
+\label{eq:costnonint}
+\forall \omega_1,\omega_2 . \omega_1 \approx_\lowt \omega_2 \land \langle \omega_1, c\rangle \Downarrow_{r_1} \omega_1' \land \langle\omega_2, c\rangle\Downarrow_{r_2}\omega_2' \Longrightarrow r_1 = r_2
+\end{equation}
+This aligns perfectly with our intuition that observing the final execution cost is no different from observing the low-security portions of the final state. In either case, we formalize security by demanding equivalence of the final observations whenever we have equivalence of the initial observations. Note that Equation~\ref{eq:costnonint} doesn't account for observation of the low-security final state, but we can easily add this as follows.
+\begin{equation}
+\label{eq:costfull}
+\forall \omega_1,\omega_2 . \omega_1 \approx_\lowt \omega_2 \land \langle \omega_1, c\rangle \Downarrow_{r_1} \omega_1' \land \langle\omega_2, c\rangle\Downarrow_{r_2}\omega_2' \Longrightarrow r_1 = r_2 \land \omega_1' \approx_\lowt \omega_2'
+\end{equation}
+
+Given definition of side-channel security, how might we go about designing a type system which ensures that they hold? What do we need to do differently from the case of basic noninterference when we prove soundness of such a type system? These are good questions to think about when preparing for an exam.
+
+\section{Constant-time programming discipline}
+
+Let us go back to the \keywordfont{fastmatch} example and think about Equation~\ref{eq:costnonint} in hope of developing a general approach to avoiding such timing leaks. Intuitively, the fact that the runtime of the program is influenced by high-security data is the direct cause of the problem. What are the ways in which high-security data can influence runtime? Looking at the evaluation rules for expressions, we can reason that the runtime is not dependent on the values that variables take, but rather only the number of operations present in an expression.
+
+\begin{lemma}[Constant-time expressions]
+\label{lemma:constexp}
+Given any expression $\astrm$, there exists a constant $c$ such that for all $\omega$ and some $v$, $\langle\omega,\astrm\rangle \bigstep^c v$.
+\end{lemma}
+\begin{proof}
+This is a straightforward structural induction on $\astrm$. You are encouraged to work out several of the cases as an exercise.
+\end{proof}
+
+\textbf{Question.} \emph{Is this true on real computing platforms? What are examples of expressions that, when compiled, might lead to exeuction times that are dependent on the value of the operands?}
+\\
+
+So this leads us somewhat unsurprisingly to commands as the culprit for secret-dependent timing channels. But do we need to worry about all commands? Perhaps not, which we see in the case of assignments. The runtime of those is exactly the runtime of evaluating the right-hand side expression plus one (to store the result), so the constant-time exeuction of assignments follows easily from Lemma~\ref{lemma:constexp}.
+
+But the remaining compound expressions are problematic. Consider an assignment $\pif{\ivr}{\asprg}{\bsprg}$, and assume that $\asprg$ takes $r_\asprg$ steps while $\bsprg$ takes $r_\bsprg$. If $r_\asprg \ne r_\bsprg$, then depending on the value of $\ivr$ the entire statement will take a varying number of steps to complete. Critically, if $\lsequent{\Gamma}{\ivr : \hisec}$ then the number of steps will absolutely depend on secret data. It is not hard to see that the exact same situation holds for \keywordfont{while} loops guarded by condition $\ivr$ typed $\hisec$.
+
+So we come to realize that timing channels can arise whenever the program's control flow depends on secret data. To be more precise, whenever a change in the value of a high-security variable can give rise to a change in the program's control flow, timing channels may exist.
+
+\subsection{A constant-time type system}
+
+\begin{figure}
+\centering
+\begin{calculuscollections}{\textwidth}
+\begin{calculus}
+\cinferenceRule[constl|ConstL]{const low}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma}{c : \lowsec}}
+}{}%
+\end{calculus}
+\hspace{\linferenceRulehskipamount}
+\begin{calculus}
+\cinferenceRule[truel|TrueL]{true low}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma}{\keywordfont{true} : \lowsec}}
+}{}%
+\end{calculus}
+\hspace{\linferenceRulehskipamount}
+\begin{calculus}
+\cinferenceRule[falsel|FalseL]{false low}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma}{\keywordfont{false} : \lowsec}}
+}{}%
+\end{calculus}
+\\[1em]
+\begin{calculus}
+\cinferenceRule[vartype|Var]{variable type}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma}{x : \Gamma(x)}}
+}{}%
+\end{calculus}
+\hspace{\linferenceRulehskipamount}
+\begin{calculus}
+\cinferenceRule[unop|UnOp]{unary operator}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma}{\astrm : \ell}}
+  {\lsequent{\Gamma}{\odot~\astrm : \ell}}
+}{}%
+\end{calculus}
+\hspace{\linferenceRulehskipamount}
+\begin{calculus}
+\cinferenceRule[binop|BinOp]{binary operator}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma}{\astrm : \ell_1} & \lsequent{\Gamma}{\bstrm : \ell_2}}
+  {\lsequent{\Gamma}{\astrm\odot\bstrm : \ell_1 \lub \ell_2}}
+}{}%
+\end{calculus}
+\\[1em]
+\begin{calculus}
+\cinferenceRule[asgnflow|Asgn]{assignment}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\astrm : \ell}
+  &\ell \posetleq \Gamma(x)
+}{
+  \lsequent{\Gamma}{x := \astrm}
+}}{}%
+\end{calculus}
+\hspace{\linferenceRulehskipamount}
+\begin{calculus}
+\cinferenceRule[composeflow|Comp]{composition}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\asprg}
+  &\lsequent{\Gamma}{\bsprg}
+}{
+  \lsequent{\Gamma}{\asprg;\bsprg}
+}}{}%
+\end{calculus}
+\\[1em]
+\begin{calculus}
+\cinferenceRule[condflow|If]{conditional}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\ivr : \lowsec}
+  &\lsequent{\Gamma}{\asprg}
+  &\lsequent{\Gamma}{\bsprg}
+}{
+  \lsequent{\Gamma}{\pif{\ivr}{\asprg}{\bsprg}}
+}}{}%
+\end{calculus}
+\hspace{\linferenceRulehskipamount}
+\begin{calculus}
+\cinferenceRule[whileflow|While]{while}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\ivr : \lowsec}
+  &\lsequent{\Gamma}{\asprg}
+}{
+  \lsequent{\Gamma}{\pwhile{\ivr}{\asprg}}
+}}{}%
+\end{calculus}
+\end{calculuscollections}
+
+\caption{Type system for constant-time programming discipline.}
+\label{fig:const-types}
+\end{figure}
+
+We can immeidately profit from this insight to design a type system that enforces side-channel security. Figure~\ref{fig:const-types} shows the rules for this type system, which prevent information from any label $\ell \not\sqsubseteq \lowsec$ from flowing to the runtime of a program $\asprg$. As an added bonus, these rules also prevent flows that are observable in final-state assignments, i.e. those that are prevented by the information flow type system we have previously discussed.
+
+\begin{theorem}
+\label{thm:sidechan-types}
+The type system in Figure~\ref{fig:const-types} enforces both non-interference and timing channel security. That is, if $\lsequent{\Gamma}{\asprg}$ by the rules in Figure~\ref{fig:const-types} then for all $\omega_1\approx_\lowt\omega_2$, 
+\[
+\langle \omega_1, c\rangle \Downarrow_{r_1} \omega_1' \land \langle\omega_2, c\rangle\Downarrow_{r_2}\omega_2' \Longrightarrow r_1 = r_2 \land \omega_1' \approx_\lowt \omega_2'
+\]
+So $\asprg$ terminates in the same number of steps and in $\lowsec$-equivalent final states when initialized in either $\omega_1$ or $\omega_2$
+\end{theorem}
+\begin{proof}
+This requires induction on the big-step derivation $\langle\omega,\asprg\rangle \bigstep^r \omega'$ and goes much like the proof for the non-interference type system that we saw before. As this is an easier proof than the previous type system, it is left as an exercise.
+\end{proof}
+
+It may come as a bit of a surprise that the type system in Figure~\ref{fig:const-types} is actually simpler than the one that we discussed for proving non-interference. We seem to obtain a stronger an more interesting result in Theorem~\ref{thm:sidechan-types} than our former soundness theorem, but the rules \irref{asgnflow}, \irref{condflow}, and \irref{whileflow} have fewer preconditions than in the previous type system. How can this be?
+
+The rub lies in the fact that these rules impose a more strict information flow discipline on well-typed programs. Before when we typed a conditional or while command, we allowed the system to raise the label of \pc to the type of the condition as long as the subcommands could be typed in the resulting context. In the constant-time system, the corresponding rules refuse to type any conditional or while command with an \hisec-typed condition. This in turn means that the rule for assignment can be simplified by ignoring $\Gamma(pc)$, which is no longer relevant.
+
+So while the type system may be simpler, this undoubtedly comes at the price of deeming fewer programs as well-typed. Perhaps we could have remedied this by making the judgements more nuanced. For example, designing the type system to require that the number of steps executed by both branches be identical even if the condition is typed \hisec. This is an intriguing approach, and a topic of recent (and still active) research~\cite{Ngo17}.
+
+\subsection{Writing \texttt{fastmatch} in constant-time}
+Programs that can be well-typed in rules like those in Figure~\ref{fig:const-types} are said to be written in \emph{constant-time programming discipline}. While it may seem quite restrictive to never branch on secret values, it is often the case that functionality which is most naturally written to branch on secrets can be expressed in constant-time discipline with some extra thought~\cite{Bacelar2016}.
+
+Let's think about how to fix the timing channel in \texttt{fastmatch}. We can think about this task in terms of the program counter: whenever its value depends on a secret, we're in likely trouble. There are two sources of secret-dependent control flow in the program.
+\begin{enumerate}
+\item The most obvious source is the conditional expression in the last \texttt{match}, which compares \texttt{x} and \texttt{y}. This is what causes the program to terminate early whenever the two inputs don't match.
+\item A more subtle source of secret-depdenent control flow stems from the fact that the execution time of \texttt{fastmatch} is not bounded by a non-secret value. This isn't a problem in \texttt{fastmatch}, because it will always terminate early unless a correct guess is supplied as the low-security input. But if this were not the case, then the number of iterations would be a function of $|\mathtt{h}|$, which would leak the length of the secret.
+\end{enumerate}
+
+Looking at the code of \keywordfont{fastmatch}, notice first that the number of loop iterations is now bounded by \texttt{len}, which we'll assume to be non-secret. Where does the secret-dependent control flow come into play? The conditional statement inside the loop has a guard that mentions \texttt{h}, so we see that different values of \texttt{h} could lead to different control paths. In order to fix this, we'll obviously need to remove the conditional statement, so that the same sequence of instructions is executed regardless of the value of \texttt{h}. The only subtlety is that the output of \texttt{fastmatch} must depend on \texttt{h}, so we need to find a reasonable way to ensure that the outcome is the same as before.
+
+One way of accomplishing this is to carry the computation of the loop forward through to the greatest number of iterations the loop can take. Looking at \texttt{fastmatch}, we can think of it as nothing more than an aggregate of Boolean expressions: when all of the $\mathit{pin}(i) = \mathit{guess}(i)$, for $0 \le \mathtt{i} < \mathit{len}$, then \texttt{fastmatch} returns 1. If $\mathit{pin}(i) \ne \mathit{guess}(i)$ for any \texttt{i}, then \texttt{fastmatch} returns 0. In other words, \texttt{fastmatch} is nothing more than a conjunction over equality literals, which we can easily implement using straight-line code in the loop.
+\\[-1ex]
+
+\lstset{language=C}
+\begin{lstlisting}
+i = 0;
+auth := 1;
+while(i < len) {
+	auth := auth & (pin(i) = guess(i));
+	i := i + 1;
+}
+\end{lstlisting}
+
+It is important to point out that any solution that leaves the conditional intact is not in constant-time discipline. For example, one may initially opt for the seemingly more natural implementation shown below.
+
+\lstset{language=C}
+\begin{lstlisting}
+i = 0;
+auth := 1;
+while(i < len) {
+	if(pin(i) != guess(i)) 
+		auth := 0;
+	else
+		auth := auth;
+	i := i + 1;
+}
+\end{lstlisting}
+
+In this version of the program, we still have control flow that is dependent on secret state. However, the way we've written it, the same number of statements are executed on every branch, regardless of the value taken by secret state. Clearly, an attacker who is only allowed to see the execution time as the number of steps taken will have no difference in observations, so one might argue that in this case we need not worry about the secret-dependent control flow. However, this type of code is discouraged in constant-time programming discipline for various reasons.
+\begin{itemize}
+\item Code like the last example above tends to be more complex than necessary, and can be difficult to read. In order to achieve step-time equivalence on all paths, we needed to essentially insert a noop \texttt{auth := auth} in the \texttt{else} branch, which adds to the code's complexity, and might be innocently removed by a collaborator unaware of our constant-time goal.
+
+\item Leaving conditionals that are dependent on secrets in the code forces us to reason about whether all affected paths are step-time equivalent. As the complexity of code increases, this quickly becomes difficult and error-prone.
+
+\item Optimizing compilers might remove some branches, or instructions in branches, that we needed for step-time equivalence, with no guarantee that the resulting program is still constant-time. This would almost certainly happen if we compiled the above with \texttt{gcc} configured with standard optimizations.
+\end{itemize}
+In short, although it may seem unnatural and difficult to write programs so that control flow never depends on secret values, if constant-time execution is needed for security then adhering to this discipline is probably the simplest and least error-prone approach compatible with conventional imperative languages.
+
+\section{Cache side channels}
+
+So far we've focused on timing leaks that arise due to differences in the number of steps taken along a particular control flow path. It might also be the case that even when the program executes exactly the same instructions, there are differences that crop up in execution time due to other factors. One such factor is \textbf{cache behavior}, i.e., the state of the processor's cache lines might cause the execution time to differ with variances in high-security state.
+
+
+\subsection{Example: AES block cipher}
+This type of side channel was famously exploited by Dan Bernstein~\cite{Bernstein04} and others to attack software implementations of the AES encryption primitive. To understand how the attack works, we'll need some basic information about AES. 
+
+\paragraph{Basics of AES.} AES is a block cipher, which encrypts a 16-byte input $p$ using a 16-byte key $k$. Essential to AES's encryption are two so-called S-boxes, which are nothing more than 256 byte tables loaded with values that are constant across all implementations of AES. These tables are expanded into four 1024-byte tables $T_0, T_1, T_2, T_3$ by applying an expansion:
+\[
+\begin{array}{lcl}
+%
+T_0[i] & = & (S'[i], S[i], S[i], S[i] \oplus S'[i]) \\
+T_1[i] & = & (S[i] \oplus S'[i], S'[i], S[i], S[i]) \\
+T_2[i] & = & (S[i], S[i] \oplus S'[i], S'[i], S[i]) \\
+T_3[i] & = & (S[i], S[i], S[i] \oplus S'[i], S'[i]) \\
+\end{array}
+\]
+In most implementations, these tables are pre-computed and loaded into memory before any encryption takes places. For each 16-byte block $p$ to be encrypted, AES first applies a transformation to $k$ (which we won't cover in detail here), and then uses the tables $T_0, T_1, T_2, T_3$ to scramble $p$. Let $p = p_0, p_1, p_2, p_3$, so that $p_i$ is a 4-byte fragment of $p$, and similarly for $k = k_0, k_1, k_2, k_3$. AES replaces each $p_i$ as follows:
+\[
+\begin{array}{lcl}
+%
+p_0 & = & T_0[p_0[0] \oplus k_0[0]] \oplus T_1[p_1[1] \oplus k_1[1]] \oplus T_2[p_2[2] \oplus k_2[2]] \oplus T_3[p_3[3] \oplus k_3[3]] \oplus k_0 \\
+p_1 & = & T_0[p_1[0] \oplus k_1[0]] \oplus T_1[p_2[1] \oplus k_2[1]] \oplus T_2[p_3[2] \oplus k_3[2]] \oplus T_3[p_0[3] \oplus k_0[3]] \oplus k_1 \\
+p_2 & = & T_0[p_2[0] \oplus k_2[0]] \oplus T_1[p_3[1] \oplus k_3[1]] \oplus T_2[p_0[2] \oplus k_0[2]] \oplus T_3[p_1[3] \oplus k_1[3]] \oplus k_2 \\
+p_3 & = & T_0[p_3[0] \oplus k_3[0]] \oplus T_1[p_0[1] \oplus k_0[1]] \oplus T_2[p_1[2] \oplus k_1[2]] \oplus T_3[p_2[3] \oplus k_2[3]] \oplus k_3
+\end{array}
+\]
+More concisely,
+\begin{multline*}
+p_i = 
+T_0[p_i[0] \oplus k_i[0]] 
+\oplus T_1[p_{(i+1) \% 4}[1] \oplus k_{(i+1) \% 4}[1]]
+\oplus T_2[p_{(i+2) \% 4}[2] \oplus k_{(i+2) \% 4}[2]]
+\\
+\oplus T_3[p_{(i+3) \% 4}[3] \oplus k_{(i+3) \% 4}[3]]
+\oplus k_i
+\end{multline*}
+It continues to modify $k$ and $p$ in this fashion for ten rounds, at which point the contents of $p$ are the final ciphertext.
+
+\paragraph{Leaking key bits.} Notice that in each round, the value of $p_i$ is computed using table lookup and xor. Each table lookup accesses an index that is dependent on the contents of the key, e.g., the operation $T_0[p_0[0] \oplus k_0[0]]$ will access a different element of the array holding $T_0$ for different values of the key $k$. If the amount of time necessary to look up this element varies depending on the index that is accessed, then we can reason that the total execution time of the encryption will depend on the value of $k$.
+
+For this to work, we need to know what timing to expect as a function of $k$, or some approximation of it. This is where the cache comes into play. Because cache is a limited resource, several main memory blocks are mapped to the same cache block by way of a straightforward hash function $H$. Suppose that address $a$ was previously read, causing the cache address $H(a)$ to hold its value afterwards, and subsequent accesses to $a$ will complete more quickly. If we then read address $a'$, such that $H(a) = H(a')$, then the corresponding cache block will no longer hold the value at $a$, and a subsequent read to $a$ will need to fetch from main memory, thus taking longer to complete.
+
+This is the crux of the attack: by selectively evicting the cache blocks corresponding to different elements of $T_0, T_1, T_2, T_3$, we can force encryption to take longer than it would have otherwise. Additionally, because the elements of $T_i$ accessed by encryption depend on $k$, we can learn the contents of $k$ by inspecting which evictions cause the encryption to require more time.
+
+In short, the attack works as follows.
+\begin{enumerate}
+\item Ensure that $T_0,T_1,T_2,T_3$ are cached, e.g., by performing an encryption.
+\item Select an element of $T_0$ to be evicted from the cache, and force its eviction by loading from an address that maps to the same cache block. This can be accomplished by guessing a value for $k_0[0]$, and determining which cache block the subsequent table lookup will consult.
+\item Perform an encryption, and measure its time.
+\item After doing this for each element of $T_0$, conclude that $k_0[0]$ takes the value that corresponds to the longest lookup from $T_0$.
+\item Repeat for $k_0[1], k_0[2], \ldots, k_3[3]$.
+\end{enumerate}
+Notice that this attack requires several capabilities of the attacker.
+\begin{itemize}
+\item The ability to time the execution of encryptions with precision sufficient to detect cache timing differences.
+\item The ability to selectively evict portions of the cache.
+\item The ability to force encryptions.
+\item Knowledge of the plaintext (i.e., this is a ``known plaintext'' attack), but not the key. Without this, it is not possible to determine in advance which $T_i$ will be accessed, as it is indexed as $p_{(i+1)\% 4}[j] \oplus k_{(i+1)\%4}[j]$.
+\end{itemize}
+Although these requirements may seem improbable, attacks like this have been demonstrated in practice, and preventing them requires careful constant-time programming discipline.
+
+\subsection{Plugging the leak} 
+
+Like in the case of \texttt{fastmatch}, this vulnerability arose due to the attacker's ability to detect timing differences in an operation that depends on secret data. These timing differences were caused by the cache's state depending on this secret data, which gave the attacker the ability to degrade performance when her guess for the secret key was correct.
+
+However, the problem is more subtle than before, as even correcting for timing would not necessarily thwart attack in this case. Consider an attacker who operates as follows.
+\begin{enumerate}
+\item Vacate the entire cache.
+\item Trigger a single encryption.
+\item Access memory corresponding to each cache block, and see which addresses take longer to load. Those that do must not have been accessed during the AES operation.
+\end{enumerate}
+This attack doesn't measure the encryption routine's timing at all, but instead measures the timing of the attacker's code! In fact, this is actually a more efficient attack, as one encryption yields substantially more information about which table elements were accessed, and thus more information about the key.
+
+This variant of the attack works because the cache is a shared resource that allows users to infer details of how others use it. Specifically, the cache allows users to determine which memory addresses were recently accessed by other processes. Thinking in general terms, we can thus abstract the attacker's abilities here as observing memory access patterns: the cache side channel attacker is able to observe which memory locations are accessed by a program, but not the contents of the access.
+
+Armed with this insight, we can begin to reason about how to effectively mitigate cache side channels. Before, we reasoned that the number of execution steps (our proxy for timing) could be mitigated by ensuring that control flow does not depend on the contents of secret variables, as long as each step takes the same amount of time. Now, we can translate this approach to our attacker's new set of observations, and conclude that attacks like the one we just saw can be mitigated by ensuring that the set of memory addresses accessed by the program does not depend on secret state.
+
+\subsection{Memory access as cost}
+
+\begin{figure}
+\centering
+\linferenceRule{}{\langle\omega,c\rangle \bigstep_{\mathbb{Z}}^\epsilon c}
+\quad
+\linferenceRule{
+  \omega_V(x) = v
+}{
+  \langle\omega,x\rangle \bigstep_{\mathbb{Z}}^\epsilon v
+}
+\quad
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}}^r v_1
+  &\omega_M(v_1) = v_2
+}{
+  \langle\omega,\pderef{\astrm}\rangle \bigstep_{\mathbb{Z}}^{r :: v_1} v_2
+}
+\quad
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}}^{r_1} v_1
+  &\langle\omega,\bstrm\rangle \bigstep_{\mathbb{Z}}^{r_2} v_2
+}{
+  \langle\omega,\astrm \odot \bstrm\rangle \bigstep_{\mathbb{Z}}^{r_1+r_2+1} v_1 \odot v_2
+}
+\\[1em]
+\linferenceRule{}{\langle\omega,\mathtt{true}\rangle \bigstep_\mathbb{B}^\epsilon \ltrue}
+\quad
+\linferenceRule{}{\langle\omega,\mathtt{false}\rangle \bigstep_\mathbb{B}^\epsilon \lfalse}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_\mathbb{B}^r b
+}{
+  \langle\omega,\odot\ausfml\rangle \bigstep_\mathbb{B}^{r} \odot b
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_\mathbb{B}^{r_1} b_1
+  &\langle\omega,\busfml\rangle \bigstep_\mathbb{B}^{r_2} b_2
+}{
+  \langle\omega,\ausfml~\odot~\busfml\rangle \bigstep_\mathbb{B}^{r_1::r_2} b_1 \odot b_2
+}
+\\[1em]
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}}^r v
+}{
+  \langle\omega,x := \astrm\rangle \bigstep^{r} \memupd{\omega_V}{x}{v}
+}
+\quad
+\linferenceRule{
+  \langle\omega,\bstrm\rangle \bigstep_{\mathbb{Z}}^{r_1} v_1
+  &\langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}}^{r_2} v_2
+}{
+  \langle\omega,\pderef{\astrm}:=\bstrm\rangle \bigstep_{\mathbb{Z}}^{r_1 :: r_2 :: v_2} \memupd{\omega_M}{v_2}{v_1}
+}
+\\[1em]
+\linferenceRule{
+  \langle\omega,\asprg\rangle \bigstep^{r_1} \omega_1
+  &\langle\omega_1,\bsprg\rangle \bigstep^{r_2} \omega'
+}{
+  \langle\omega,\asprg;\bsprg\rangle \bigstep^{r_1::r_2} \omega'
+}
+\;
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}}^{r_1} \ltrue
+  &\langle\omega,\asprg\rangle \bigstep^{r_2} \omega'
+}{
+  \langle\omega,\pif{\ausfml}{\asprg}{\bsprg}\rangle \bigstep^{r_1::r_2} \omega'
+}
+\;
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}}^{r_1} \lfalse
+  &\langle\omega,\bsprg\rangle \bigstep^{r_2} \omega'
+}{
+  \langle\omega,\pif{\ausfml}{\asprg}{\bsprg}\rangle \bigstep^{r_1::r_2} \omega'
+}
+\\[1em]
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}}^{r} \lfalse
+}{
+  \langle\omega,\pwhile{\ausfml}{\asprg}\rangle \bigstep^{r} \omega
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}}^{r_1} \ltrue
+  &\langle\omega,\asprg;\pwhile{\ausfml}{\asprg}\rangle \bigstep^{r_2} \omega'
+}{
+  \langle\omega,\pwhile{\ausfml}{\asprg}\rangle \bigstep^{r_1::r_2} \omega'
+}
+
+\caption{Memory access cost semantics for the simple imperative language. The costs indicate the sequence of memory accesses made when executing the program in a given state.}
+\label{fig:memsemantics}
+\end{figure}
+
+To mitigate timing channels in the model that treats execution steps as observations, we formalized security in terms of cost semantics using execution step costs, and then designed a type system that prevent leakage from secret state to that cost. We can follow a similar strategy for cache side channels by defining a cost semantics that reflects memory access patterns in the cost. 
+
+Now our cost domain will consist of sequences of memory indices that are either read or written throughout the execution of a program. So for the following program that makes three memory accesses.
+\[
+x := \pderef{16}; x := x + 1; \pderef{32} := \pderef{16} + x;
+\]
+We would have the following ``cost'' as a sequential list of accesses: $16 :: 16 :: 32$. We will use $\epsilon$ to denote the empty list. Then the cost semantics for memory accesses are shown in Figure~\ref{fig:memsemantics}. For the most part these rules follow the same basic form as the execution step cost semantics shown in Figure~\ref{fig:costsemantics}. Compound commands such as composition and conditional ``add up'' the costs $r_1$ and $r_2$ of their subcomponents using sequences concatenation $r_1 :: r_2$ rather than integer addition. Expressions and commands whose evaluation result in no memory accesses take cost $\epsilon$ to reflect the fact that they leave no observable information in the cost.
+
+The only rules that change the cost in non-trivial ways are those for memory lookup $\pderef{\astrm}$ and update $\pderef{\astrm} := \bstrm$. In the former case, the index $\astrm$ is evaluated to $v_1$, and this evaluation step has its own cost $r$. Then the final cost for this expression is $r :: v_1$, as the location $v_1$ is accessed after $r$ is incurred. In the latter case of memory update, first the right-hand side $\bstrm$ is evaluated at cost $r_1$, then the index $\astrm$ is evaluated to $v_2$ at cost $r_2$. Finally, the cost of executing this command is $r_1 :: r_2 :: v_2$, which reflects the order in which the subexpressions were evaluated with the final access being the one that updates memory in this command.
+
+Now that we have characterized the attacker's observation in a cost semantics, we must define what it means for a program to be secure in this model. Luckily, the definitions from before as shown in Eqs.~\ref{eq:costnonint} and \ref{eq:costfull} do not make any assumptions about the cost domain other than that it is equipped with some notion of equality. Certainly finite sequential lists of memory accesses have equality, so we can just re-use those notions of cost-aware non-interference here again.
+
+\subsection{A cache-channel type system}
+
+\begin{figure}
+\centering
+\begin{calculus}
+\cinferenceRule[constl|ConstL]{const low}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma}{c : \lowsec}}
+}{}%
+\end{calculus}
+\hspace{\linferenceRulehskipamount}
+\begin{calculus}
+\cinferenceRule[truel|TrueL]{true low}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma}{\keywordfont{true} : \lowsec}}
+}{}%
+\end{calculus}
+\hspace{\linferenceRulehskipamount}
+\begin{calculus}
+\cinferenceRule[falsel|FalseL]{false low}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma}{\keywordfont{false} : \lowsec}}
+}{}%
+\end{calculus}
+\\[1em]
+\begin{calculus}
+\cinferenceRule[vartype|Var]{variable type}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma}{x : \Gamma(x)}}
+}{}%
+\end{calculus}
+\hspace{\linferenceRulehskipamount}
+\begin{calculus}
+\cinferenceRule[memdtype|MemD]{deref type}
+{\linferenceRule[sequent]
+  {
+  	\lsequent{\Gamma}{\astrm : \ell}
+  	&\ell \lub \Gamma(\pc) \sqsubseteq \lowsec
+  }
+  {\lsequent{\Gamma}{\pderef{\astrm} : \lowsec}}
+}{}%
+\end{calculus}
+\\[1em]
+\begin{calculus}
+\cinferenceRule[unop|UnOp]{unary operator}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma}{\astrm : \ell}}
+  {\lsequent{\Gamma}{\odot~\astrm : \ell}}
+}{}%
+\end{calculus}
+\hspace{\linferenceRulehskipamount}
+\begin{calculus}
+\cinferenceRule[binop|BinOp]{binary operator}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma}{\astrm : \ell_1} & \lsequent{\Gamma}{\bstrm : \ell_2}}
+  {\lsequent{\Gamma}{\astrm\odot\bstrm : \ell_1 \lub \ell_2}}
+}{}%
+\end{calculus}
+\hspace{\linferenceRulehskipamount}
+\begin{calculus}
+\cinferenceRule[composeflow|Comp]{composition}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\asprg}
+  &\lsequent{\Gamma}{\bsprg}
+}{
+  \lsequent{\Gamma}{\asprg;\bsprg}
+}}{}%
+\end{calculus}
+\\[1em]
+\begin{calculus}
+\cinferenceRule[asgnflow|Asgn]{assignment}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\astrm : \ell_1}
+  &\ell_1 \lub \Gamma(\pc) \posetleq \Gamma(x)
+}{
+  \lsequent{\Gamma}{x := \astrm}
+}}{}%
+\end{calculus}
+\\[1em]
+\begin{calculus}
+\cinferenceRule[memuflow|MemU]{memory update}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\astrm : \ell_1}
+  &\lsequent{\Gamma}{\bstrm : \ell_2}
+  &\ell_1 \lub \ell_2 \lub \Gamma(\pc) \posetleq \lowsec
+}{
+  \lsequent{\Gamma}{\pderef{\astrm} := \bstrm}
+}}{}%
+\end{calculus}
+\\[1em]
+\begin{calculus}
+\cinferenceRule[condflow|If]{conditional}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\ivr : \ell}
+  &\ell' = \ell \lub \Gamma(\pc)
+  &\lsequent{\Gamma,\pc : \ell'}{\asprg}
+  &\lsequent{\Gamma,\pc : \ell'}{\bsprg}
+}{
+  \lsequent{\Gamma}{\pif{\ivr}{\asprg}{\bsprg}}
+}}{}%
+\end{calculus}
+\\[1em]
+\begin{calculus}
+\cinferenceRule[whileflow|While]{while}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\ivr : \ell}
+  &\ell' = \ell \lub \Gamma(\pc)
+  &\lsequent{\Gamma,\pc : \ell'}{\asprg}
+}{
+  \lsequent{\Gamma}{\pwhile{\ivr}{\asprg}}
+}}{}%
+\end{calculus}
+
+\caption{Conservative type system for mitigating cache side-channel leaks.}
+\label{fig:cachetypes}
+\end{figure}
+
+Figure~\ref{fig:cachetypes} shows a type system that follows the same rationale as the one that we saw for timing side-channels. Namely, a program is well-typed in this system only if there is no flow of information from secret state to memory accesses. All of the rules except \irref{memdtype} and \irref{memuflow} are exactly as they were in the original non-interference type system. The rule \irref{memdtype} for memory lookup expressions first types the index expression $\astrm$ as $\ell$, and then assigns the lookup expression type \lowsec as long as $\ell \lub \Gamma(\pc) \sqsubseteq \lowsec$. This prevents lookups in both cases where $\astrm$ contains secret information, as well as when lookups happen in secret-dependent control flow. 
+
+Also important is the fact that \irref{memdtype} enforces the invariant that everything read from memory is of type \lowsec. The second half of this invariant comes from rule \irref{memuflow} for memory updates, which checks that the type $\ell_2$ of the right-hand side as well as the \pc are both typed \lowsec before allowing the update. If the type system did not enforce this invariant, then we would need to assign security labels to each cell of memory as part of the context $\Gamma$. It may be possible if a bit unwieldly to do so, but for the purposes of this lecture not necessary.
+
+Finally, \irref{memuflow} also checks that the type of the index expression is \lowsec, which is again necessary to prevent secret information from leaking into the access cost. In the end this type system enforces the same security guarantee as the timing-channel type system, as stated in Theorem~\ref{thm:cache-types}.
+
+\begin{theorem}
+\label{thm:cache-types}
+The type system in Figure~\ref{fig:cachetypes} enforces both non-interference and cache side-channel security. That is, if $\lsequent{\Gamma}{\asprg}$ by the rules in Figure~\ref{fig:cachetypes} then for all $\omega_1\approx_\lowt\omega_2$, 
+\[
+\langle \omega_1, c\rangle \Downarrow_{r_1} \omega_1' \land \langle\omega_2, c\rangle\Downarrow_{r_2}\omega_2' \Longrightarrow r_1 = r_2 \land \omega_1' \approx_\lowt \omega_2'
+\]
+So $\asprg$ terminates with the same memory access patterns and in $\lowsec$-equivalent final states when initialized in either $\omega_1$ or $\omega_2$
+\end{theorem}
+\begin{proof}
+The proof of this theorem follows a very similar form to that of Theorem~\ref{thm:sidechan-types} and the soundness theorem of the non-interference type system from Lecture 12. The only extra consideration that must be done is regarding \irref{memdtype} and \irref{memuflow}. It may be helpful to factor out a lemma which proves the invariant that the contents of $\pderefop$ are never influenced by secret data. This is left as an exercise.
+\end{proof}
+
+\bibliographystyle{abbrv}
+\bibliography{bibliography}
+\end{document}
