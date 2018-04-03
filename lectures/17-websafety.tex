@@ -1,0 +1,297 @@
+\documentclass[11pt,twoside]{scrartcl}
+%\documentclass[11pt,twoside]{article}
+
+%opening
+\newcommand{\lecid}{15-316}
+\newcommand{\leccourse}{Software Foundations of Security and Privacy}
+\newcommand{\lecdate}{} %e.g. {October 21, 2013}
+\newcommand{\lecnum}{17}
+\newcommand{\lectitle}{Safety and Information Flow on the Web: I}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecurl}{https://15316-cmu.github.io/index}
+
+\usepackage{varwidth}
+\usepackage{lecnotes}
+\usepackage[irlabel]{bugcatch}
+
+\usepackage{tikz}
+\usetikzlibrary{automata,shapes,positioning,matrix,shapes.callouts,decorations.text,patterns,decorations.pathreplacing}
+
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\sqsubseteqftrule{L}%
+% \def\rightrule{R}%
+
+\begin{document}
+
+\newcommand{\atrace}{\omega}%
+%% the standard interpretation naming conventions
+\newcommand{\stdI}{\dTLint[state=\omega]}%
+\newcommand{\Ip}{\dTLint[trace=\atrace]}%
+\newcommand{\ws}{\omega}\newcommand{\wt}{\nu}% 
+
+\newdimen{\linferenceRulehskipamount}
+\linferenceRulehskipamount=2em
+  \linferenceRulevskipamount=0.6em
+
+% \newcommand{\lowt}{\lowsec}
+% \newcommand{\hight}{\hisec}
+
+\lstdefinestyle{customc}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  language=C,
+  showstringspaces=false,
+  numbers=none,
+  % xleftmargin=1ex,
+  framexleftmargin=1ex,
+  % numbersep=5pt,
+  % numberstyle=\tiny\color{mygray},
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\color{blue},
+  commentstyle=\itshape\color{purple!40!black},  
+  stringstyle=\color{orange},
+  morekeywords={output,assume,observe,input,bool,then,fun,match,in,val,list,type,of,string,unit,let,bytes,mov,imul,add,sar,shr,function,forall,nat,requires,ensures,method,returns,assert,new,array,modifies,reads,old,predicate,lemma,seq,calc,nan,var,exists,invariant,decreases,datatype,declassify,uint8},
+  tabsize=2,
+  deletestring=[b]',
+  backgroundcolor=\color{gray!15},
+  frame=tb
+}
+\lstset{escapechar=@,style=customc}
+
+\maketitle
+\thispagestyle{empty}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+
+So far we have studied two very general types of security policies: safety and information flow. We have done so without referring to specific types of systems that are in common use, and for the most part without describing concrete vulnerabilities that these policies are meant to protect against. In today's lecture, we will begin looking at these policies in the context of web applications. We will first get some background on how web applications are structured and what the potential sources of vulnerability are, and then look at various forms of attack that exploit lapses in safety and information flow security. Throughout, we will discuss mitigation techniques and best practices. This unit will cover the next 2-3 lectures, starting with an overview of web application architectures and injection vulnerabilities today.
+
+\section{Web Applications}
+
+Before we can understand issues involving safety and information flow on the web, we need a bit of background on how web applications are typically developed, how they function, and the platform that they execute on. Web applications are \emph{multi-tiered} applications that consist of code on a \emph{client}, which is operated by the end-user who runs a browser, and a \emph{server} that is operated by the web application owner. We'll first look at the client, and then the server, and finally see how the pieces fit together.
+
+\subsection{Web apps on the client}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{arch.png}
+
+\caption{\label{fig:chromium} The multi-process architecture of the Chromium browser engine. Image source: \url{https://www.chromium.org/developers/design-documents/multi-process-architecture}}
+\end{figure}
+
+The client side of a web application is run inside of a browser, which is a native program that makes requests to remote servers, downloads the code and associated data of the web app, and renders it in a graphical interface displayed to the user. Although the internal architecture of browsers varies from vendor to vendor, the architecture of the Chromium engine shown in Figure~\ref{fig:chromium} is representative enough for our purposes in this lecture. 
+
+The browser consists of a main process that managees the user interface, the (potentially) multiple tabs, and and plugins (also called extensions). This is referred to as the ``browser process'' or sometimes simply the ``browser''. The browser process is responsible for all network communication as well as managing \emph{cookies} (more on these later). Each open tab corresponds to a separate ``renderer'' process that is ultimately responsible for running the web application code and deciding how the results should be displayed in the user interface. In effect, the browser process treats the rendering processes as though they are a ``black box'' that parses and interprets web application code, and return bitmap images of their rendered contents.
+
+Chromium implements each process in the architecture as its own operating system process. There are several good reasons for doing this~\cite{Barthe08}, mostly having to do with robustness to programming bugs and security. Because OS processes have hardware-enforced memory isolation boundaries, bugs, vulnerabilities, and exceptions that arise in one process can have limited effect on others that are running concurrently. So keeping the rendering engines separated from eachother and the main browser process ensures that bugs and vulnerabilities that arise when rendering content remain somewhat isolated in their effect on the rest of the tabs and browser. The downside to this architecture is the overhead created by running a potentially large number of distinct processes that make frequent use of inter-process communication, leading to decreased system-wide performance and additional pressure on memory resources.
+
+\paragraph{HTML \& CSS.} In the early days of the web (``Web 1.0''), the content rendered by browsers was static in the sense that it did not change and for the most part did not respond to user input. Web applications, which were nothing more than collections of web pages, consisted entirely of \emph{Hypertext Markup Language} (HTML) documents that browsers used to interpret and compose text, images, and other content visible in the browser window. 
+
+HTML documents specify the structure of a webpage by specifying the grouping and relative layout of a set of HTML elements. The elements correspond to entities such as the title, header, paragraphs, and images of a page. Syntactically, elements are specified by \emph{tags} given in angle brackets with tag names and attributes. For example, the following tag corresponds to an image element that will render \verb'smiley.gif' with the specified height and width, and alternative text ``Smiley face'' in case the image for some reason cannot be rendered.
+\begin{lstlisting}[language=HTML]
+<img src="smiley.gif" alt="Smiley face" height="42" width="42">
+\end{lstlisting}
+
+Around the same time that HTML was proposed, \emph{Cascading Style Sheets} (CSS) were proposed as a clean way to separate the content of a web page from its presentation. A CSS document specifies how the elements in an HTML document should be rendered, including aspects of layout, sizing, font, and coloring. An HTML document associates itself with a given CSS by specifying it in a tag. By separating content and presentation in this way, it is possible for a single HTML document to render appropriately on multiple types of devices or in several different modes. For example, most websites today specify different style sheets for desktop and mobile browsers to account for differences in form factor. CSS also makes it possible for multiple HTML documents to share the same presentation style, thus eliminating redundancy that would otherwise need to exist in the HTML tag attributes and simplifying the process of changing aspects of presentation.
+
+\paragraph{Javascript.}
+In 1995, the developers of Netscape wanted to add additional functionality to websites by allowing them to run scripts in the context of a rendered HTML document. The original goal was to embed the Scheme programming language into websites~\cite{Rauschmayer2014}, but due to a strategic collaboration with Oracle (the creators of Java) it was decided that the language should ultimately complement Java programs and use similar syntax. This led Brendan Eich, who Netscape had hired to develop this web scripting language, to create the initial prototype of the JavaScript language in ten days to preemptively defend the choice against competing proposals for other languages.
+
+The result was a high-level interpreted language with no static typing discipline, prototype-based support for object-oriented programming, and essentially no resemblence to Java other than through its use of curly braces rather than parenthesis for lexical grouping. It supports APIs for dealing with strings, arrays, dates, regular expressions, and rendered HTML content (more on this later), but contains only limited facilities for I/O. Although it has gone through several rounds of update and standardization, the same JavaScript that Eich developed in his early prototype remains universal on the web today.
+
+JavaScript contains a number of unfortunate features that make it difficult to reason about both for developers and for automated tools that support safety and correctness. The most famous such feature is the \verb'eval(str)' function, which takes a string argument and evaluates it as a JavaScript program. This allows programs to dynamically compute programs and run them, which causes obvious problems for static analysis. Another difficulty comes from JavaScripts \emph{type coercion}, wherein data of a particular type is converted to a different type automatically. Consider the following example from Douglas Crockford~\cite{Crockford2008} where string, numeric, and Boolean data are coerced behind the scenes in unpredictable ways.
+\begin{lstlisting}[language=Java]
+'' == '0'          // false
+0 == ''            // true
+0 == '0'           // true
+
+false == 'false'   // false
+false == '0'       // true
+
+false == undefined // false
+false == null      // false
+null == undefined  // true
+
+' \t\r\n ' == 0    // true
+\end{lstlisting}
+
+We could fill several lectures with discussion of the many terrible features that remain supported in JavaScript, but for our purposes it suffices to say that conventional analysis techniques do not apply to JavaScript programs.
+
+\paragraph{Document Object Model.}
+One of the key motivations for incorporating a scripting language into web pages is to allow scripts to update the rendered content programmatically and in response to events such as user interaction. This is supported by the \emph{Document Object Model} (DOM), which is an API for reading and manipulating parsed HTML content. The DOM is actually a language-independent API, but we will focus on its implementation in JavaScript as it is the most relevant to web app security.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.5\textwidth]{dom.png}
+
+\caption{\label{fig:dom} An example of the DOM hierarchy in a simple HTML document. Image source: \url{https://commons.wikimedia.org/wiki/File:DOM-model.svg}.}
+\end{figure}
+
+The DOM maintains an internal representation of an HTML document as a tree structure. Each node corresponds to an element specified in the HTML, and the root of the tree (called the ``document object'') corresponds to the top-level document containing all of the elements. The JavaScript program running in the context of a page can make arbitrary changes to the DOM, which the browser will then render back on the UI. By extension, the DOM API allows JavaScript programs to register event handler callback functions on specified elements. 
+
+This allows websites to implement dynamic content in many ways resembling traditional desktop applications. As the user interacts with rendered elements, JavaScript event handlers are invoked which can in turn change the layout and visual appearance of the page. The combination of these technologies---HTML, JavaScript, and the DOM---are the essential client-side elements of modern web applications.
+
+\paragraph{Same-origin policy.}
+Because websites can execute scripts, there is the possibility that malicious websites could use this functionality to interfere with or spy on the content and interactions of other websites. For example, you may click on a not-totally-trustworthy link at the same time that you have a website from your bank or healthcare provider open. It would be problematic if a script running on the untrusted site were able to use the DOM API to snoop on sensitive information displayed on either page, or worse yet, invoke event handlers that cause requests to your bank!
+
+To protect the secrecy and integrity of web application content and data, browsers implement the \emph{Same-origin Policy} (SOP). The SOP requires that scripts contained in a webpage (call it ``website $A$'') can not access data or functionality on another website (``website $B$'') unless $A$ and $B$ have the same \emph{origin}. An origin is defined as the combination of the URI scheme, host name, and port number from with the site was loaded. 
+
+It is worthwhile to take a brief moment to say more about URI's. A \emph{Uniform Resource Indicator} (URI) is a string of characters used to identify a resource. You may not have realized it, but whenever you enter a website into a browser bar to load a website, you are specifying a URI. A URI consists of the following elements:
+\begin{verbatim}
+scheme:[//[user[:password]@]host[:port]][/path][?query][#fragment]
+\end{verbatim}
+\begin{description}
+\item[Scheme.] A URI scheme specifies the protocol that should be used to look up the resource. The most common schemes on the web are \verb'http' and \verb'https', but you have probably also encountered \verb'ftp', \verb'mailto', \verb'file', and \verb'irc'.
+\item[User and password.] Optionally, a URI can contain a username and password for resources that require password authentication.
+\item[Host.] The host can be a registered name (e.g., \verb'google.com' or \verb'andrew.cmu.edu') or an IP address (e.g., \verb'28.2.42.10').
+\item[Port.] The network port number on which the resource can be accessed. Ports are given by 16-bit integers, and common numbers are 80 (for \verb'http' resources), 443 (\verb'https'), and 143 (IMAP email protocol).
+\item[Path.] The path component is a hierarchical, slash-separated string that typically resembles a file path.
+\item[Query.] Non-hierarchical data that is typically used to pass arguments to the server side of a web application in the form of key-value pairs. For example, the query string \verb'q=cmu' is used by Google's search engine to specify the search query, so navigating to \verb'google.com/search?q=cmu' will return the search results for query ``cmu''.
+\item[Fragment.] The fragment portion of a URI can specify a secondary resource, such as a section heading within a page or a location somewhere in the middle of a file.
+\end{description}
+Returning to the topic of SOP, we can think of the policy as specifying principals in terms of triples containing (\emph{scheme}, \emph{host}, \emph{port}) from the URI corresponding to a page loaded in the browser. Scripts running under the principal for a particular (\emph{scheme}, \emph{host}, \emph{port}) triple are not allowed to access the DOM content or script state of pages running under different triples. This is a type of information flow policy that isolates content from different sources.
+
+It may help to see a few examples. Consider a script running on the page loaded from \verb'http://cs.cmu.edu/~15316'. Figure~\ref{fig:sop} shows the SOP result when the script attempts to access the data of other websites. Note that different browser implementations may differ slightly in their implementation of the SOP, as shown in the last example.
+
+\begin{figure}
+\centering
+\begin{tabular}{l|l}
+\hline
+\emph{Website} & \emph{Outcome}
+\\
+\hline
+\verb'http://cs.cmu.edu/~15312' & Allowed; same scheme, host, and port \\
+\verb'https://cs.cmu.edu/~15312' & Not allowed; different scheme \\
+\verb'http://www.cs.cmu.edu/~15312' & Not. allowed; different host \\
+\verb'http://andrew:pwd@cs.cmu.edu/~15312' & Allowed; same scheme, host, and port \\
+\verb'http://cs.cmu.edu:81/~15312' & Not allowed; different port \\
+\verb'http://cs.cmu.edu:80/~15312' & Depends on browser implementation \\
+\end{tabular}
+
+\caption{\label{fig:sop} Example outcomes of the Same-origin Policy applied when a script on \nolinkurl{http://cs.cmu.edu/~15316} attempts to access the data of pages from different URIs. In the bottom example, the scheme, host, and port all match because the default port for \texttt{http} is 80. Regardless, some browsers will not allow this because the port is made explicit in the latter but not the former.}
+\end{figure}
+
+\paragraph{Cross-origin access and embedded content.}
+Websites often consist of content from multiple different domains. One common example is images, which are sometimes stored on severs from different origins. Similarly, JavaScript code and CSS documents are frequently provided as libraries and there are good performance reasons for a website to use the source stored on the library vendor's servers. Another use of embedded content comes in the form of \verb'iframe' HTML elements, which subdivides the browser window into segments with content loaded from possibly unrelated URIs; this is one common way of displaying advertisements.
+
+Although these do not necessarily have anything to do with JavaScript code or DOM access, these forms of embedded content seem to violate the intent of the Same-origin Policy in that they allow information to flow between different origins. For example, when a page from origin $A$ loads an image from origin $B$, information can leak from $A$ to $B$ both through the simple fact that a request is being made, as well as through the pathname of the requested image. Likewise, information can leak from $B$ to $A$ through any error messages that may occur (e.g., if $B$ returns that the content is inaccessible), and through attributes such as the width and height of the returned image.
+
+Regardless, embedding is typically allowed as it is considered essential to supporting fully-functional web applications. A few case-specific details are with noting though.
+\begin{itemize}
+\item For scripts that are embedded from outside origins with a \verb'<script src=...>' tag, the code is retrieved, parsed, and then run in the context of the origin that requested the script (\emph{not} the origin that it was retrieved from). This supports cross-origin third-party libraries while partially avoiding explicit cross-origin flows. Moreover error messages are only returned for scripts from the same origin as the embedding page.
+\item Content embedded in an \verb'iframe' can come from arbitrary domains, but is run in the context of the origin that the content is loaded from. So if a webpage in origin $A$ embeds and \verb'iframe' with an advertisement from origin $B$, the ad will run in the context of $B$ and the Same-origin Policy will apply more or less as though the content were loaded in a separate tab.
+\end{itemize}
+As you might imagine, exceptions to the SOP due to cross-origin access create subtlety and complexity that is sometimes difficult to manage. This is a common source of vulnerability in web applications that we will come back to later on.
+
+\subsection{Web apps on the server}
+
+We mentioned earlier that web applications are ``tiered'' into portions consisting of the client side and server side. On the server tier, a common architecture divides the application into components that are responsible for the ``application logic'' and data storage separately. The application logic component takes care of network communications with the client, doing the core work of receiving requests, computing responses, and sending them back to the client. The data storage component is typically a traiditional relational database backend that contains any data needed to service client requests.
+
+For traditional ``static'' websites, the database may not play much of a role if HTML documents are pre-generated and stored on the server's filesystem. In this case, the server just parses the URI recieved from the client and uses the path component to locate an appropriate HTML file to send back. But it should come as no surprise that the vast majority of web applications require more than this.
+
+\paragraph{Server-side scripting.}
+Just as client-side scripting supports dynamic content, server-side scripting languages are commonly used to generate dynamic content to send to the client in response to the details of a request. While on the client side JavaScript is almost exclusively used, there is no de-facto standard server-side scripting and there are several common approaches for dynamically generating content on this tier. Among the most common are the \emph{Common Gateway Interface} (CGI) and PHP.
+
+You are already familiar with CGI from its inclusion in Lab 0. In its simplest incarnation, a server that uses CGI executes a program as though it were a console command and sends any output that it produces back to the client. The URI sent by the client for a CGI script might look like the following:
+\begin{verbatim}
+https://retailer.com/cgi-bin/purchase?arg1=credit&arg2=5105105105105100
+\end{verbatim}
+In this example, the URI specifies a CGI script called \verb'purchase', and provides two arguments in the query portion of the URI. The first \verb'arg1' is set to the value \verb'"purchase"', and the second \verb'arg2' is set to the string \verb'"5105105105105100"'. It is the web server's job to locate an executable program mapped to the path \verb'cgi-bin/purchase', and execute it with command-line arguments corresponding to those provided in the URI.
+
+The CGI script itself can do whatever the permissions on the server allow. It can perform arbitrary computations, read and write files allowed by the filesystem permissions, contact a back-end database, make network requests, and so on. The point is to generate a response to send back to the client that can be rendered by the browser. So in most cases, the script will generate an HTML document containing information specific to the query it received, and print it to standard output so that the web server can send it to the client.
+
+CGI is still used in web applications, but it is much more common to implement dynamic server-side functionality in a language like PHP. PHP in some ways simplifies the dynamic creation of HTML by allowing developers to write a template HTML document with portions that contain embedded PHP code. When the client requests a PHP file, the web server invokes the PHP interpreter passing the client's arguments, and the embedded PHP elements are evaluated into strings within the HTML template. The end result is an HTML document corresponding to the original template, with specific portions having content that was dynamically computed based on the client's request.
+
+\begin{figure}
+\begin{lstlisting}[language=PHP]
+<!DOCTYPE html>
+<html>
+  <body>
+    <?php 
+      echo '<p>Hello, $_GET["name"]</p>'; 
+    ?>
+  </body>
+</html>
+\end{lstlisting}
+
+\begin{lstlisting}[language=HTML]
+<!DOCTYPE html>
+<html>
+  <body>
+    <p>Hello, Andrew</p>
+  </body>
+</html>
+\end{lstlisting}
+
+\caption{\label{fig:php} Example PHP script (top) that emits an HTML document (bottom) with a \texttt{<p>} element that is dynamically-computed from the \texttt{name} argument provided in the URI \nolinkurl{http://ex.com/test.php?name=Andrew}.}
+\end{figure}
+
+Figure~\ref{fig:php} shows an example PHP script and the HTML document that it produces when requested with a particular argument. Notice that the script is embedded within an HTML document (i.e., template). The PHP interpreter runs each embedded script with the arguments given in the request, and whatever output the script produces is placed in the same location within the template as the script itself.
+
+\section{Client-side injection vulnerabilities}
+
+The use of dynamic server-side scripting opens up numerous possibilities for vulnerability. The most common among these are called \emph{client-side injection}, and occur when request arguments are used to perform actions on the server that are potentially unsafe. 
+
+\begin{figure}
+\begin{lstlisting}[language=PHP]
+<!DOCTYPE html>
+<html>
+  <body>
+    <?php 
+      $t = $_GET["ip"];
+      $o = shell_exec("ping -C 3" . $t);
+      echo '<p>$o</p>'; 
+    ?>
+  </body>
+</html>
+\end{lstlisting}
+
+\caption{\label{fig:injection1} PHP script with a command injection vulnerability. This example is thanks to David Brumley.}
+\end{figure}
+
+Consider the PHP script shown in Figure~\ref{fig:injection1}. This might constitute the server-side component of a web application that allows users to ping a given host from the server, and returns the results of the \verb'ping' command directly back to the user. In order to do this, the PHP code calls \verb'shell_exec' to execute the \verb'ping' utility on an IP address given in the \verb'ip' argument of the URI request. For example, suppose that the web app were located at \nolinkurl{http://freeping.com/php/ping}. Then the following request would return the output of \verb'ping' in an HTML page:
+\begin{verbatim}
+http://freeping.com/php/ping?ip=28.2.42.10
+\end{verbatim}
+The given argument is simply concatenated with the string \verb'ping -C 3' before being sent to \verb'shell_exec', and this is where the vulnerability lies. Shell commands support composition with the usual semicolon location, so if one were to execute the command \verb'ping -C 3 28.2.42.10; ls', then the result would be the output of \verb'ping', followed by a listing of the directory from which the command was executed. An malicious user could exploit this fact by sending the request:
+\begin{verbatim}
+http://freeping.com/php/ping?ip=28.2.42.10%3b+ls
+\end{verbatim}
+URI parameters can contain non-alphanumeric symbols like semicolon as long as they are encoded in a particular way. Encodings consist of a percent sign followed by a hexadecimal code corresponding to the symbol. The \verb'+' is decoded as a space, as space characters are not allowed in URI strings. 
+
+The final result would be that when the PHP script is invoked, \verb'$_GET["ip"]$' returns the string \verb'ping -C 3 28.2.42.10; ls', which will in turn cause the generated HTML to contain the server's current directory listing. While a directory listing might not seem so bad, an enterprising attacker would leverage this to achieve quite a bit more. Sending an encoded version of the string:
+\begin{verbatim}
+ping -C 3 28.2.42.10; netcat -v -e ‘/bin/bash’ -l -p 31337
+\end{verbatim}
+Will cause a remote shell to open on port 31337, running at the same privilege level as the PHP interpreter. Not good!
+
+\subsection{Mitigation}
+At first glance, it seems that the central problem here is that untrusted input was used as an argument to \verb'shell_exec'. But this is indeed unavoidable if we are to implement the necessary functionality for this application. A more nuanced view is that the PHP script blindly passed untrusted input to \verb'shell_exec' without first checking to make sure that it contained only an IP address, and nothing more. This is called \emph{input validation}, and is usually considered to be the best practice for avoiding client-side injection vulnerabilities. 
+
+However, input validation is a nuanced affair. There are multiple types of injection vulnerability; for example, if the PHP script accesses a back-end database using queries that are influenced by untrusted input, then without appropriate validation an attacker might read more of the database than intended, or worse yet, modify it. There is no silver bullet for input validation, and it must be done carefully on a case-by-case basis. Recent versions of PHP and other languages contain functions that assist in validating certain kinds of inputs (e.g., shell commands and database queries), and developers should only use those when dealing with such functionality. There are also static analysis tools that look for information flow between untrusted input and functions with potentially dangerous behavior, and subsequently advise developers on the best course of action for mitigating the potential vulnerability. But these tools are not perfect, and are no substitute for careful defensive programming to avoid injection attacks.
+
+% \subsection{Combining client and server}
+
+% \paragraph{HTTP.}
+
+% \paragraph{Sessions and cookies.}
+
+% \section{Client-side command injection}
+
+% \section{Cross-site scripting}
+
+% \section{Cross-site request forgery}
+
+% \section{Third-party tracking}
+
+\bibliographystyle{abbrv}
+\bibliography{bibliography}
+\end{document}
