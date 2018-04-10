@@ -236,62 +236,6 @@ CGI is still used in web applications, but it is much more common to implement d
 
 Figure~\ref{fig:php} shows an example PHP script and the HTML document that it produces when requested with a particular argument. Notice that the script is embedded within an HTML document (i.e., template). The PHP interpreter runs each embedded script with the arguments given in the request, and whatever output the script produces is placed in the same location within the template as the script itself.
 
-\section{Client-side injection vulnerabilities}
-
-The use of dynamic server-side scripting opens up numerous possibilities for vulnerability. The most common among these are called \emph{client-side injection}, and occur when request arguments are used to perform actions on the server that are potentially unsafe. 
-
-\begin{figure}
-\begin{lstlisting}[language=PHP]
-<!DOCTYPE html>
-<html>
-  <body>
-    <?php 
-      $t = $_GET["ip"];
-      $o = shell_exec("ping -C 3" . $t);
-      echo '<p>$o</p>'; 
-    ?>
-  </body>
-</html>
-\end{lstlisting}
-
-\caption{\label{fig:injection1} PHP script with a command injection vulnerability. This example is thanks to David Brumley.}
-\end{figure}
-
-Consider the PHP script shown in Figure~\ref{fig:injection1}. This might constitute the server-side component of a web application that allows users to ping a given host from the server, and returns the results of the \verb'ping' command directly back to the user. In order to do this, the PHP code calls \verb'shell_exec' to execute the \verb'ping' utility on an IP address given in the \verb'ip' argument of the URI request. For example, suppose that the web app were located at \nolinkurl{http://freeping.com/php/ping}. Then the following request would return the output of \verb'ping' in an HTML page:
-\begin{verbatim}
-http://freeping.com/php/ping?ip=28.2.42.10
-\end{verbatim}
-The given argument is simply concatenated with the string \verb'ping -C 3' before being sent to \verb'shell_exec', and this is where the vulnerability lies. Shell commands support composition with the usual semicolon location, so if one were to execute the command \verb'ping -C 3 28.2.42.10; ls', then the result would be the output of \verb'ping', followed by a listing of the directory from which the command was executed. An malicious user could exploit this fact by sending the request:
-\begin{verbatim}
-http://freeping.com/php/ping?ip=28.2.42.10%3b+ls
-\end{verbatim}
-URI parameters can contain non-alphanumeric symbols like semicolon as long as they are encoded in a particular way. Encodings consist of a percent sign followed by a hexadecimal code corresponding to the symbol. The \verb'+' is decoded as a space, as space characters are not allowed in URI strings. 
-
-The final result would be that when the PHP script is invoked, \verb'$_GET["ip"]$' returns the string \verb'ping -C 3 28.2.42.10; ls', which will in turn cause the generated HTML to contain the server's current directory listing. While a directory listing might not seem so bad, an enterprising attacker would leverage this to achieve quite a bit more. Sending an encoded version of the string:
-\begin{verbatim}
-ping -C 3 28.2.42.10; netcat -v -e ‘/bin/bash’ -l -p 31337
-\end{verbatim}
-Will cause a remote shell to open on port 31337, running at the same privilege level as the PHP interpreter. Not good!
-
-\subsection{Mitigation}
-At first glance, it seems that the central problem here is that untrusted input was used as an argument to \verb'shell_exec'. But this is indeed unavoidable if we are to implement the necessary functionality for this application. A more nuanced view is that the PHP script blindly passed untrusted input to \verb'shell_exec' without first checking to make sure that it contained only an IP address, and nothing more. This is called \emph{input validation}, and is usually considered to be the best practice for avoiding client-side injection vulnerabilities. 
-
-However, input validation is a nuanced affair. There are multiple types of injection vulnerability; for example, if the PHP script accesses a back-end database using queries that are influenced by untrusted input, then without appropriate validation an attacker might read more of the database than intended, or worse yet, modify it. There is no silver bullet for input validation, and it must be done carefully on a case-by-case basis. Recent versions of PHP and other languages contain functions that assist in validating certain kinds of inputs (e.g., shell commands and database queries), and developers should only use those when dealing with such functionality. There are also static analysis tools that look for information flow between untrusted input and functions with potentially dangerous behavior, and subsequently advise developers on the best course of action for mitigating the potential vulnerability. But these tools are not perfect, and are no substitute for careful defensive programming to avoid injection attacks.
-
-% \subsection{Combining client and server}
-
-% \paragraph{HTTP.}
-
-% \paragraph{Sessions and cookies.}
-
-% \section{Client-side command injection}
-
-% \section{Cross-site scripting}
-
-% \section{Cross-site request forgery}
-
-% \section{Third-party tracking}
-
 \bibliographystyle{abbrv}
 \bibliography{bibliography}
 \end{document}
