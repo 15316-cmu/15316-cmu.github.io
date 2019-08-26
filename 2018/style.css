@@ -1,0 +1,16 @@
+/*ul li {
+  padding-top: 0.5em;
+}
+
+hr {border-top: 1px solid #ccc;
+    margin: 1em 0; padding: 0; }*/
+
+.table-condensed > thead > tr > th,
+.table-condensed > tbody > tr > th,
+.table-condensed > tfoot > tr > th,
+.table-condensed > thead > tr > td,
+.table-condensed > tbody > tr > td,
+.table-condensed > tfoot > tr > td {
+  padding: 5px;
+  border-top: 0;  
+}

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <!-- <link rel="icon" href="favicon.ico"> -->
+
+    <title>15-316 Software Foundations of Security &amp Privacy</title>
+
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="dist/css/bootstrap.min.css">
+
+    <!-- Bootstrap theme -->
+    <link href="navbar-top-fixed.css" rel="stylesheet">
+  </head>
+
+    <body>
+
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top navbar-inverse">
+      <div  class="collapse navbar-collapse" id="navbarCollapse">
+        <ul class="navbar-nav mr-auto">
+          <li class="dropdown bg-dark"><a class="navbar-brand dropdown-toggle" data-toggle="dropdown" href="#">15316 Spring 2018 <b class="caret"></b></a>
+            <ul class="dropdown-menu bg-dark">
+              <li class="nav-item bg-dark"><a class="dropdown-item nav-link bg-dark" href="../schedule.html">Fall 2019</a></li>
+            </ul>
+          </li>
+          <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="syllabus.html">Syllabus</a></li>
+          <li class="nav-item active"><a class="nav-link" href="schedule.html">Schedule</a></li>
+          <li class="nav-item"><a class="nav-link" href="assignments.html">Assignments</a></li>
+        </ul>
+      </div><!--/.nav-collapse -->
+    </nav>
+
+    <div class="container theme-showcase" role="main">
+
+
+  <br>
+  <p>Lecture notes will be posted shortly prior to each class meeting.</p>
+  <p>Note: to compile lecture notes, you will need to download the <a href="lectures/lecnotes-tex.zip">latex packages</a> and place the .sty files in the same directory as the lecture source.</p>
+  
+  <br>
+
+
+	<div class="table-responsive">
+	<table class="table">
+    <thead class="thead-default">
+    	<tr>
+      	<th><i>date</i></th>
+      	<th><i>topic</i></th>
+        <th><i>notes</i></th>
+      	<th><i>comments</i></th>
+    	</tr>
+    </thead>
+    <tbody>
+      <tr>  <td>1/16 </td>
+        <td>Introduction</td>
+        <td><a href="lectures/01-intro/01-intro.pdf">[pdf]</a></td>
+        <td></td>
+      </tr>
+      <tr><td>1/18 </td>
+        <td>Propositional logic &amp; proofs</td>
+        <td><a href="lectures/02-prop.pdf">[pdf]</a><a href="lectures/02-prop.tex">[tex]</a></td>
+        <td></td>
+      </tr>
+      <tr><td>1/23 </td>
+        <td>Program semantics, safety, &amp; dynamic logic</td>
+        <td><a href="lectures/03-safety.pdf">[pdf]</a><a href="lectures/03-safety.tex">[tex]</a></td>
+        <td></td>
+      </tr>      
+      <tr><td>1/25 </td>
+        <td>Proving safety, compositionally</td>
+        <td><a href="lectures/04-safetyproofs.pdf">[pdf]</a><a href="lectures/04-safetyproofs.tex">[tex]</a></td>
+        <td></td>
+      </tr>            
+      <tr><td>1/30 </td>
+        <td>Bounded model checking &amp; symbolic execution</td>
+        <td><a href="lectures/05-boundedsafety.pdf">[pdf]</a><a href="lectures/05-boundedsafety.tex">[tex]</a></td>
+        <td></td>
+      </tr>            
+      <tr><td>2/1 </td>
+        <td>Memory safety &amp; sandboxing</td>
+        <td><a href="lectures/06-sfi.pdf">[pdf]</a><a href="lectures/06-sfi.tex">[tex]</a></td>
+        <td></td>
+      </tr>      
+      <tr><td>2/6 </td>
+        <td>Inlining safety</td>
+        <td><a href="lectures/07-cfi.pdf">[pdf]</a><a href="lectures/07-cfi.tex">[tex]</a></td>
+        <td></td>
+      </tr>      
+      <tr><td>2/8 </td>
+        <td>Lab 0 discussion, Control flow safety</td>
+        <td><a href="lectures/08-irm.pdf">[pdf]</a><a href="lectures/08-irm.tex">[tex]</a></td>
+        <td></td>
+      </tr>      
+      <tr><td>2/13 </td>
+        <td>Security automata &amp; dynamic instrumentation</td>
+        <td><a href="lectures/09-automata.pdf">[pdf]</a><a href="lectures/09-automata.tex">[tex]</a></td>
+        <td></td>
+      </tr>      
+      <tr><td>2/15 </td>
+        <td>Information flow policies</td>
+        <td><a href="lectures/10-infoflow.pdf">[pdf]</a><a href="lectures/10-infoflow.tex">[tex]</a></td>
+        <td></td>
+      </tr>        
+      <tr><td>2/20 </td>
+        <td>Information flow types I</td>
+        <td><a href="lectures/11-flowtypes1.pdf">[pdf]</a><a href="lectures/11-flowtypes1.tex">[tex]</a></td>
+        <td></td>
+      </tr>      
+      <tr><td>2/22 </td>
+        <td>Pin tutorial session</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr><td>2/27 </td>
+        <td>Information flow types II</td>
+        <td><a href="lectures/12-flowtypes2.pdf">[pdf]</a><a href="lectures/12-flowtypes2.tex">[tex]</a></td>
+        <td></td>
+      </tr>      
+      <tr class="table-warning"><td>3/1 </td>
+        <td>Midterm review</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr class="table-danger">  <td>3/6 </td>
+        <td>Midterm exam</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr><td>3/8 </td>
+        <td>Guest lecture: <a href="http://www.cs.cmu.edu/~jyang2/">Prof. Jean Yang</a> on <a href="http://www.cs.cmu.edu/~jyang2/papers/jeanyang_phd_thesis.pdf">policy</a>-<a href="http://www.cs.cmu.edu/~jyang2/papers/popl088-yang.pdf">agnostic</a> <a href="http://www.cs.cmu.edu/~jyang2/papers/p631-yang.pdf">programming</a></td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr class="table-success">  <td>3/13 </td>
+        <td>No class, spring break</td>
+        <td></td>
+        <td></td>
+      </tr>      
+      <tr class="table-success">  <td>3/15 </td>
+        <td>No class, spring break</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr><td>3/20 </td>
+        <td>Relaxing noninterference</td>
+        <td><a href="lectures/13-declass.pdf">[pdf]</a><a href="lectures/13-declass.tex">[tex]</a></td>
+        <td></td>
+      </tr>      
+      <tr><td>3/22 </td>
+        <td>Provable privacy</td>
+        <td><a href="lectures/14-statpriv.pdf">[pdf]</a><a href="lectures/14-statpriv.tex">[tex]</a></td>
+        <td></td>
+      </tr>
+      <tr><td>3/27 </td>
+        <td>Timing side channels</td>
+        <td><a href="lectures/15-sidechan.pdf">[pdf]</a><a href="lectures/15-sidechan.tex">[tex]</a></td>
+        <td></td>
+      </tr>      
+      <tr><td>3/29 </td>
+        <td>Memory side channels</td>
+        <td><a href="lectures/16-cachechan.pdf">[pdf]</a><a href="lectures/16-cachechan.tex">[tex]</a></td>
+        <td></td>
+      </tr>  
+      <tr><td>4/3 </td>
+        <td>Web application security I</td>
+        <td><a href="lectures/17-websafety.pdf">[pdf]</a><a href="lectures/17-websafety.tex">[tex]</a></td>
+        <td></td>
+      </tr>            
+      <tr><td>4/5 </td>
+        <td>Guest lecture: Prof. Bryan Parno on end-to-end security and full-system verification</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr><td>4/10 </td>
+        <td>Web application security II</td>
+        <td><a href="lectures/18-webattack.pdf">[pdf]</a><a href="lectures/18-webattack.tex">[tex]</a></td>
+        <td></td>
+      </tr>      
+      <tr><td>4/12 </td>
+        <td>Penetration testing, Lab 3 tutorial</td>
+        <td><a href="lectures/19-pentest.pdf">[pdf]</a><a href="lectures/19-pentest.tex">[tex]</a></td>
+        <td></td>
+      </tr>
+      <tr><td>4/17 </td>
+        <td>Distributed authorization</td>
+        <td><a href="lectures/20-authlogic.pdf">[pdf]</a><a href="lectures/20-authlogic.tex">[tex]</a></td>
+        <td></td>
+      </tr>      
+      <tr class="table-success">  <td>4/19 </td>
+        <td>No class (happy Carnival!)</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr><td>4/24 </td>
+        <td>Bootstrapping Trust</td>
+        <td><a href="lectures/21-pki.pdf">[pdf]</a><a href="lectures/21-pki.tex">[tex]</a></td>
+        <td></td>
+      </tr>      
+      <tr><td>4/26 </td>
+        <td>Trusted Computing</td>
+        <td><a href="lectures/22-tpm.pdf">[pdf]</a><a href="lectures/22-tpm.tex">[tex]</a></td>
+        <td></td>
+      </tr>
+      <tr><td>5/1 </td>
+        <td>Final review</td>
+        <td></td>
+        <td></td>
+      </tr>      
+      <tr class="table-warning"><td>5/3 </td>
+        <td>Final exam</td>
+        <td></td>
+        <td></td>
+      </tr>
+    </tbody>
+
+  </table></div><p><p>
+
+    <!-- Bootstrap core JavaScript
+        ================================================== -->
+        <!-- Placed at the end of the document so the pages load faster -->
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script>window.jQuery || document.write('<script src="assets/js/vendor/jquery.min.js"><\/script>')</script>
+        <script src="assets/js/vendor/popper.min.js"></script>
+        <script src="dist/js/bootstrap.min.js"></script>
+        <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+        <script src="assets/js/ie10-viewport-bug-workaround.js"></script>
+
+</body>
+</html>

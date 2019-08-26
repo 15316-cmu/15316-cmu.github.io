@@ -19,16 +19,17 @@
 
     <body>
 
-    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
-      <a class="navbar-brand" href="#">15316 Spring 2018</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
-              <span class="navbar-toggler-icon"></span>
-      </button>
-      <div id="navbarCollapse" class="collapse navbar-collapse">
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top navbar-inverse">
+      <div  class="collapse navbar-collapse" id="navbarCollapse">
         <ul class="navbar-nav mr-auto">
+          <li class="dropdown bg-dark"><a class="navbar-brand dropdown-toggle" data-toggle="dropdown" href="#">15316 Fall 2019 <b class="caret"></b></a>
+            <ul class="dropdown-menu bg-dark">
+              <li class="nav-item bg-dark"><a class="dropdown-item nav-link bg-dark" href="2018/schedule.html">Spring 2018</a></li>
+            </ul>
+          </li>
           <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
           <li class="nav-item"><a class="nav-link" href="syllabus.html">Syllabus</a></li>
-          <li class="nav-item active"><a class="nav-link" href="#">Schedule</a></li>
+          <li class="nav-item active"><a class="nav-link" href="schedule.html">Schedule</a></li>
           <li class="nav-item"><a class="nav-link" href="assignments.html">Assignments</a></li>
         </ul>
       </div><!--/.nav-collapse -->
@@ -55,162 +56,157 @@
     	</tr>
     </thead>
     <tbody>
-      <tr>  <td>1/16 </td>
+      <tr>  <td>8/27 </td>
         <td>Introduction</td>
-        <td><a href="lectures/01-intro/01-intro.pdf">[pdf]</a></td>
+        <td></td>
         <td></td>
       </tr>
-      <tr><td>1/18 </td>
+      <tr><td>8/29 </td>
         <td>Propositional logic &amp; proofs</td>
-        <td><a href="lectures/02-prop.pdf">[pdf]</a><a href="lectures/02-prop.tex">[tex]</a></td>
+        <td></td>
         <td></td>
       </tr>
-      <tr><td>1/23 </td>
+      <tr><td>9/3 </td>
         <td>Program semantics, safety, &amp; dynamic logic</td>
-        <td><a href="lectures/03-safety.pdf">[pdf]</a><a href="lectures/03-safety.tex">[tex]</a></td>
+        <td></td>
         <td></td>
       </tr>      
-      <tr><td>1/25 </td>
+      <tr><td>9/5 </td>
         <td>Proving safety, compositionally</td>
-        <td><a href="lectures/04-safetyproofs.pdf">[pdf]</a><a href="lectures/04-safetyproofs.tex">[tex]</a></td>
+        <td></td>
         <td></td>
       </tr>            
-      <tr><td>1/30 </td>
+      <tr><td>9/10 </td>
         <td>Bounded model checking &amp; symbolic execution</td>
-        <td><a href="lectures/05-boundedsafety.pdf">[pdf]</a><a href="lectures/05-boundedsafety.tex">[tex]</a></td>
+        <td></td>
         <td></td>
       </tr>            
-      <tr><td>2/1 </td>
+      <tr><td>9/12 </td>
         <td>Memory safety &amp; sandboxing</td>
-        <td><a href="lectures/06-sfi.pdf">[pdf]</a><a href="lectures/06-sfi.tex">[tex]</a></td>
+        <td></td>
         <td></td>
       </tr>      
-      <tr><td>2/6 </td>
+      <tr><td>9/17 </td>
         <td>Inlining safety</td>
-        <td><a href="lectures/07-cfi.pdf">[pdf]</a><a href="lectures/07-cfi.tex">[tex]</a></td>
         <td></td>
-      </tr>      
-      <tr><td>2/8 </td>
-        <td>Lab 0 discussion, Control flow safety</td>
-        <td><a href="lectures/08-irm.pdf">[pdf]</a><a href="lectures/08-irm.tex">[tex]</a></td>
         <td></td>
-      </tr>      
-      <tr><td>2/13 </td>
-        <td>Security automata &amp; dynamic instrumentation</td>
-        <td><a href="lectures/09-automata.pdf">[pdf]</a><a href="lectures/09-automata.tex">[tex]</a></td>
-        <td></td>
-      </tr>      
-      <tr><td>2/15 </td>
-        <td>Information flow policies</td>
-        <td><a href="lectures/10-infoflow.pdf">[pdf]</a><a href="lectures/10-infoflow.tex">[tex]</a></td>
-        <td></td>
-      </tr>        
-      <tr><td>2/20 </td>
-        <td>Information flow types I</td>
-        <td><a href="lectures/11-flowtypes1.pdf">[pdf]</a><a href="lectures/11-flowtypes1.tex">[tex]</a></td>
-        <td></td>
-      </tr>      
-      <tr><td>2/22 </td>
+      </tr>
+      <tr><td>9/19 </td>
         <td>Pin tutorial session</td>
         <td></td>
         <td></td>
-      </tr>
-      <tr><td>2/27 </td>
-        <td>Information flow types II</td>
-        <td><a href="lectures/12-flowtypes2.pdf">[pdf]</a><a href="lectures/12-flowtypes2.tex">[tex]</a></td>
-        <td></td>
       </tr>      
-      <tr class="table-warning"><td>3/1 </td>
+      <tr><td>9/24 </td>
+        <td>Control flow safety</td>
+        <td></td>
+        <td></td>
+      </tr>   
+      <tr><td>9/26 </td>
+        <td>Security automata &amp; dynamic instrumentation</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr class="table-warning"><td>10/1 </td>
         <td>Midterm review</td>
         <td></td>
         <td></td>
       </tr>
-      <tr class="table-danger">  <td>3/6 </td>
+      <tr class="table-danger">  <td>10/3 </td>
         <td>Midterm exam</td>
         <td></td>
         <td></td>
       </tr>
-      <tr><td>3/8 </td>
-        <td>Guest lecture: <a href="http://www.cs.cmu.edu/~jyang2/">Prof. Jean Yang</a> on <a href="http://www.cs.cmu.edu/~jyang2/papers/jeanyang_phd_thesis.pdf">policy</a>-<a href="http://www.cs.cmu.edu/~jyang2/papers/popl088-yang.pdf">agnostic</a> <a href="http://www.cs.cmu.edu/~jyang2/papers/p631-yang.pdf">programming</a></td>
+      <tr><td>10/8 </td>
+        <td>Information flow policies</td>
+        <td></td>
+        <td></td>
+      </tr>        
+      <tr><td>10/10 </td>
+        <td>Information flow types I</td>
         <td></td>
         <td></td>
       </tr>
-      <tr class="table-success">  <td>3/13 </td>
-        <td>No class, spring break</td>
-        <td></td>
-        <td></td>
-      </tr>      
-      <tr class="table-success">  <td>3/15 </td>
-        <td>No class, spring break</td>
+      <tr><td>10/15 </td>
+        <td>Information flow types II</td>
         <td></td>
         <td></td>
       </tr>
-      <tr><td>3/20 </td>
+      <tr><td>10/17 </td>
+        <td>Guest lecture: TBD</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr><td>10/22 </td>
         <td>Relaxing noninterference</td>
-        <td><a href="lectures/13-declass.pdf">[pdf]</a><a href="lectures/13-declass.tex">[tex]</a></td>
+        <td></td>
         <td></td>
       </tr>      
-      <tr><td>3/22 </td>
+      <tr><td>10/24 </td>
         <td>Provable privacy</td>
-        <td><a href="lectures/14-statpriv.pdf">[pdf]</a><a href="lectures/14-statpriv.tex">[tex]</a></td>
+        <td></td>
         <td></td>
       </tr>
-      <tr><td>3/27 </td>
+      <tr><td>10/29 </td>
         <td>Timing side channels</td>
-        <td><a href="lectures/15-sidechan.pdf">[pdf]</a><a href="lectures/15-sidechan.tex">[tex]</a></td>
+        <td></td>
         <td></td>
       </tr>      
-      <tr><td>3/29 </td>
+      <tr><td>10/31 </td>
         <td>Memory side channels</td>
-        <td><a href="lectures/16-cachechan.pdf">[pdf]</a><a href="lectures/16-cachechan.tex">[tex]</a></td>
+        <td></td>
         <td></td>
       </tr>  
-      <tr><td>4/3 </td>
+      <tr><td>11/5 </td>
         <td>Web application security I</td>
-        <td><a href="lectures/17-websafety.pdf">[pdf]</a><a href="lectures/17-websafety.tex">[tex]</a></td>
+        <td></td>
         <td></td>
       </tr>            
-      <tr><td>4/5 </td>
-        <td>Guest lecture: Prof. Bryan Parno on end-to-end security and full-system verification</td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr><td>4/10 </td>
+      <tr><td>11/7 </td>
         <td>Web application security II</td>
-        <td><a href="lectures/18-webattack.pdf">[pdf]</a><a href="lectures/18-webattack.tex">[tex]</a></td>
+        <td></td>
         <td></td>
       </tr>      
-      <tr><td>4/12 </td>
+      <tr><td>11/12 </td>
         <td>Penetration testing, Lab 3 tutorial</td>
-        <td><a href="lectures/19-pentest.pdf">[pdf]</a><a href="lectures/19-pentest.tex">[tex]</a></td>
+        <td></td>
         <td></td>
       </tr>
-      <tr><td>4/17 </td>
+      <tr><td>11/14 </td>
         <td>Distributed authorization</td>
-        <td><a href="lectures/20-authlogic.pdf">[pdf]</a><a href="lectures/20-authlogic.tex">[tex]</a></td>
-        <td></td>
-      </tr>      
-      <tr class="table-success">  <td>4/19 </td>
-        <td>No class (happy Carnival!)</td>
         <td></td>
         <td></td>
       </tr>
-      <tr><td>4/24 </td>
+      <tr><td>11/19 </td>
         <td>Bootstrapping Trust</td>
-        <td><a href="lectures/21-pki.pdf">[pdf]</a><a href="lectures/21-pki.tex">[tex]</a></td>
         <td></td>
-      </tr>      
-      <tr><td>4/26 </td>
-        <td>Trusted Computing</td>
-        <td><a href="lectures/22-tpm.pdf">[pdf]</a><a href="lectures/22-tpm.tex">[tex]</a></td>
         <td></td>
       </tr>
-      <tr><td>5/1 </td>
+      <tr><td>11/21 </td>
+        <td>Trusted Computing</td>
+        <td></td>
+        <td></td>
+      </tr>      
+      <tr class="table-success">  <td>11/26 </td>
+        <td>No class (Thanksgiving break)</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr class="table-success">  <td>11/28 </td>
+        <td>No class (happy Thanksgiving!)</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr><td>12/3 </td>
+        <td>Guest Lecture: TBD</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr class="table-warning"><td>12/5 </td>
         <td>Final review</td>
         <td></td>
         <td></td>
       </tr>      
-      <tr class="table-warning"><td>5/3 </td>
+      <tr class="table-danger"><td>TBD </td>
         <td>Final exam</td>
         <td></td>
         <td></td>
