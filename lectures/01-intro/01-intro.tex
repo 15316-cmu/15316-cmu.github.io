@@ -56,7 +56,7 @@
 \title[Software Foundations of S \& P]{
 \RaggedRight
 	Software Foundations of Security \& Privacy \\
-	\ 15316 Spring 2018 \\
+	\ 15316 Fall 2019 \\
 	\ Lecture 1: \\
 	\ Introduction
 }
@@ -94,9 +94,9 @@ Instructor
 
 \begin{column}{0.5\textwidth}
 \centering
-\includegraphics[height=8em]{tianyu.jpg}
+\includegraphics[height=8em]{avatar.jpg}
 
-Tianyu Li \\
+TBD \\
 TA
 \end{column}
 
@@ -108,7 +108,7 @@ TA
 
 \begin{frame}
 
-\frametitle{Recent news...}
+\frametitle{Mundane news}
 
 \centering
 \includegraphics[height=15em]{sidechan-blog.png}
@@ -133,8 +133,6 @@ What's the big deal? \pause
 \pause
 \begin{center}
 ``Every Intel processor that implements out-of-order execution is potentially affected''
-\\[1ex] \pause
-... \emph{which is effectively every processor since 1995}.
 \end{center}
 
 \end{frame}
@@ -283,11 +281,10 @@ At this point, the attacker has accomplished:
   \item Exfiltrate value of bit by timing cache hits \& misses \\[1em]
 \end{enumerate}\pause
 
-Keeping track of necessary assumptions:
+Keeping track of assumptions:\pause
 \begin{enumerate}
-  \item Process code doesn't check bounds on memory access
-  \item Process code is vulnerable to cache side channel
-  \item Attacker controls \texttt{untrusted\_offset}
+  \item Code doesn't check bounds on memory access
+  \item Code reads memory using untrusted, attacker-controlled index \texttt{untrusted\_offset}
   \item Targeted memory location won't cause segfault
 \end{enumerate}
 
@@ -348,7 +345,7 @@ unsigned long untrusted_offset = network_read(...);
 \item Processor may begin executing inside branch anyway...
 \pause
 
-\item If condition is false, results are essentially rolled back
+\item If condition is false, results are rolled back like a transaction
 \pause
 
 \item But not the cache!
@@ -381,7 +378,7 @@ if (untrusted_offset < arr1->length) {}
 \end{lstlisting}
 
 \begin{center}
-\emph{These attacker-controlled reads make measureable changes to the processor cache!}
+\textbf{Attacker-controlled reads make measureable changes to the processor cache}
 \end{center}
 
 \end{frame}
@@ -401,8 +398,7 @@ At this point, the attacker has accomplished:
 Keeping track of necessary assumptions:
 \begin{enumerate}
   \item \sout{Process code doesn't check bounds on memory access}
-  \item \textbf{Process code is vulnerable to cache side channel}
-  \item Attacker controls \texttt{untrusted\_offset}
+  \item \textbf{Code reads memory using untrusted, attacker-controlled index \texttt{untrusted\_offset}}
   \item Targeted memory location won't cause segfault
 \end{enumerate}
 
@@ -470,36 +466,25 @@ This script causes V8 to JIT-compile vulnerable bytecode
 
 \begin{frame}
 
-\frametitle{First take-home lesson}
-
-\centering
-\includegraphics[width=0.9\textwidth]{unsafe.png}
-
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{frame}
-
 \frametitle{Mitigations}
 
 How do we fix it?
 \\[1em]
 
 \pause
-Good question
+Unlike most vulnerabilities, doesn't seem patchable \pause
 \begin{itemize}
-\item We probably don't know the full scope of the problem
+\item Problem enabled by both software + hardware issues
 \item Without hardware changes, no apparent universal fix\\[1em]
 \end{itemize}
 
 \pause
 But there are software-based mitigations
 \begin{enumerate}
-  \pause\item Disable speculative execution \pause\emph{(expensive!)}
-  \pause\item Disable caching \pause\emph{(probably even more expensive!)}
-  \pause\item Selectively disable spec. execution \pause\emph{(hardware changes?)}
-  \pause\item \textbf{Never index arrays on untrusted values}
+  \pause\item Disable speculative execution \emph{(expensive!)}
+  \pause\item Disable caching \emph{(way more expensive!)}
+  \pause\item Fix speculative execution \emph{(hardware changes?)}
+  \pause\item In some settings: \textbf{don't index arrays on untrusted values}
 \end{enumerate}
 
 \end{frame}
@@ -583,7 +568,7 @@ Security problems are numerous, can be subtle and challenging
 \end{itemize}
 
 \pause
-This course will teach you how to deal with issues like this
+This course will teach you how to deal with hard security problems
 \begin{itemize}
   \item Understand the essentials of many software security problems
   \item Evaluate potential solutions and their tradeoffs
@@ -601,10 +586,6 @@ This course will teach you how to deal with issues like this
 
 What is this course about?
 \\[2em]
-
-\centering
-
-\includegraphics[width=0.4\textwidth]{whathappens.png}
 
 \end{frame}
 
@@ -690,15 +671,15 @@ A way to ensure that software adheres to policy, i.e. \emph{enforcement} \pause
 
 \textbf{Precise ways to write down policies} \pause
 \begin{itemize}
-  \item Types, contracts, functional specifications
-  \item Devised for correctness, perfect for security as well \\[1em]
+  \item Types, contracts, functional specifications, customized logics
+  \item Devised for correctness, great for security as well \\[1em]
 \end{itemize}
 
 \pause
 \textbf{Rigorous means of enforcement}
 \begin{itemize}
   \item Type checking, formal verification for \emph{static} enforcement
-  \item Runtime monitors, semantics-based instrumentation for \emph{dynamic} enforcement \\[1em]
+  \item Runtime monitors, sound instrumentation for \emph{dynamic} enforcement \\[1em]
 \end{itemize}
 
 \pause
@@ -710,7 +691,7 @@ A way to ensure that software adheres to policy, i.e. \emph{enforcement} \pause
 
 \begin{frame}
 
-\frametitle{Formality \& security}
+\frametitle{Formalism \& security}
 
 Why is being formal such a big deal?
 \\[1em]
@@ -723,11 +704,11 @@ Formal policies make assumptions and provisions explicit:
 \end{itemize}
 
 \pause
-(Useful) Formal guarantees can be proven if true, and refuted if not
+Formal claims can be proven if true, and refuted if not
 \begin{itemize}
-  \item ``Is my program secure'' is no longer a rhetorical question
+  \item ``Is my program secure'' should not be a rhetorical question
   \item ...instead, a math problem
-  \item If there's no proof, why should you trust it? \\[1em]
+  \item Without a proof, why should you trust it? \\[1em]
 \end{itemize}
 
 \pause
@@ -739,20 +720,7 @@ Formal techniques can often be automated
 
 \begin{frame}
 
-\frametitle{Formality \& security}
-
-\large
-\centering
-
-\includegraphics[width=0.85\textwidth]{lazycat.jpg}
-
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{frame}
-
-\frametitle{Formality \& security}
+\frametitle{Formalism \& security}
 
 Why is being formal such a big deal?
 \\[1em]
@@ -851,13 +819,13 @@ After taking this course, you should:
 
 \textbf{Course staff contact:} Piazza
 
-\textbf{Lecture}: Tuesdays \& Thursdays, 3:00-4:20 SH 214
+\textbf{Lecture}: Tuesdays \& Thursdays, 9:00-10:20 HH B103
 \\[1em]
 
 Matt Fredrikson
 \begin{itemize}
 \item Location: CIC 2126
-\item Office Hours: Mondays 11am
+\item Office Hours: \textbf{answer Piazza poll on good times}
 \item Email: mfredrik@cs
 \end{itemize}
 
@@ -881,13 +849,13 @@ Breakdown:
 \end{column}
 
 \begin{column}{0.55\textwidth}
-Approximately 5 labs
+3-4 labs
 \\[1em]
 
 Written homework most weeks
 \\[1em]
 
-In-class exams, closed-book
+In-class exams, closed-book, one sheet of handwritten notes
 \\[1em]
 
 Participation:
@@ -930,9 +898,9 @@ Strive for \textbf{clarity \& conciseness}
 
 \begin{frame}
 
-\frametitle{Labs (35\% of grade)}
+\frametitle{Labs (30\% of grade)}
 
-Extend C HTTP server to serve answers to data queries
+Extend HTTP server to serve answers to data queries
 \\[1em]
 
 Incrementally add functionality while maintaining security
@@ -964,7 +932,7 @@ Partial credit depending on:
     \item Gradescope entry code: \textbf{9E62JE}
     \item Piazza signup link: \url{http://piazza.com/cmu/fall2019/15316}
   \end{itemize}
-  \item Bookmark the course webpage (\url{http://15316-cmu.github.io})
+  \item Answer the Piazza poll about office hours time slots
   \item Read the syllabus on the webpage carefully
   \item Contact me (on Piazza!) if you have any questions
 \end{enumerate}
