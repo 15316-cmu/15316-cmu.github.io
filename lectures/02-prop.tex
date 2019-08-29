@@ -6,7 +6,7 @@
 \newcommand{\leccourse}{Software Foundations of Security and Privacy}
 \newcommand{\lecdate}{} %e.g. {October 21, 2013}
 \newcommand{\lecnum}{2}
-\newcommand{\lectitle}{Propositional Logic and Proofs}
+\newcommand{\lectitle}{Propositional Logic and Proofs\footnote{Based heavily on lecture notes contributed by Andr\'e Plazter}}
 \newcommand{\lecturer}{Matt Fredrikson}
 \newcommand{\lecurl}{https://15316-cmu.github.io/index}
 
@@ -38,13 +38,15 @@ Our foremost goal in this course is to prove that software systems obey security
 
 For our purposes, propositional logic is a language for expressing statements (i.e., formulas) in terms of things that are either true or false (i.e., propositions) and a set of rules, called \emph{semantics}, for determining the truth value of a formula from the truth values of its propositions. In future lectures, we will build on propositional logic to support richer and more interesting types of policies.
 
-In this lecture, we will study propositional logic and a deductive system called the \emph{sequent calculus} for proving the validity of propositional logic formulas. We will also study important properties of the propositional sequent calculus, namely its \emph{soundness} and \emph{completeness}. A deductive system is sound if it can only be used to prove true things (it shouldn't be too difficult to convince yourself that this is a useful property to have!). Likewise, a deductive system is complete if any true statement can be proved using the system. Throughout the semester, we will get into the habit of asking these sorts of questions about the systems we study, as they have important practical ramifications for our ultimate goal of making software secure.
+In this lecture, we will study propositional logic and a deductive system called the \emph{sequent calculus} for proving the validity of propositional logic formulas. 
+We will use the sequent calculus throughout the semester as we discuss more complex and interesting ways of proving that code is safe and secure.
+We will also study important properties of the propositional sequent calculus, namely its \emph{soundness} and \emph{completeness}. A deductive system is sound if it can only be used to prove true things. Likewise, a deductive system is complete if any true statement can be proved using the system. Throughout the semester, we will get into the habit of asking these sorts of questions about the systems we study, as they have important practical ramifications for our ultimate goal of making software secure.
 
 \section{A stroll down memory lane: contracts}
 
-Thinking back to \href{http://www.cs.cmu.edu/~15122/}{15-122 Principles of Imperative Computation}, recall that contracts serve a valuable role in understanding programs. In 15-122, you made good use of contracts to specify the assumptions that functions are allowed to make of their inputs, as well as their intended behavior in terms of output values. Moreover, you learned how to reason about the behavior of imperative code by writing informal proofs that contracts hold, and were able to rely on dynamic checks to ensure that they weren't violated when running your code. In short, you learned that contracts are useful for establishing the correctness of programs.
+Thinking back to \href{http://www.cs.cmu.edu/~15122/}{15-122 Principles of Imperative Computation}, recall that contracts serve a valuable role in understanding programs. In 15-122, you made good use of contracts to specify the assumptions that functions are allowed to make of their inputs, as well as their intended behavior in terms of output values. Moreover, you learned how to reason about the behavior of imperative code by writing informal proofs about contracts, and were able to rely on dynamic checks to ensure that they weren't violated when running your code. In short, you learned that contracts are useful for making sure that your code runs correctly.
 
-You might be surprised to learn that contracts are also tremendously useful for establishing security as well. The Ironclad Apps~\cite{Hawblitzel2014} and Ironfleet~\cite{Hawblitzel2015} projects out of Microsoft Research leveraged contracts and automated verification tools to build networked applications and distributed systems with provable information flow, memory safety, data privacy, and other security properties. However, we'll refresh ourselves on contracts using a much smaller example that doesn't have much to do with security. This should be more familiar, and will serve to illustrate the main ideas that motivate our study of propositional logic.
+You might be surprised to learn that contracts are tremendously useful for establishing security as well. The Ironclad Apps~\cite{Hawblitzel2014} and Ironfleet~\cite{Hawblitzel2015} projects out of Microsoft Research leveraged contracts and automated verification tools to build networked applications and distributed systems with provable information flow, memory safety, data privacy, and other security properties. However, we'll refresh ourselves on contracts using a much smaller example that doesn't have much to do with security. This should be more familiar, and will serve to illustrate the main ideas that motivate our study of propositional logic.
 
 Consider the following C0 code, which multiplies two numbers using only addition, multiplication by 2, and division by 2.
 
@@ -75,21 +77,14 @@ Are they easy to follow?
 Is it enough to assume that \verb'b >= 0' holds at the beginning of the function to ensure the postcondition?
 Does the postcondition follow easily from the loop invariant?
 
-This is all quite exciting.
-But the purpose of today's lecture is not actually to get us back into specifying or checking contracts of programs. Instead we'll focus on the conditions in the contract and try to understand exactly what they mean, and how we can reason about them.
-Our layman's reading in the 15-122 course was that  the C0 contracts \texttt{@requires}, \texttt{@ensures}, \texttt{@loop\_invariant} and \texttt{@assert} just expect ordinary C0 expressions of type \verb'bool' that are being evaluated and need to come back with value \verb'true' to successfully pass.
-
-Well, what exactly does the expression \verb'\result' mean in the \texttt{@ensures} postcondition?
+This is all quite exciting, but we don't yet have the tools necessary to answer these questions.
+The purpose of today's lecture is not actually to get us back into specifying or checking contracts of programs. Instead we'll focus on the conditions in the contract and try to understand exactly what they mean, and how we can reason about them.
+Our reading in the 15-122 course was that the C0 contracts \texttt{@requires}, \texttt{@ensures}, \texttt{@loop\_invariant} and \texttt{@assert} just expect ordinary C0 expressions of type \verb'bool' that are being evaluated and need to come back with value \verb'true' to successfully pass.
+But what exactly does the expression \verb'\result' mean in the \texttt{@ensures} postcondition?
 What if the C0 expression in a contract calls a function that has the side effect of changing a data structure?
-Are side effects even allowed during contract checking?
-What does a recursive function call mean during a contract?
 What exactly is the meaning of the \verb'&&' operator itself?
-What should its meaning be?
-Some form of logical and.
 Does it perform short-circuit evaluation?
-When exactly and how are the contracts evaluated?
-What if an expression crashes during contract evaluation?
-How do we know that the contracts are correct for a C0 program?
+What if an expression crashes or doesn't terminate during contract evaluation?
 
 These are quite a number of subtle questions for something that we thought we had already mastered as well as the contracts from Principles of Imperative Computation.
 
@@ -98,6 +93,7 @@ These are quite a number of subtle questions for something that we thought we ha
 \section{Propositional Logic}
 
 Maybe we should first take a step back and give the expressions within a contract a more careful look to see how they can best be understood. We'll start with propositional logic, which will allow us to understand the basic logical connectives used in contracts.
+Once we have a better understanding of these fundamentals, we will return to the interesting questions raised in the example from before.
 
 \subsection{Syntax}
 
@@ -143,17 +139,17 @@ Parentheses are cumbersome, so we'll avoid using them whenever possible.
 
 \section{Semantics}
 
-Writing down logical formulas that fit to the syntax of propositional logic is one thing, but not particularly useful unless we also know whether the formulas are actually true or not.
+Writing down logical formulas that fit to the syntax of propositional logic is one thing, but not particularly useful unless we also know whether the formulas true.
 We cannot generally know whether the atomic propositions in a propositional logical formula are true or false, because they are just called $p,q,r$, which does not tell us much about their intention.
-But we can ask somewhere.
+But we can define some structure to help us out.
 Let's fix a function $\iget[const]{\I}$, called the \emph{interpretation}, that tells us the truth-value for each atomic proposition.
 So \(\iget[const]{\I}(p)=\mtrue\) iff atomic proposition $p$ is interpreted as true in interpretation $\iget[const]{\I}$.
-For example, we could fix the following interpretation when interpreting formula \rref{eq:ex1}:
+For example, we could fix the following interpretation for formula \rref{eq:ex1}:
 \begin{equation}
 \iget[const]{\I} = \{q\}
 \label{eq:int1}
 \end{equation}
-By this common notation, we mean the interpretation that satisfies \(\iget[const]{\I}(q)=\mtrue\) and interprets all other atomic propositions (i.e., just $p$ in this case) as $\mfalse$.
+By this notation, we mean the interpretation that satisfies \(\iget[const]{\I}(q)=\mtrue\) and interprets all other atomic propositions (i.e., just $p$ in this case) as $\mfalse$.
 
 Having fixed an interpretation $\iget[const]{\I}$ for the atomic proposition, we can now easily evaluate all propositional formulas to see whether they are true or false in that interpretation $\iget[const]{\I}$ of atomic propositions, because the logical operators $\land,\lor,\lnot,\limply,\lbisubjunct$ always have exactly the same meaning.
 
@@ -181,11 +177,11 @@ For example, the evaluation of the right-hand side formula after the implication
 ~\text{because}~ \inonmodels{\I}{p}
 ~\text{because}~ \iget[const]{\I}(p)=\mfalse
 \]
-Was this a coincidence?
-Is formula \rref{eq:ex1} only true in this particular interpretation \rref{eq:int1} or what happens with other interpretations of the atomic propositions?
+Now we can ask more interesting questions about formula \rref{eq:ex1} and others, like:
+is formula \rref{eq:ex1} only true in this particular interpretation, or what happens with other interpretations of $p, q$ that assign different Boolean values?
 
 The most exciting formulas are those that are true no matter what the interpretation of the atomic propositions is.
-Such a formula is called valid and very helpful, because it expresses a true property no matter what specific interpretation of the atomic propositions we had in mind. We will also talk about \emph{satisfiable} formulas, which are those for which there is at least one interpretation that makes the formula true.
+Such a formula is called \emph{valid} because it expresses a true property regardless of the specific interpretation of the atomic propositions. We will also talk about \emph{satisfiable} formulas, which are those for which there is at least one interpretation that makes the formula true.
 
 \begin{definition}[Validity \& Satisfiability]
   A formula $F$ is called \dfn{valid} iff it is true in all interpretations, i.e. \(\imodels{\I}{F}\) for all interpretations $\iget[const]{\I}$.
@@ -220,16 +216,14 @@ The only downside is all this busywork to evaluate all interpretations, which is
 
 \section{Proofs for Propositional Logic}
 
-Literally evaluating a formula in all possible interpretations is certainly one way of establishing that a propositional logical formula is valid, but it always requires exponential effort and is quite uninsightful, because it does not even provide a comprehensible reason for the validity of the formula.
-The only way to check that a truth-table is constructed correctly for a formula is to check that it enumerates all cases of interpretations and all its computations of truth-values are according to the semantics and that, indeed, $\mtrue$ is the outcome in all cases.
+Brute-force evaluating a formula in all possible interpretations is certainly one way of establishing that a propositional logical formula is valid, but it always requires exponential effort and is quite uninsightful, because it does not even attempt to provide a comprehensible reason for the validity of the formula.
+The only way to check that a truth table is constructed correctly for a formula is to check that it enumerates all cases of interpretations and all its computations of truth-values are according to the semantics and that, indeed, $\mtrue$ is the outcome in all cases.
 Possible but incredibly dull.
-Besides, this finite enumeration principle cannot work for the significantly more interesting and expressive logics that we will be pursuing to understand programs in subsequent lectures.
+Besides, this finite enumeration principle cannot work for the more interesting and expressive logics that we will use to describe security properties in subsequent lectures.
 
 The semantics considered one operator at a time.
 Let's try to make the same thing happen for proofs as well.
 What about a proof of a conjunction \(F \land G\)?
-How could that work?
-
 A proof of a conjunction \(F \land G\) should consist of a proof of the left conjunct $F$ together with a proof of the right conjunct $G$, because both proofs together prove the conjunction \(F \land G\).
 So stapling a proof of $F$ together with a proof of $G$ will give us a proof of \(F \land G\).
 That was easy enough.
@@ -239,7 +233,6 @@ It certainly isn't a proof of $F$ together with a proof of $G$ anymore.
 A proof of $G$ would constitute a proof of \(F \limply G\), but such a proof is missing out on an important power.
 It would have been allowed to assume $F$, because the formula \(F \limply G\) only says that $F$ implies $G$, so that $G$ is true in case $F$ is.
 If $F$ isn't true, then the implication \(F \limply G\) doesn't say anything about whether $G$ is true or not.
-(Check back with \rref{def:propositional-semantics} if you don't believe this).
 Consequently, an unconditional proof of $G$ certainly does establish \(F \limply G\), but is a bit much to ask for.
 The proof of \(F \limply G\) should, instead, consist of a proof of $G$ that is allowed to assume $F$.
 This requires the capability to manage assumptions in a proof, which, retrospectively, should not actually come as a surprise.
@@ -251,18 +244,18 @@ But it turns out that sequent calculi are also immensely useful not just for und
 % no \Delta yet
 {\renewcommand{\lsequent}[3][]{\ifthenelse{\equal{#1}{L}}{\Gamma\ifthenelse{\equal{#2}{}}{}{,#2} \lseqinfers #3}
 {#2 \lseqinfers #3}}%
-The first kind of \emph{sequent} that we will consider (and subsequently generalize) is of the form
+The first kind of \emph{sequent} that we will consider is of the form:
 \[
 \lsequent{\Gamma}{F}
 \]
-with the available assumptions as a list of formulas $\Gamma$ as \emph{antecedent} and with the formula we want to prove from it as F, the \emph{succedent}.
+The available assumptions are given as a list of formulas $\Gamma$ as \emph{antecedent} and with the formula we want to prove from them as F, the \emph{succedent}.
 The symbol $\lseqinfers$ is called \emph{sequent turnstile} and separates the available assumptions from what we try to prove from them.
 
 
 There are some sequents where we are obviously done with a proof.
 For example when literally the same formula $F$ is  in the antecedent and the succedent, because $F$ easily follows when assuming $F$.
 So the sequent \(\lsequent{\Gamma,F}{F}\) has a trivial proof.
-We will later capture this thought with a proof rule \irref{id}, but first consider proofs for the operators we already started considering.
+We will later capture this thought with a proof rule \irref{id}, but first consider proofs for the operators we've already seen.
 
 Coming back to conjunctions, proving a conjunction \(\asfml\land\bsfml\) requires proving $\asfml$ and proving $\bsfml$.
 This fact does not change when working from a list of assumptions $\Gamma$.
@@ -314,7 +307,7 @@ But we will have to choose at the time of proving the disjunction \(\asfml \lor 
 That requires a lot of attention when proving disjunctions.
 Worse yet: will we always be able to tell which disjunct we will be able to prove?
 
-In many cases, we will be able to predict which disjunct of a disjunction we will be able to prove if we think ahead very carefully.
+In many cases, we will be able to predict which disjunct will suffice for proof if we think ahead very carefully.
 But that is already not particularly helpful and convenient.
 Worse yet, there are cases where, for principle reasons, we will be unable to predict which disjunct of a disjunction we will prove!
 Suppose we are trying to prove the formula \(p \lor \lnot p\), which is certainly valid, because it will evaluate to $\mtrue$ whether or not the atomic proposition $p$ is interpreted to be $\mtrue$.
@@ -673,6 +666,6 @@ In fact, because propositional logic is so simple, it is perfectly decidable whe
 %\begin{exercise} \label{exc:exercise1}
 %\end{exercise}
 
-\bibliographystyle{alphaurl}
+% \bibliographystyle{alphaurl}
 \bibliography{bibliography}
 \end{document}
