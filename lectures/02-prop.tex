@@ -583,7 +583,7 @@ Assume that both of its premises \(\lsequent{\Gamma}{\asfml,\Delta}\) and \(\lse
 \((\landfold_{F\in\Gamma} F) \limply \asfml\lor(\lorfold_{G\in\Delta} G)\)
 and \((\landfold_{F\in\Gamma} F) \limply \bsfml\lor(\lorfold_{G\in\Delta} G)\)
 are true in all interpretations.
-We need to show that the conclusion \(\lsequent{\Gamma}{\asfml\land\bsfml,\Delta}\) is then also valid, i.e.\ \(\entails (\lsequent{\Gamma}{\asfml,\Delta})\), which means that \((\landfold_{F\in\Gamma} F) \limply (\asfml\land\bsfml)\lor(\lorfold_{G\in\Delta} G)\) is true in all interpretations.
+We need to show that the conclusion \(\lsequent{\Gamma}{\asfml\land\bsfml,\Delta}\) is then also valid, i.e.\ \(\entails (\lsequent{\Gamma}{\asfml\land\bsfml,\Delta})\), which means that \((\landfold_{F\in\Gamma} F) \limply (\asfml\land\bsfml)\lor(\lorfold_{G\in\Delta} G)\) is true in all interpretations.
 Consider any interpretation $\iget[const]{\I}$ and show that 
 \(\imodels{\I}{(\landfold_{F\in\Gamma} F) \limply (\asfml\land\bsfml)\lor(\lorfold_{G\in\Delta} G)}\).
 If any of the antecedent formulas $F\in\Gamma$ is false in $\iget[const]{\I}$ (\(\inonmodels{\I}{F}\)) or any of the remaining succedent formulas $G\in\Delta$ is true (\(\imodels{\I}{G}\)), 
