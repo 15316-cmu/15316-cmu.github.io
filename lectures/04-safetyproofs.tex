@@ -8,10 +8,11 @@
 \newcommand{\lecnum}{4}
 \newcommand{\lectitle}{Proving Safety, Compositionally}
 \newcommand{\lecturer}{Matt Fredrikson}
-\newcommand{\lecurl}{https://15316-cmu.github.io/index}
+% \newcommand{\lecurl}{https://15316-cmu.github.io/index}
 
 \usepackage{lecnotes}
 \usepackage[irlabel]{bugcatch}
+\usepackage{xspace}
 
 % \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
 % \newcommand{\I}{\interpretation[const=I]}
@@ -23,6 +24,7 @@
 % \newcommand{\cusfml}{C}
 % \def\leftrule{L}%
 % \def\rightrule{R}%
+\newcommand{\errstate}{\ensuremath{\Lambda}\xspace}
 
 
 \begin{document}
@@ -39,6 +41,18 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Introduction}
+
+In the previous lecture, we introduced a relatively simple language that still has enough complexity to capture some interesting aspects of many imperative languages.
+This language describes programs that operate on states that map variable symbols to integers, and we defined its semantics in terms of the set of traces that its programs generate when they are run starting in a particular state.
+We then discussed \emph{safety properties}, which allow us to specify whether a program will ever do something ``bad'' in the course of its execution.
+Safety properties are pervasive when considering security and correctness, capturing things like memory safety and access control that are indespensable for ensuring that the programs we write behave as intended without succumbing to the malign influence of an attacker.
+Finally, we saw how to specify safety properties formally using \emph{dynamic logic}, a formal system that deals with the dynamics of state as programs make changes to variables.
+
+In this lecture, we will use dynamic logic to develop reasoning principles that let us conclude decisively whether a program satisfies a given safety property.
+Just as we did with the propositional logic, we will start by giving dynamic logic a formal semantics to which these reasoning principles can refer in order to justify soundness.
+We will then see how to apply this reasoning to programs, writing sequent calculus proofs that incrementally break the program down into smaller and smaller pieces, ultimately proving statements about the safety of a program that apply to all possible inputs and traces it can possibly generate.
+
+\section{Review}
 
 Recall that in the previous lecture we introduced a programming language that exemplifies the core elements common to many imperative languages.
 
@@ -62,7 +76,7 @@ Recall that in the previous lecture we introduced a programming language that ex
 We defined the semantics of this language in terms of its traces, which are finite or infinite sequences of program states mapping variables to integers.
 
 \begin{definition}[Trace semantics of programs] \label{def:program-trace}
-  % \renewcommand{\I}{\iconcat[state=\ws]{\stdI}}%
+  \renewcommand{\I}{\iconcat[state=\ws]{\stdI}}%
   % \renewcommand{\It}{\iconcat[state=\wt]{\stdI}}%
   
 The \dfn[valuation!of~programs]{trace semantics $\iaccess[\alpha]{\I}$ of a program}~$\alpha$ is the set of all its possible traces and is defined inductively as follows:
@@ -76,7 +90,7 @@ The \dfn[valuation!of~programs]{trace semantics $\iaccess[\alpha]{\I}$ of a prog
       for~\m{\ws\in\linterpretations{\Sigma}{V}\}} \\
       The final state $\iget[state]{\It}$ is identical to the initial state $\iget[state]{\I}$ except in its interpretation of the variable $x$, which is changed to the value that $\genDJ{x}$ has in initial state $\iget[state]{\I}$.      
    
-   \item \(\iaccess[\passert{\ivr}]{\I} = \{(\ws) \with
+   \item \(\iaccess[\passert{\ivr}]{\I} = \{(\ws,\ws) \with
       \imodels{\I}{\ivr}\} \cup
         \{(\ws,\errstate) \with
       \inonmodels{\I}{\ivr}\}\)
@@ -208,12 +222,21 @@ We will occasionally have reason to work with a more general notion of programs 
 
 \section{Proving statements about program behavior}
 
-Recall the dynamic logic formula for the program swapping two variables \texttt{x} and \texttt{y} in place:
+Consider the following program, which swaps the values between two variables without the need for a superfluous third variable.
+\begin{equation}
+x:=x+y; y:=x-y; x:=x-y
+\end{equation}
+It may not be immediately obvious that this program does what is claimed of it, but luckily we can write a precise specification that describes its behavior using dynamic logic.
 \begin{equation}
 {x=a\land y=b\limply\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}
 \label{eq:swap}
 \end{equation}
-Its meaning, and thus the meaning of the program contract that it came from, are now mathematically defined precisely.
+Recalling our discussion of dynamic logic and contracts from before, we could state this in the familiar notation of C0 as:
+\begin{verbatim}
+\\@requires x = a && y = b
+\\@ensures x = b && y = a
+\end{verbatim}
+The meaning of this dynamic logic formula, and thus the meaning of the program contract that it corresponds to, are now mathematically defined precisely.
 What can we do with its mathematical semantics?
 Well, we could, for example, follow the definitions of the semantics to find out how a specific initial state \(\iget[state]{\I}\) changes as the program is executing.
 Consider the initial state \(\iget[state]{\I}\) with \(\iget[state]{\I}(x)=5\) and \(\iget[state]{\I}(y)=7\).
@@ -255,7 +278,7 @@ That's not very practical for such a simple program nor, in fact, for any other 
 Our approach to understanding programs with logic is to design one reasoning princple for each program operator that describes its effect in logic with simpler logical operators.
 If we succeed doing that for every operator that a program can have, then we will understand even the most complicated programs just by repeatedly making use of the respective logical reasoning principles.
 
-\paragraph{Assertions}
+\paragraph{Assertions.}
 
 We'll start with perhaps the simplest program form, at least in terms of what is required for compositional reasoning.
 The assert statement $\passert{\ivr}$ checks a condition on the current state, and stays in that state if the condition holds and otherwise enters the error state \errstate.
@@ -298,7 +321,7 @@ The assert axiom \irref{assertb} is sound, i.e. all its instances are valid:
 \begin{proof}
 Recall the semantics for assert commands:
 \[
-\iaccess[\passert{\ivr}]{\I} = \{(\ws) \with
+\iaccess[\passert{\ivr}]{\I} = \{(\ws,\ws) \with
       \imodels{\I}{\ivr}\} \cup
         \{(\ws,\errstate) \with
       \inonmodels{\I}{\ivr}\}
@@ -306,16 +329,16 @@ Recall the semantics for assert commands:
 We must show that $\models \dbox{\passert{\ivr}}{\ausfml} \lbisubjunct \ivr \land \ausfml$, so consider any state $\omega$ and show that $\omega \models \dbox{\passert{\ivr}}{\ausfml} \lbisubjunct \ivr \land \ausfml$. We prove the biimplication by proving each implication seperately.
 \begin{enumerate}
 \item[``$\lylpmi$'']
-Assume the right side $\omega \models \ivr \land \ausfml$, and show that $\omega \models \dbox{\passert{\ivr}}{\ausfml}$. From this assumption, we know that $\omega \models \ivr$, and so by the semantics of assert the only trace in $\iaccess[\passert{\ivr}]{\I}$ whose initial state is $\omega$ is $(\omega)$. But our assumption also gives us that $\omega \models \ausfml$, so $\ausfml$ is also true in the final state. Thus, $\omega \models \dbox{\passert{\ivr}}{\ausfml}$.
+Assume the right side $\omega \models \ivr \land \ausfml$, and show that $\omega \models \dbox{\passert{\ivr}}{\ausfml}$. From this assumption, we know that $\omega \models \ivr$, and so by the semantics of assert the only trace in $\iaccess[\passert{\ivr}]{\I}$ whose initial state is $\omega$ is $(\omega,\omega)$. But our assumption also gives us that $\omega \models \ausfml$, so $\ausfml$ is also true in the final state. Thus, $\omega \models \dbox{\passert{\ivr}}{\ausfml}$.
 
 \item[``$\lylpmi$''] 
-Conversely, assume that the left side $\omega \models \dbox{\passert{\ivr}}{\ausfml}$ holds, and show $\omega \models \ivr \land \ausfml$. By the semantics of the box modality in dynamic logic, all finite traces $\sigma \in \iaccess[\passert{\ivr}]{\I}$ have final states in which $\ausfml$ is true. By the semantics of assert commands, all traces in which $\omega \not\models \ivr$ have \errstate as the final state. So we know that $\omega \models \ivr$, in which case $\sigma = (\omega)$. We can thus conclude $\omega \models \ivr \land \ausfml$. 
+Conversely, assume that the left side $\omega \models \dbox{\passert{\ivr}}{\ausfml}$ holds, and show $\omega \models \ivr \land \ausfml$. By the semantics of the box modality in dynamic logic, all finite traces $\sigma \in \iaccess[\passert{\ivr}]{\I}$ have final states in which $\ausfml$ is true. By the semantics of assert commands, all traces in which $\omega \not\models \ivr$ have \errstate as the final state. So we know that $\omega \models \ivr$, in which case $\sigma = (\omega,\omega)$. We can thus conclude $\omega \models \ivr \land \ausfml$. 
 \qedhere
 \end{enumerate}
 \end{proof}
 Now that we know \irref{assertb} is sound, we move on to other commands.
 
-\paragraph{Conditionals}
+\paragraph{Conditionals.}
 
 We continue on to the formula \m{\dbox{\pif{\ivr}{\ausprg}{\busprg}}{\ausfml}}, which expresses that formula $\ausfml$ always holds after running the if-then-else conditional \m{\pif{\ivr}{\ausprg}{\busprg}} that runs program $\ausprg$ if formula $\ivr$ is true and runs $\busprg$ otherwise.
 In order to understand it from a logical perspective, how could we express \m{\dbox{\pif{\ivr}{\ausprg}{\busprg}}{\ausfml}} in easier ways?
@@ -354,7 +377,7 @@ The \irref{ifb} axiom is sound, i.e. all its instances are valid:
 Having seen the proof of Theorem~\ref{thm:assert-soundness}, you should be able to complete this proof as an exercise.
 \end{proof}
 
-\paragraph{Assignments}
+\paragraph{Assignments.}
 
 The next case to look into is what we need to prove in order to show the formula \m{\dbox{\pupdate{\umod{x}{\astrm}}}{p(x)}}, which expresses that the formula $p(x)$ holds after the assignment \m{\pupdate{\umod{x}{\astrm}}} that assigns the value of term $\astrm$ to variable $x$.
 How could we reduce this to another logical formula that is simpler?
@@ -374,20 +397,70 @@ We capture this argument once and for all in the assignment axiom \irref{assignb
 {}%{$genDJ{x}$ free for $x$ in $\ausfml$}
 \]
 
+\paragraph{Issues with variable binding.}
 In the assignment axiom \irref{assignb}, the formula $p(\astrm)$ has the term $\astrm$ everywhere in place of where the formula $p(x)$ has the variable $x$.
 Of course, it is important for this substitution of $\astrm$ for $x$ to avoid capture of variables and not make any replacements under the scope of a quantifier or modality binding an affected variable.
 For example, the following formula is an instance of \irref{assignb}:
 \[
-\dbox{\pupdate{\pumod{x}{x^2-1}}}{x(x+1)\geq x+y} \lbisubjunct (x^2-1)(x^2-1+1) \geq (x^2-1)+y
+\dbox{\pupdate{\pumod{x}{y}}}{(x\geq0 \land \lforall{z}{(x\geq z)})} \lbisubjunct (y\geq0 \land \lforall{z}{(y\geq z)})
 \]
 But the following is not because it would capture the replacement $y$ that is used for $x$:
 \[
 \dbox{\pupdate{\pumod{x}{y}}}{(x\geq0 \land \lforall{y}{(x\geq y)})} \lbisubjunct (y\geq0 \land \lforall{y}{(y\geq y)})
 \]
-Instead, if we first rename $\forall y$ to $\forall z$ then the substitution works:
+First, observe that replacing $x$ with $y$ in the formula $\forall y (x \ge y)$ completely trivializes the meaning of the quantified formula.
+Before, the formula placed a meaningful condition on the value of $x$, but replacing $x$ with $y$ to obtain $\forall y (y \ge y)$ gives us a formula that is vacuously true.
+So what happened?
+
+Within the scope of a quantifier that binds a variable $y$ (i.e., $\forall y, \exists y$), the symbol $y$ refers to a different object than outside the quantifier.
+For example, the following formula is true of the integers, despite giving conflicting constraints on the value of $x$:
 \[
-\dbox{\pupdate{\pumod{x}{y}}}{(x\geq0 \land \lforall{z}{(x\geq z)})} \lbisubjunct (y\geq0 \land \lforall{z}{(y\geq z)})
+x = 0 \land \exists x (x > 0)
 \]
+The reason is that the $x$ referred to by the constraint $x = 0$ is not the same $x$ referred to by the existential quantifier $\exists x (x > 0)$. 
+The quantifier \emph{binds} all occurrences of the variable $x$ in the formula that it quantifies over (in this case, $x > 0$), removing any associations that the symbol $x$ has in the formula containing it.
+So, we can write the following, which is a valid formula of dynamic logic:
+\[
+\dbox{x := 0}{x = 0 \land \exists x (x > 0)} \lbisubjunct 0 = 0 \land \exists x (x > 0)
+\]
+This is valid because we did not replace the $x$ bound by the existential with 0, which would have resulted in the invalid formula:
+\[
+\dbox{x := 0}{x = 0 \land \exists x (x > 0)} \lbisubjunct 0 = 0 \land \exists x (0 > 0)
+\]
+Quantifiers are not the only constructs that bind variables.
+Box and diamond modalities of assignment statements do as well!
+Consider the following:
+\[
+x = a \land y = b \limply {\dbox{x := x + y}{\dbox{y := x - y}{\dbox{x := x - y}{x = b \land y = a}}}}
+\]
+Suppose that we proceed by applying \irref{assignb} first to the leftmost assignment:
+\[
+x = a \land y = b \limply \dbox{y := (x+y) - y}{\dbox{x := (x+y) - y}{x+y = b \land y = a}}
+\]
+Simplifying terms a bit, we have:
+\[
+x = a \land y = b \limply \dbox{y := x}{\dbox{x := x}{x+y = b \land y = a}}
+\]
+And now accounting for the new leftmost assignment:
+\[
+x = a \land y = b \limply \dbox{x := x}{x+y = b \land x = a}
+\]
+And because $x := x$ changes nothing, we are left with
+\[
+x = a \land y = b \limply x+y = b \land x = a
+\]
+This is certainly not a valid formula.
+The problem is that the $x$ assigned by the first assignment statement is different from the $x$ that appears in the postcondition!
+By the time the program finishes, $x$ has been updated twice, and the last assignment to $x$ binds its occurrence in the formula $x = b \land y = a$.
+Thus, when we applied the assignment axiom to the first assignment, we should only have changed occurrences of $x$ up until the next assignment; you can verify for yourself that the following formula obtained this way is valid:
+\[
+x = a \land y = b \limply \dbox{y := (x+y) - y}{\dbox{x := (x+y) - y}{x = b \land y = a}}
+\]
+This is correct, because the $x$ on the right side of the final assignment is the same $x$ updated by the first assignment; we left the $x$ appearing in the postcondition unchanged.
+
+In general, a good way to avoid variable capture issues when working with the assignment axiom is to always start from the last, rightmost assignment, and work your way backwards to the first leftmost one.
+
+\paragraph{Continuing on.} 
 The axioms we've seen so far already enable us to do a first proof:
 \begin{sequentdeduction}[array]
 \linfer[ifb]
@@ -515,35 +588,35 @@ Note how this is now a proof of correctness of the swap program from \rref{eq:sw
 \entails {x=a\land y=b\limply\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}
 \]
 
-The above sequent calculus proof used the assignment axiom inside out, so starting with handling the rightmost assignment first.
-It would also have been possible to start outside in handling the leftmost assignment first, but this is not an advisable approach to take because one must be very careful to avoid replacing bound variables. Assignments bind variables, because after an assignment the value has changed. Consider what happens if we proceed indiscriminately replacing variables after assignments, applying \irref{assignb} from left to right.
-\begin{sequentdeduction}[array]
-\linfer[implyr]
-{\linfer[composeb]
-  {\linfer[composeb]
-    {\linfer[assignb]
-      {\linfer[assignb]
-        {\linfer[qear]
-          {
-            \linfer[assignb] {
-              \lsequent{x{=}a\land y{=}b} {2x=b\land x=a}
-            } {
-              \lsequent{x{=}a\land y{=}b} {\dbox{x:=x}{(2x=b\land x=a)}}
-            }
-          }
-          {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+(x+y-y)-(x+y-y)}{(x+(x+y-y)=b\land x+y-y=a)}}}
-        }
-        {\lsequent{x{=}a\land y{=}b} {\dbox{y:=x+y-y}{\dbox{x:=x+y-y}{(x+y=b\land y=a)}}}}
-      }
-      {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y}{\dbox{x:=x-y}{(x=b\land y=a)}}}}}
-    }
-    {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y; x:=x-y}{(x=b\land y=a)}}}}
-  }
-  {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}}
-}
-{\lsequent{} {x=a\land y=b\limply\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}}
-\end{sequentdeduction}
-This is certainly not right! The problems began when we replaced $x = b$ with $x + y = b$ after the first application us \irref{assignb}. It was not correct to do so, because the second assignment to $x$ binds it for all subsequent ``reads'' of the variable; after the assignment, $x$ refers to a different quantity than it does before the assignment. This may seem a bit confusing, and indeed the rules of binding in first-order dynamic logic are intricate and subtle. However, \textbf{you can avoid having to think about these matters if you always apply the assignment axiom from right to left in your proofs!}
+% The above sequent calculus proof used the assignment axiom inside out, so starting with handling the rightmost assignment first.
+% It would also have been possible to start outside in handling the leftmost assignment first, but this is not an advisable approach to take because one must be very careful to avoid replacing bound variables. Assignments bind variables, because after an assignment the value has changed. Consider what happens if we proceed indiscriminately replacing variables after assignments, applying \irref{assignb} from left to right.
+% \begin{sequentdeduction}[array]
+% \linfer[implyr]
+% {\linfer[composeb]
+%   {\linfer[composeb]
+%     {\linfer[assignb]
+%       {\linfer[assignb]
+%         {\linfer[qear]
+%           {
+%             \linfer[assignb] {
+%               \lsequent{x{=}a\land y{=}b} {2x=b\land x=a}
+%             } {
+%               \lsequent{x{=}a\land y{=}b} {\dbox{x:=x}{(2x=b\land x=a)}}
+%             }
+%           }
+%           {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+(x+y-y)-(x+y-y)}{(x+(x+y-y)=b\land x+y-y=a)}}}
+%         }
+%         {\lsequent{x{=}a\land y{=}b} {\dbox{y:=x+y-y}{\dbox{x:=x+y-y}{(x+y=b\land y=a)}}}}
+%       }
+%       {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y}{\dbox{x:=x-y}{(x=b\land y=a)}}}}}
+%     }
+%     {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y; x:=x-y}{(x=b\land y=a)}}}}
+%   }
+%   {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}}
+% }
+% {\lsequent{} {x=a\land y=b\limply\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}}
+% \end{sequentdeduction}
+% This is certainly not right! The problems began when we replaced $x = b$ with $x + y = b$ after the first application us \irref{assignb}. It was not correct to do so, because the second assignment to $x$ binds it for all subsequent ``reads'' of the variable; after the assignment, $x$ refers to a different quantity than it does before the assignment. This may seem a bit confusing, and indeed the rules of binding in first-order dynamic logic are intricate and subtle. However, \textbf{you can avoid having to think about these matters if you always apply the assignment axiom from right to left in your proofs!}
 
 \begin{theorem}
   The sequential composition axiom \irref{composeb} is sound, i.e. all its instances are valid:
@@ -664,5 +737,5 @@ The axioms introduced in this lecture are summarize in \rref{fig:elementary-prog
 
 Today we saw how the axioms of dynamic logic allow us to reason about contract safety properties by reducing such questions to simpler ones involving arithmetic. From a practical standpoint this is a win because there already exist automated tools for solving arithmetic formulas, and we can make good use of them to automatically determine whether a program is safe to run. But this isn't entirely true, as the \irref{unfold} and \irref{whileiterateb} axioms don't actually make things simpler---after applying them, we are left with a formula that is actually more complicated because it contains a copy of the original program! In the next lecture, we will study a technique called \emph{bounded model checking} that uses \irref{whileiterateb} to automatically verify safety properies up to a given execution depth. You will use bounded model checking on C code in the first lab to check for memory safety, but it is not an ideal technique in every setting so in subsequent lectures we will see how to address its shortcomings.
 
-\bibliography{platzer,bibliography}
+% \bibliography{bibliography}
 \end{document}
