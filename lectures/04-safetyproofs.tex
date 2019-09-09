@@ -396,8 +396,22 @@ We capture this argument once and for all in the assignment axiom \irref{assignb
 }
 {}%{$genDJ{x}$ free for $x$ in $\ausfml$}
 \]
+Note that the notation $p(x)$ refers to a formula with some \emph{free} occurences of $x$, and $p(e)$ refers to the same formula with all such free occurences replaced with the term $e$.
+Intuitively, a variable is free in a formula if it can be replaced with another variable---a \emph{fresh} variable not appearing anywhere else---and not change the meaning of the formula.
+For example, consider the formula:
+\[
+[x := y](x < 10)
+\]
+In the sub-formula $x < 10$, $x$ is not free because it is \emph{bound} by the assignment that occurs in the box.
+If we were to attempt replacing $x$ with a fresh variable $z$ in $x < 10$, then the meaning of the formula completely changes:
+\[
+[x := y](z < 10)
+\]
+The other type of construct that is able to bind variables are the quantifiers $\exists x. p(x)$ and $\forall x. p(x)$.
+Replace the assignment box with a quantifier in the example above to confirm that this is really the case!
 
-\paragraph{Issues with variable binding.}
+\paragraph{More about variable binding.}
+When substituting free variables in formulas as the assignment axiom tells us to do, we never replace the variables bound by other assignments and quantifiers.
 In the assignment axiom \irref{assignb}, the formula $p(\astrm)$ has the term $\astrm$ everywhere in place of where the formula $p(x)$ has the variable $x$.
 Of course, it is important for this substitution of $\astrm$ for $x$ to avoid capture of variables and not make any replacements under the scope of a quantifier or modality binding an affected variable.
 For example, the following formula is an instance of \irref{assignb}:
@@ -459,6 +473,77 @@ x = a \land y = b \limply \dbox{y := (x+y) - y}{\dbox{x := (x+y) - y}{x = b \lan
 This is correct, because the $x$ on the right side of the final assignment is the same $x$ updated by the first assignment; we left the $x$ appearing in the postcondition unchanged.
 
 In general, a good way to avoid variable capture issues when working with the assignment axiom is to always start from the last, rightmost assignment, and work your way backwards to the first leftmost one.
+
+Another approach that is helpful in many circumstances is to use the following additional rules to remove assignments that occur at the beginning of the program, such as through variable initialization.
+\\
+
+  \begin{calculus}
+    \cinferenceRule[applyeqr|=\rightrule]{apply equation}
+    {\linferenceRule[sequent]
+      {\lsequent[L]{x=\astrm}{p(\astrm)}}
+      {\lsequent[L]{x=\astrm}{p(x)}}
+    }{}%
+  \end{calculus}~~~~%
+  \begin{calculus}
+    \cinferenceRule[applyeql|=\leftrule]{apply equation}
+    {\linferenceRule[sequent]
+      {\lsequent[L]{x=\astrm,p(\astrm)}{}}
+      {\lsequent[L]{x=\astrm,p(x)}{}}
+    }{}%
+  \end{calculus}~~~~%
+  \begin{calculus}
+  \dinferenceRule[assignbeqr|$\dibox{:=}_=$]{assignb}%{assignment equational rule}
+  {\linferenceRule[sequent]
+    {\lsequent[L]{y=\austrm} {p(y)}}
+    {\lsequent[L]{} {\dbox{\pupdate{\umod{x}{\austrm}}}{p(x)}}}
+   ~~
+  }
+  {\text{$y$ fresh}}
+  \end{calculus}
+
+\vspace{1ex}
+The \irref{applyeqr} and \irref{applyeql} rules allow us to apply equalities that appear in the assumptions either to the proof goals (\irref{applyeqr}) or to the other assumptions (\irref{applyeql}).
+For example, consider the following proof.
+\begin{sequentdeduction}[array]
+\linfer[applyeqr]{
+  \linfer[assignb] {
+    \linfer[applyeql] {
+      \linfer[id]{\lclose}{\lsequent{y = z, z = w, z < 0}{z < 0}}
+    } {
+      \lsequent{y = z, z = w, w < 0}{z < 0}
+    }
+  } {
+    \lsequent{y = z, z = w, w < 0}{\dbox{x := z}{x < 0}}
+  }
+} {
+  \lsequent{y = z, z = w, z < 0}{\dbox{x := y}{x < 0}}
+}
+\end{sequentdeduction}
+When we make substitutions with these or any rules, we need to be careful with capture just as we do with the assignment axioms.
+In general, \textbf{never replace a variable that is bound by an assignment}, and \textbf{never replace the right-hand side of an assignment or quantifier variable binding}.
+
+The rule \irref{assignbeqr} says that if the first statement of a program is an assignment to $x$ of term $e$, then we might as well just assume that $x = e$ in the statements that come after.
+The catch, which may not be surprising at this point, comes from variable capture.
+When we introduce the assumption that reflects the assignment, we rename $x$ to some fresh, new variable $y$ that is not free anywhere in our current assumptions $\Gamma$ or anywhere else in $p$.
+To see why this is necessary, consider the following attempt where we do not rename $x$ to something fresh.
+\begin{sequentdeduction}[array]
+\linfer[assignbeqr] {
+  \lsequent{x = 0, x = x + 1}{x = 1}
+} {
+  \lsequent{x = 0}{\dbox{x := x + 1}{x = 1}}
+}
+\end{sequentdeduction}
+Right away, we have introduced an arithmetical contradiction into our assumptions with $x = x + 1$!
+If we had done this the right way, then the proof would have been a breeze:
+\begin{sequentdeduction}[array]
+\linfer[assignbeqr] {
+  \linfer[qear]{\lclose} {
+    \lsequent{x = 0, z = x + 1}{z = 1}
+  }
+} {
+  \lsequent{x = 0}{\dbox{x := x + 1}{x = 1}}
+}
+\end{sequentdeduction}
 
 \paragraph{Continuing on.} 
 The axioms we've seen so far already enable us to do a first proof:
