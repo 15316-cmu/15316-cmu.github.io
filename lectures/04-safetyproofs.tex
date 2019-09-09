@@ -444,37 +444,74 @@ This is valid because we did not replace the $x$ bound by the existential with 0
 Quantifiers are not the only constructs that bind variables.
 Box and diamond modalities of assignment statements do as well!
 Consider the following:
-\[
+\begin{equation}
+\label{eq:wrong1}
 x = a \land y = b \limply {\dbox{x := x + y}{\dbox{y := x - y}{\dbox{x := x - y}{x = b \land y = a}}}}
-\]
+\end{equation}
 Suppose that we proceed by applying \irref{assignb} first to the leftmost assignment:
-\[
+\begin{equation}
+\label{eq:wrong2}
 x = a \land y = b \limply \dbox{y := (x+y) - y}{\dbox{x := (x+y) - y}{x+y = b \land y = a}}
-\]
+\end{equation}
 Simplifying terms a bit, we have:
-\[
+\begin{equation}
+\label{eq:wrong3}
 x = a \land y = b \limply \dbox{y := x}{\dbox{x := x}{x+y = b \land y = a}}
-\]
+\end{equation}
 And now accounting for the new leftmost assignment:
-\[
-x = a \land y = b \limply \dbox{x := x}{x+y = b \land x = a}
-\]
+\begin{equation}
+\label{eq:wrong4}
+x = a \land y = b \limply \dbox{x := x}{x+x = b \land x = a}
+\end{equation}
 And because $x := x$ changes nothing, we are left with
-\[
-x = a \land y = b \limply x+y = b \land x = a
-\]
+\begin{equation}
+\label{eq:wrong5}
+x = a \land y = b \limply x+x = b \land x = a
+\end{equation}
 This is certainly not a valid formula.
 The problem is that the $x$ assigned by the first assignment statement is different from the $x$ that appears in the postcondition!
 By the time the program finishes, $x$ has been updated twice, and the last assignment to $x$ binds its occurrence in the formula $x = b \land y = a$.
-Thus, when we applied the assignment axiom to the first assignment, we should only have changed occurrences of $x$ up until the next assignment; you can verify for yourself that the following formula obtained this way is valid:
-\[
-x = a \land y = b \limply \dbox{y := (x+y) - y}{\dbox{x := (x+y) - y}{x = b \land y = a}}
-\]
-This is correct, because the $x$ on the right side of the final assignment is the same $x$ updated by the first assignment; we left the $x$ appearing in the postcondition unchanged.
+More confusingly, when we changed $[x := x - y]$ in (\ref{eq:wrong1}) to $[x := (x + y) - y]$ in (\ref{eq:wrong2}), something very subtle and bad happened.
+The $(x+y)$ in (\ref{eq:wrong2}) refer to the \textbf{values of $x$ and $y$ when the first assignment took place}, and the \textbf{second $y$ that is subtracted away in $(x+y)-y$ refers to the value of $y$ after the \emph{second} assignment}.
+Accordingly, we cannot simplify this instance of $(x + y) - y$ to just $x$, as this last assignment is not actually a no-op!
+See the first example we covered in this lecture to convince yourself of this if you are having trouble seeing why.
 
+To get a better handle on what really happens when a program executes a series of assignments to the same variables, consider the following modification of (\ref{eq:wrong1}) that uses a different variable each time an assignment is made.
+\begin{equation}
+\label{eq:right1}
+x = a \land y = b \limply {\dbox{x_1 := x + y}{\dbox{y_1 := x_1 - y}{\dbox{x_2 := x_1 - y_1}{x_2 = b \land y_1 = a}}}}
+\end{equation}
+This formula now talks about $x, x_1$, and $x_2$ to refer to the initial, first, and second updated values that $x$ takes, and $y, y_1$ for the initial and first updated values that $y$ takes.
+Here it is easy to see how to apply \irref{assignb} in any order, because the variables do not overlap with their future symbols after update.
+Below we begin after having applied \irref{implyr} and \irref{andl} to move the antecedent of the implication into our assumptions, and eliminated its conjunction.
+\begin{sequentdeduction}[array]
+  \linfer[assignb] {
+    \linfer[assignb] {
+      \linfer[assignb] {
+        \linfer[qear] {
+          \linfer[qear] {
+            \lclose
+          } {
+            \lsequent{x=a, y=b}{x+y - x = b \land x = a}
+          }
+        } {
+          \lsequent{x=a, y=b}{x+y - (x+y-y) = b \land x+y-y = a}
+        }
+      } {
+        \lsequent{x=a, y=b}{\dbox{x_2 := x+y - (x+y-y)}{x_2 = b \land x+y-y = a}}
+      }
+    } {
+      \lsequent{x=a, y=b}{\dbox{y_1 := x+y - y}{\dbox{x_2 := x+y - y_1}{x_2 = b \land y_1 = a}}}
+    }
+  } {
+    \lsequent{x=a, y=b}{{\dbox{x_1 := x + y}{\dbox{y_1 := x_1 - y}{\dbox{x_2 := x_1 - y_1}{x_2 = b \land y_1 = a}}}}}  
+  }
+\end{sequentdeduction}
+
+Relabeling variables like this so that the same variable is never assigned twice is called putting the program into \emph{static single assignment} (SSA) form.
+This is a fine thing to do before conducting a proof, but it is sometimes not obvious how to do so when there are loops in the program.
 In general, a good way to avoid variable capture issues when working with the assignment axiom is to always start from the last, rightmost assignment, and work your way backwards to the first leftmost one.
-
-Another approach that is helpful in many circumstances is to use the following additional rules to remove assignments that occur at the beginning of the program, such as through variable initialization.
+The following additional rules are also helpful in removing assignments that occur at the beginning of the program, such as through variable initialization.
 \\
 
   \begin{calculus}
