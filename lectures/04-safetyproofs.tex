@@ -5,10 +5,10 @@
 \newcommand{\lecid}{15-316}
 \newcommand{\leccourse}{Software Foundations of Security and Privacy}
 \newcommand{\lecdate}{} %e.g. {October 21, 2013}
-\newcommand{\lecnum}{4}
+\newcommand{\lecnum}{4 \& 5}
 \newcommand{\lectitle}{Proving Safety, Compositionally}
 \newcommand{\lecturer}{Matt Fredrikson}
-% \newcommand{\lecurl}{https://15316-cmu.github.io/index}
+\newcommand{\lecurl}{https://15316-cmu.github.io/index}
 
 \usepackage{lecnotes}
 \usepackage[irlabel]{bugcatch}
@@ -377,6 +377,38 @@ The \irref{ifb} axiom is sound, i.e. all its instances are valid:
 Having seen the proof of Theorem~\ref{thm:assert-soundness}, you should be able to complete this proof as an exercise.
 \end{proof}
 
+\paragraph{Sequential composition.}
+
+The axioms we investigated so far already handle some programs, but sequential compositions are missing quite noticeably and we won't get very far in programs without them.
+So how can we equivalently express \m{\dbox{\ausprg;\busprg}{\ausfml}} in simpler logic without sequential compositions?
+This formula expresses that $\ausfml$ holds after all runs of $\ausprg;\busprg$, which first runs $\ausprg$ and then runs $\busprg$.
+How can this be expressed in an easier way in logic, again using just the subprograms $\ausprg$ as well as $\busprg$ of $\ausprg;\busprg$ then?
+
+In order to express \m{\dbox{\ausprg;\busprg}{\ausfml}} what we need to say is that after all runs of $\ausprg$ it is the case that $\ausfml$ holds after all runs of $\busprg$.
+It is comparably easy to say that $\ausfml$ holds after all runs of $\busprg$ just with the formula \(\dbox{\busprg}{\ausfml}\).
+But where does this formula need to hold?
+After all runs of $\ausprg$.
+In particular, all we need to say is that \(\dbox{\busprg}{\ausfml}\) holds after all runs of $\ausprg$, which is exactly what the formula \m{\dbox{\ausprg}{\dbox{\busprg}{\ausfml}}} says.
+We capture these insights in the sequential composition axiom \irref{composeb}:
+\[
+\cinferenceRule[composeb|$\dibox{{;}}$]{composition} %``One step at a time axiom''
+{\linferenceRule[equiv]
+  {\dbox{\ausprg}{\dbox{\busprg}{\ausfml}}}
+  {\axkey{\dbox{\ausprg;\busprg}{\ausfml}}}
+}{}%
+\]
+Indeed, after all runs of $\ausprg;\busprg$ does $\ausfml$ hold if and only if after all runs of $\ausprg$ it is the case that after all runs of $\busprg$ does $\ausfml$ hold.
+
+\begin{theorem}
+  The sequential composition axiom \irref{composeb} is sound, i.e. all its instances are valid:
+  \[
+  \cinferenceRuleQuote{composeb}
+  \]
+\end{theorem}
+\begin{proof}
+The proof of this axiom is left as an exercise.
+\end{proof}
+
 \paragraph{Assignments.}
 
 The next case to look into is what we need to prove in order to show the formula \m{\dbox{\pupdate{\umod{x}{\astrm}}}{p(x)}}, which expresses that the formula $p(x)$ holds after the assignment \m{\pupdate{\umod{x}{\astrm}}} that assigns the value of term $\astrm$ to variable $x$.
@@ -508,6 +540,25 @@ Below we begin after having applied \irref{implyr} and \irref{andl} to move the 
   }
 \end{sequentdeduction}
 
+\begin{figure*}
+\noindent\fbox{%
+  \parbox{\textwidth}{%
+\textbf{Aside: closing out proofs with arithmetic.}
+It is quite common for nontrivial arithmetic to be needed during program verification. For example, the proof below ends with the application of the rule \irref{qear}, which symbolically references something about the integers:
+\begin{sequentdeduction}[array]
+          \linfer[qear] {
+            \lclose
+          } {
+            \lsequent{x=a, y=b}{x+y - x = b \land x = a}
+          }
+\end{sequentdeduction}
+Looking at this step, it seems reasonable to close out the proof, because we can internally simplify $x + y -x$ to $y$, and then use the identity rule after eliminating the conjunction.
+
+This course is not about proving arithmetic facts, and we will not introduce formal proof rules for reasoning about integer arithmetic. Whenever our proof goal is purely one of arithmetic, and contains no mention of program commands or logical connectives, we will simply avail ourselves of the \irref{qear} rule and close out the proof. In fact, this is also what automated program verification and analysis tools do as well: generate a series of arithmetic formulas whose validity implies program correctness, and invoke a \emph{decision procedure} to solve the arithmetic. We will see more of this style of reasoning as we proceed through the course.
+  }
+}
+\end{figure*}
+
 Relabeling variables like this so that the same variable is never assigned twice is called putting the program into \emph{static single assignment} (SSA) form.
 This is a fine thing to do before conducting a proof, but it is sometimes not obvious how to do so when there are loops in the program.
 In general, a good way to avoid variable capture issues when working with the assignment axiom is to always start from the last, rightmost assignment, and work your way backwards to the first leftmost one.
@@ -581,9 +632,43 @@ If we had done this the right way, then the proof would have been a breeze:
   \lsequent{x = 0}{\dbox{x := x + 1}{x = 1}}
 }
 \end{sequentdeduction}
+To finish this important digression on variable by reiterating that most of the time, you should be fine working assignments from right to left in your proofs.
+The following example shows how to prove the swap program using only the basic assignment axiom, starting from the final rightmost assignment to the first leftmost.
+These axioms already enable us to prove the correctness of the integer-based swapping function
+\[
+{x=a\land y=b\limply\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}
+\]
+All we need to do is turn it into a sequent and start with this as the desired conclusion at the bottom of a sequent proof and successively apply axioms until the proof completes:
+\begin{sequentdeduction}[array]
+\linfer[implyr]
+{\linfer[composeb]
+  {\linfer[composeb]
+    {\linfer[assignb]
+      {\linfer[assignb]
+        {\linfer[assignb]
+          {\linfer
+            {\linfer[qear]
+              {\lclose}
+              {\lsequent{x{=}a\land y{=}b} {y=b\land x=a}}
+            }
+            {\lsequent{x{=}a\land y{=}b} {x+y-(x+y-y)=b\land x+y-y=a}}
+          }
+          {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{(x-(x-y)=b\land x-y=a)}}}
+        }
+        {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y}{(x-y=b\land y=a)}}}}
+      }
+      {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y}{\dbox{x:=x-y}{(x=b\land y=a)}}}}}
+    }
+    {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y; x:=x-y}{(x=b\land y=a)}}}}
+  }
+  {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}}
+}
+{\lsequent{} {x=a\land y=b\limply\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}}
+\end{sequentdeduction}
+Remember how we mark the use of arithmetic reasoning as \irref{qear}.
 
 \paragraph{Continuing on.} 
-The axioms we've seen so far already enable us to do a first proof:
+Now let's see how to combine the axioms of multiple different statements in a proof.
 \begin{sequentdeduction}[array]
 \linfer[ifb]
 {\linfer[andr]
@@ -618,8 +703,6 @@ The proof is developed starting with the desired conclusion at the bottom and wo
 The proof also makes use of integer arithmetic reasoning (marked by \irref{qear}) to show that, indeed, if $x$ is nonnegative then $x$ equals the absolute value of $x$ (on the left branch).
 Likewise, integer arithmetic reasoning is needed to show that if $x$ is negative then $-x$ equals the absolute value of $x$ (on the right branch).
 
-It is quite common for nontrivial arithmetic to be needed during program verification. However, this course is not about proving arithmetic facts. Whenever our proof goal is purely one of arithmetic, and contains no mention of program commands or logical connectives, we will simply avail ourselves of the \irref{qear} rule and close out the proof. In fact, this is also what automated program verification and analysis tools do as well: generate a series of arithmetic formulas whose validity implies program correctness, and invoke a \emph{decision procedure} to solve the arithmetic. We will see more of this style of reasoning as we proceed through the course.
-
 We must not forget to establish the soundness of \irref{assignb}. Theorem~\ref{thm:assignb-soundness} covers the relevant claim.
 \begin{theorem}
 \label{thm:assignb-soundness}
@@ -650,107 +733,7 @@ Conversely, assume that the left side $\omega \models \dbox{\pupdate{\umod{x}{\a
 \end{enumerate}
 \end{proof}
 
-\paragraph{Sequential compositions}
-
-The axioms we investigated so far already handle some programs, but sequential compositions are missing quite noticeably and we won't get very far in programs without them.
-So how can we equivalently express \m{\dbox{\ausprg;\busprg}{\ausfml}} in simpler logic without sequential compositions?
-This formula expresses that $\ausfml$ holds after all runs of $\ausprg;\busprg$, which first runs $\ausprg$ and then runs $\busprg$.
-How can this be expressed in an easier way in logic, again using just the subprograms $\ausprg$ as well as $\busprg$ of $\ausprg;\busprg$ then?
-
-In order to express \m{\dbox{\ausprg;\busprg}{\ausfml}} what we need to say is that after all runs of $\ausprg$ it is the case that $\ausfml$ holds after all runs of $\busprg$.
-It is comparably easy to say that $\ausfml$ holds after all runs of $\busprg$ just with the formula \(\dbox{\busprg}{\ausfml}\).
-But where does this formula need to hold?
-After all runs of $\ausprg$.
-In particular, all we need to say is that \(\dbox{\busprg}{\ausfml}\) holds after all runs of $\ausprg$, which is exactly what the formula \m{\dbox{\ausprg}{\dbox{\busprg}{\ausfml}}} says.
-We capture these insights in the sequential composition axiom \irref{composeb}:
-\[
-\cinferenceRule[composeb|$\dibox{{;}}$]{composition} %``One step at a time axiom''
-{\linferenceRule[equiv]
-  {\dbox{\ausprg}{\dbox{\busprg}{\ausfml}}}
-  {\axkey{\dbox{\ausprg;\busprg}{\ausfml}}}
-}{}%
-\]
-Indeed, after all runs of $\ausprg;\busprg$ does $\ausfml$ hold if and only if after all runs of $\ausprg$ it is the case that after all runs of $\busprg$ does $\ausfml$ hold.
-
-These axioms already enable us to prove the correctness of the integer-based swapping function
-\[
-{x=a\land y=b\limply\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}
-\]
-All we need to do is turn it into a sequent and start with this as the desired conclusion at the bottom of a sequent proof and successively apply axioms until the proof completes:
-\begin{sequentdeduction}[array]
-\linfer[implyr]
-{\linfer[composeb]
-  {\linfer[composeb]
-    {\linfer[assignb]
-      {\linfer[assignb]
-        {\linfer[assignb]
-          {\linfer
-            {\linfer[qear]
-              {\lclose}
-              {\lsequent{x{=}a\land y{=}b} {y=b\land x=a}}
-            }
-            {\lsequent{x{=}a\land y{=}b} {x+y-(x+y-y)=b\land x+y-y=a}}
-          }
-          {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{(x-(x-y)=b\land x-y=a)}}}
-        }
-        {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y}{(x-y=b\land y=a)}}}}
-      }
-      {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y}{\dbox{x:=x-y}{(x=b\land y=a)}}}}}
-    }
-    {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y; x:=x-y}{(x=b\land y=a)}}}}
-  }
-  {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}}
-}
-{\lsequent{} {x=a\land y=b\limply\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}}
-\end{sequentdeduction}
-Remember how we mark the use of arithmetic reasoning as \irref{qear}.
-
-Note how this is now a proof of correctness of the swap program from \rref{eq:swap} that, in a finite amount of work, justifies correctness for all states and, thus, implies its validity:
-\[
-\entails {x=a\land y=b\limply\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}
-\]
-
-% The above sequent calculus proof used the assignment axiom inside out, so starting with handling the rightmost assignment first.
-% It would also have been possible to start outside in handling the leftmost assignment first, but this is not an advisable approach to take because one must be very careful to avoid replacing bound variables. Assignments bind variables, because after an assignment the value has changed. Consider what happens if we proceed indiscriminately replacing variables after assignments, applying \irref{assignb} from left to right.
-% \begin{sequentdeduction}[array]
-% \linfer[implyr]
-% {\linfer[composeb]
-%   {\linfer[composeb]
-%     {\linfer[assignb]
-%       {\linfer[assignb]
-%         {\linfer[qear]
-%           {
-%             \linfer[assignb] {
-%               \lsequent{x{=}a\land y{=}b} {2x=b\land x=a}
-%             } {
-%               \lsequent{x{=}a\land y{=}b} {\dbox{x:=x}{(2x=b\land x=a)}}
-%             }
-%           }
-%           {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+(x+y-y)-(x+y-y)}{(x+(x+y-y)=b\land x+y-y=a)}}}
-%         }
-%         {\lsequent{x{=}a\land y{=}b} {\dbox{y:=x+y-y}{\dbox{x:=x+y-y}{(x+y=b\land y=a)}}}}
-%       }
-%       {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y}{\dbox{x:=x-y}{(x=b\land y=a)}}}}}
-%     }
-%     {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y}{\dbox{y:=x-y; x:=x-y}{(x=b\land y=a)}}}}
-%   }
-%   {\lsequent{x{=}a\land y{=}b} {\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}}
-% }
-% {\lsequent{} {x=a\land y=b\limply\dbox{x:=x+y; y:=x-y; x:=x-y}{(x=b\land y=a)}}}
-% \end{sequentdeduction}
-% This is certainly not right! The problems began when we replaced $x = b$ with $x + y = b$ after the first application us \irref{assignb}. It was not correct to do so, because the second assignment to $x$ binds it for all subsequent ``reads'' of the variable; after the assignment, $x$ refers to a different quantity than it does before the assignment. This may seem a bit confusing, and indeed the rules of binding in first-order dynamic logic are intricate and subtle. However, \textbf{you can avoid having to think about these matters if you always apply the assignment axiom from right to left in your proofs!}
-
-\begin{theorem}
-  The sequential composition axiom \irref{composeb} is sound, i.e. all its instances are valid:
-  \[
-  \cinferenceRuleQuote{composeb}
-  \]
-\end{theorem}
-\begin{proof}
-The proof of this axiom is left as an exercise.
-\end{proof}
-
-\paragraph{Loops}
+\paragraph{Loops.}
 
 How can we prove \m{\dbox{\pwhile{\ivr}{\ausprg}}{\ausfml}} in another way by rephrasing it equivalently in logic?
 What the loop \m{\pwhile{\ivr}{\ausprg}} does is to test whether formula $\ivr$ is true and, if so, run $\ausprg$, and then repeating that process until $\ivr$ is false (if it ever is, otherwise the loop just keeps running $\ausprg$ until the end of time).
