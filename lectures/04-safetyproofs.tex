@@ -724,10 +724,10 @@ Recall the semantics for assignments:
 \]
 We must show that $\models \dbox{\pupdate{\umod{x}{\astrm}}}{p(x)} \lbisubjunct p(\astrm)$, so consider any state $\omega$ and show that $\omega \models \dbox{\pupdate{\umod{x}{\astrm}}}{p(x)} \lbisubjunct p(\astrm)$. We prove the biimplication by proving each implication seperately.
 \begin{enumerate}
-\item[``$\lylpmi$'']
+\item[``$\leftarrow$'']
 Assume the right side $\omega \models p(\astrm)$, and show that $\omega \models \dbox{\pupdate{\umod{x}{\astrm}}}{p(x)}$. By the semantics of assignment, we know that the only trace in $\iaccess[\pupdate{\umod{x}{\astrm}}]{\I}$ beginning with $\omega$ is $(\omega, \nu)$ where $\nu = \omega$ everywhere except at $x$, and $\nu(x) = \omega\llbracket\astrm\rrbracket$. But from our assumption we know that $\omega \models p(\astrm)$, i.e. $p$ is true in $\omega$ when $\astrm$ is substituted in place of $x$, and in $\nu$, $x$ is mapped to $\astrm$ and otherwise is the same as $\omega$, so $\nu \models p(x)$. Therefore, $\omega \models \dbox{\pupdate{\umod{x}{\astrm}}}{p(x)}$.
 
-\item[``$\lylpmi$''] 
+\item[``$\rightarrow$''] 
 Conversely, assume that the left side $\omega \models \dbox{\pupdate{\umod{x}{\astrm}}}{p(x)}$ holds, and show $\omega \models p(e)$. By the semantics of assignment, there is one trace $(\omega,\nu) \in \iaccess[\pupdate{\umod{x}{\astrm}}]{\I}$ beginning with $\omega$ and $\nu = \omega$ except that $\nu(x) = \omega\llbracket\astrm\rrbracket$. Our assumption gives us that $\nu \models p(x)$, and because $\nu(x) = \omega\llbracket\astrm\rrbracket$, it is also true that $\nu \models p(\omega\llbracket\astrm\rrbracket)$. Then $\omega \models p(\astrm)$, because $\omega \models p(\astrm)$ if and only if $\omega \models p(\omega\llbracket\astrm\rrbracket)$, and $\nu = \omega$ at all other variables except $x$.
 \qedhere
 \end{enumerate}
