@@ -326,7 +326,9 @@ The unfinished portion of the proof assumes that $\pderef{i}=v$ and $i \ne (\ast
 \paragraph{Inductive case $\asprg;\bsprg$:}
 Suppose that the program is a composition of $\asprg$ and $\bsprg$. The inductive hypothesis lets us assume that:
 \begin{align}
+\label{eq:a1}
 \forall i . \lnot(s_l \le i \le s_h)  \land \pderef{i}=v &\limply \dbox{\asprg}{\pderef{i}=v} \\
+\label{eq:a2}
 \forall i . \lnot(s_l \le i \le s_h)  \land \pderef{i}=v &\limply \dbox{\bsprg}{\pderef{i}=v}
 \end{align}
 Then consider $(\omega,\ldots,\mu) \in \llbracket\asprg\rrbracket$ and $(\mu,\ldots,\nu) \in \llbracket\bsprg\rrbracket$. We have the following which says that the memory outside the sandbox in the initial state remains unchanged until the final state, for both $\asprg$ and $\bsprg$:
@@ -336,7 +338,10 @@ Then consider $(\omega,\ldots,\mu) \in \llbracket\asprg\rrbracket$ and $(\mu,\ld
 \label{eq:trans2}
 \forall i . \lnot(s_l \le i \le s_h)  \land \mu_M(i)=v &\limply \nu_M(i)=v
 \end{align}
-By the semantics of $\asprg;\bsprg$ and the transitive property of equality, it must be that for all $(\omega,\ldots,\nu)\in\llbracket\asprg;\bsprg\rrbracket$ it is the case that:
+This follows directly from the semantics of $\pderef{i}$, which refer to the memory component of states $\omega, \mu,$ and $\nu$, and the box modalities in (\ref{eq:a1}) and (\ref{eq:a2}).
+
+Notice that the right side of the implication in (\ref{eq:trans1}) matches up with the latter half of the conjunction in the left side of the implication in (\ref{eq:trans2}).
+From this and the semantics of $\asprg;\bsprg$, it must then be that for all $(\omega,\ldots,\nu)\in\llbracket\asprg;\bsprg\rrbracket$ we can say:
 \begin{equation}
 \label{eq:transc}
 \forall i . \lnot(s_l \le i \le s_h)  \land \omega_M(i)=v \limply \nu_M(i)=v
