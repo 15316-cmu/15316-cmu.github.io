@@ -76,112 +76,9 @@ We discussed addressing this with a very similar approach to what we did for SFI
 \end{equation}
 This is a form of \emph{control flow integrity} (CFI)~\cite{Abadi2009}, a technique for enforcing a broad class of safety properties that place limits on the allowed control flow paths in a program. But this sort of policy doesn't give us much flexibility in terms of what kind of control flow we might want to restrict the untrusted code to, because any sequence within the code sandbox is considered valid.
 
-Today we'll start by looking at a more granular type of control flow policy that takes into account a control flow graph, and can be used to ensure that the target program executes only sequences of instructions corresponding to paths in the graph.
-
-\section{Finer-grained control-flow safety}
-But what if this isn't the case? Suppose that we want to enforce other invariants on untrusted code, such as that they do not modify a protected variable under certain conditions. So for example if $x$ is negative, then we want to jump over any assignment to $x$. We make the following replacements, among others:
-\begin{center}
-\begin{tabular}{lcl}
-$
-\begin{array}{ll}
-\keywordfont{i:} & x := \astrm
-\end{array}
-$
-&
-\ \ \ \ becomes\ \ \ \ 
-&
-$
-\begin{array}{rl}
-\keywordfont{i:} & \pifjump{x < 0}{i+2} \\
-\keywordfont{i+1:} & x := \astrm
-\end{array}
-$
-\end{tabular}
-\end{center}
-Now if we use the coarse-grained CFI policy from before, can we actually enforce the policy using this approach? It would seem not, at least as long as the attacker knows that this is how we will attempt to do so. The problem arises because of the fact that according to the coarse-grained CFI policy, any address in the untrusted code is an allowed target of a jump. So it is perfectly acceptable (according to the coarse-grained policy) for the attacker to jump directly past the inlined check.
-
-To see this more concretely, consider the following proof-of-concept attack code. Suppose that the attacker wants to set $x$ to 0 regardless of what its value is before the untrusted code executes. This obviously violates the policy, and to accomplish it the attacker will provide a program that takes the inline enforcement code into account. So after providing the code on the left,
-\begin{center}
-\begin{tabular}{lcl}
-$
-\begin{array}{rl}
-\keywordfont{i-1:} & \pifjump{0=0}{i+1} \\
-\keywordfont{i:} & x := 0
-\end{array}
-$
-&
-\ \ \ \ becomes\ \ \ \ 
-&
-$
-\begin{array}{rl}
-\keywordfont{i-1:} & \pifjump{0=0}{(i+1 \bitand s_h) \bitor s_l} \\
-\keywordfont{i:} & \pifjump{x < 0}{i+2} \\
-\keywordfont{i+1:} & x := 0
-\end{array}
-$
-\end{tabular}
-\end{center}
-In short, the attacker sets up the program to jump directly over the enforcement code.
-
-\paragraph{Enforcing the control flow graph.} To address this, we can rely on the control flow graph (CFG) of the untrusted code. Recall from lecture 5 that a program's CFG is a graph that encodes all of the possible valid transitions between commands in the program. In this case, we will obtain a control flow graph for the original untrusted program\footnote{Obtaining the CFG for an arbitrary program with indirect jumps is a difficult problem indeed. It may not always be possible to do so, and we will come back to this in later lectures. For now, we will just assume that we have obtained the correct CFG for $\asprg$ by some unknown means.}, and ensure that the program instrumented with inline safety checks follows the same CFG modulo any checks.
-
-So in this case, the original control flow graph is given on the left of the diagram below. Obviously it is not the case that $0 \ne 0$, so the edge from \keywordfont{i-1} to \keywordfont{i} is never taken. After the invariant instrumentation is inserted, the correct translation of the control flow, preserving the relative edges from the original CFG, is shown on the right. The instrumentation replaced the instruction originally at \keywordfont{i} with an inline check, and shifted all of the subsequent instructions up by one address. So this moves \keywordfont{i} to \keywordfont{i+1}, and \keywordfont{i+1} to \keywordfont{i+2}. To make this clear in the diagram, the nodes and edges corresponding to instrumentation are marked in blue.
-\begin{center}
-\begin{tikzpicture}
-[
-  highlight/.style={draw=blue, text=blue},
-  shorten >=1pt,
-  node distance=2cm,
-  on grid,
-  auto,
-  /tikz/initial text={},
-  font=\footnotesize,
-  thick
-]
- \node[state,initial above,inner sep=1pt,minimum size=0.75cm] (l0)  {\keywordfont{i-1}};
- \node[state,inner sep=1pt,minimum size=0.75cm,yshift=1em] (l1) [below=of l0] {\keywordfont{i}};
- \node[state,inner sep=1pt,minimum size=0.75cm,yshift=1em] (l2) [below=of l1] {\keywordfont{i+1}};
- \node[state,draw=none,inner sep=1pt,minimum size=0.75cm,yshift=3.15em] (l3) [below=of l2] {};
-
-  \path[->] 
-    (l0) edge node [right] {$0 \ne 0$} (l1)
-    (l1) edge node [right] {} (l2)
-    (l0) edge [bend right] node [left] {$0 = 0$} (l2);
-\end{tikzpicture}
-\hspace{3em}
-\begin{tikzpicture}
-[
-  highlight/.style={draw=blue, text=blue},
-  shorten >=1pt,
-  node distance=2cm,
-  on grid,
-  auto,
-  /tikz/initial text={},
-  font=\footnotesize,
-  thick
-]
- \node[state,initial above,inner sep=1pt,minimum size=0.75cm] (l0)  {\keywordfont{i-1}};
- \node[state,fill=blue!30,inner sep=1pt,minimum size=0.75cm,yshift=1em] (l1) [below=of l0] {\keywordfont{i}};
- \node[state,inner sep=1pt,minimum size=0.75cm,yshift=1em] (l2) [below=of l1] {\keywordfont{i+1}};
- \node[state,inner sep=1pt,minimum size=0.75cm,yshift=1em] (l3) [below=of l2] {\keywordfont{i+2}};
-
-  \path[->] 
-    (l0) edge node [right] {$0 \ne 0$} (l1)
-    (l1) edge [blue] node [right] {$x \ge 0$} (l2)
-    (l0) edge [bend right] node [left] {$0 = 0$} (l3)
-    (l1) edge [blue,bend left=70] node [right] {$x < 0$} (l3)
-    (l2) edge node [right] {} (l3);
-\end{tikzpicture}
-\end{center}
-Now to correctly enforce the safety policy that the CFG on the right is respected by the code, the original jumps are rewritten accordingly.
-\[
-\begin{array}{rl}
-\keywordfont{i-1:} & \pifjump{0=0}{i+2} \\
-\keywordfont{i:} & \pifjump{x < 0}{i+2} \\
-\keywordfont{i+1:} & x := 0
-\end{array}
-\]
-By enforcing the original control flow of the program, after taking any added instrumentation into account with dealing with instruction addresses, we prevented the attacker from bypassing our inlined safety policy enforcement. But notice that it didn't really matter what control flow graph we started out with. It could have been arbitrary, perhaps completely different from the actual CFG of the original program, and we could still enforce it by inserting and replacing conditional jumps.
+We then looked at a more granular type of control flow policy that takes into account a control flow graph, and can be used to ensure that the target program executes only sequences of instructions corresponding to paths in the graph.
+Today we will generalize what we have learned about enforcing safety by introducing a type of policy that specifies safety using automata.
+This style of policy, called \emph{security automata}~\cite{Schneider2000}, is powerful enough to encapsulate all of the safety properties that can possibly be enforced at runtime, and is thus an indespensible tool for ensuring code safety.
 
 \section{Security automata}
 
@@ -377,6 +274,5 @@ Figure~\ref{fig:pin} shows the architecture of Pin. Users interact with it by wr
 
 You will learn more about the specifics of the Pin API in the handout for the next lab, and get hands-on experience using it to implement SFI as well as a security automaton policy. For more detailed information on how Pin works, consult the original paper~\cite{Luk2005}.
 
-\bibliographystyle{abbrv}
 \bibliography{bibliography}
 \end{document}
