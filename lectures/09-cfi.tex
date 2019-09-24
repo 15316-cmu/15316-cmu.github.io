@@ -161,38 +161,38 @@ We will write $\Pi(i)$, where $0 \le i \le n$, to refer to the command $\asprg_i
 Think of this language as a simplified version of assembly language. Memory update commands $\pumod{\pderef{\astrm}}{\bstrm}$ correspond to store instructions (i.e., \verb'mov' into a memory cell), memory dereference terms $\pderef{\astrm}$ correspond to memory fetch instructions (i.e., \verb'mov' from a memory cell to a register), and $\pifjump{\ivr}{\astrm}$ to conditional \verb'jmp' instructions. We don't have an explicit stack or notion of procedure to worry about, but if we did then $\phalt$ commands would correspond to \verb'ret' instructions.
 
 \paragraph{Semantics.}
-Recall that program states $\omega$ are composed of a variable map $\omega_V$ and memory $\omega_M$. Now that programs $\Pi$ are composed of indexed commands, and can transfer control to any command in $\Pi$, states will also need to track a program counter $\omega_i$ that determines which command executes next. The program counter will range from $i \in 0$ to $n$, denoting that the command $\Pi_i$ executes next.
+Recall that program states $\omega$ are composed of a variable map $\omega_V$ and memory $\omega_M$. Now that programs $\Pi$ are composed of indexed commands, and can transfer control to any command in $\Pi$, states will also need to track a program counter $\omega_I$ that determines which command executes next. The program counter will range from $i \in 0$ to $n$, denoting that the command $\Pi_i$ executes next.
 
 \begin{definition}[Operational semantics of programs]
-The small-step transition relation $\smallstep_\Pi$ of program $\Pi$ composed of commands $\asprg_0,\ldots,\asprg_n$ in state $\omega = (\omega_i,\omega_V,\omega_M)$ is given by the following cases:
+The small-step transition relation $\smallstep_\Pi$ of program $\Pi$ composed of commands $\asprg_0,\ldots,\asprg_n$ in state $\omega = (\omega_I,\omega_V,\omega_M)$ is given by the following cases:
 \[
-(\omega_i,\omega_V,\omega_M) \smallstep_\Pi
+(\omega_I,\omega_V,\omega_M) \smallstep_\Pi
 \left\{
 \begin{array}{lcl}
-(\omega_i+1, \memupd{\omega_V}{x}{\omega\llbracket\astrm\rrbracket}, \omega_M) & \textit{if} & \Pi_i = \pumod{x}{\astrm}~\text{and}~\omega\llbracket\astrm\rrbracket~\text{is defined}
+(\omega_I+1, \memupd{\omega_V}{x}{\omega\llbracket\astrm\rrbracket}, \omega_M) & \textit{if} & \Pi_{\omega_I} = \pumod{x}{\astrm}~\text{and}~\omega\llbracket\astrm\rrbracket~\text{is defined}
 
 \\
 
-(\omega_i+1, \omega_V, \memupd{\omega_M}{\omega\llbracket\astrm\rrbracket}{\omega\llbracket\bstrm\rrbracket}) & \textit{if} & \Pi_i = \pumod{\pderef{\astrm}}{\bstrm}~\text{and} \\
+(\omega_I+1, \omega_V, \memupd{\omega_M}{\omega\llbracket\astrm\rrbracket}{\omega\llbracket\bstrm\rrbracket}) & \textit{if} & \Pi_{\omega_I} = \pumod{\pderef{\astrm}}{\bstrm}~\text{and} \\
  & & \omega\llbracket\bstrm\rrbracket~\text{is defined}~\text{and}~0\le\astrm<\maxmem
 
 \\
 
-(\omega_i+1, \omega_V, \omega_M) & \textit{if} & \Pi_i = \passert{\ivr}~\text{and}~\omega\models\ivr
+(\omega_I+1, \omega_V, \omega_M) & \textit{if} & \Pi_{\omega_I} = \passert{\ivr}~\text{and}~\omega\models\ivr
 
 \\
 
-(\omega\llbracket\astrm\rrbracket, \omega_V, \omega_M) & \textit{if} & \Pi_i = \pifjump{\ivr}{\astrm}~\text{and} \\
+(\omega\llbracket\astrm\rrbracket, \omega_V, \omega_M) & \textit{if} & \Pi_{\omega_I} = \pifjump{\ivr}{\astrm}~\text{and} \\
  & & 0 \le \omega\llbracket\astrm\rrbracket \le n~\text{and}~\omega\models\ivr
 
 \\
 
-(\omega_i+1, \omega_V, \omega_M) & \textit{if} & \Pi_i = \pifjump{\ivr}{\astrm}~\text{and}~ \\
+(\omega_I+1, \omega_V, \omega_M) & \textit{if} & \Pi_{\omega_I} = \pifjump{\ivr}{\astrm}~\text{and}~ \\
  & & 0 \le \omega\llbracket\astrm\rrbracket \le n~\text{and}~\omega\models\lnot\ivr
 
 \\
 
-\errstate & \textit{if} & \text{otherwise and}~0\le \omega_i \le n
+\errstate & \textit{if} & \text{otherwise and}~0\le \omega_I \le n
 
 \end{array}
 \right.
@@ -225,12 +225,12 @@ Consider the following program to illustrate how the operational and trace seman
 Suppose that we begin in the following state:
 \[
 \begin{array}{l}
-\omega_i = 0 \\
+\omega_I = 0 \\
 \omega_V(x) = 2~\text{and all other variables map to}~0 \\
 \omega_M(i) = 0~\text{for all}~0 \le i < U
 \end{array}
 \]
-Then consulting the operational semantics, we see that $\Pi_0 = \passert{0 \le x}$ and $\omega \models 0 \le x$, so the next state is $(\omega_i+1, \omega_V, \omega_M)$.
+Then consulting the operational semantics, we see that $\Pi_0 = \passert{0 \le x}$ and $\omega \models 0 \le x$, so the next state is $(\omega_I+1, \omega_V, \omega_M)$.
 \[
 \begin{array}{l}
 (0, \omega_V, \omega_M) \smallstep_\Pi \\[1ex] 
@@ -362,7 +362,7 @@ $
 \end{center}
 In short, the attacker sets up the program to jump directly over the enforcement code.
 
-\paragraph{Enforcing the control flow graph.} To address this, we can rely on the control flow graph (CFG) of the untrusted code. Recall from lecture 5 that a program's CFG is a graph that encodes all of the possible valid transitions between commands in the program. In this case, we will obtain a control flow graph for the original untrusted program\footnote{Obtaining the CFG for an arbitrary program with indirect jumps is a difficult problem indeed. It may not always be possible to do so, and we will come back to this in later lectures. For now, we will just assume that we have obtained the correct CFG for $\asprg$ by some unknown means.}, and ensure that the program instrumented with inline safety checks follows the same CFG modulo any checks.
+\paragraph{Enforcing the control flow graph.} To address this, we can rely on the control flow graph (CFG) of the untrusted code. Recall from the lecture on symbolic execution that a program's CFG is a graph that encodes all of the possible valid transitions between commands in the program. In this case, we will obtain a control flow graph for the original untrusted program\footnote{Obtaining the CFG for an arbitrary program with indirect jumps is a difficult problem indeed. It may not always be possible to do so, and we will come back to this in later lectures. For now, we will just assume that we have obtained the correct CFG for $\asprg$ by some unknown means.}, and ensure that the program instrumented with inline safety checks follows the same CFG modulo any checks.
 
 So in this case, the original control flow graph is given on the left of the diagram below. Obviously it is not the case that $0 \ne 0$, so the edge from \keywordfont{i-1} to \keywordfont{i} is never taken. After the invariant instrumentation is inserted, the correct translation of the control flow, preserving the relative edges from the original CFG, is shown on the right. The instrumentation replaced the instruction originally at \keywordfont{i} with an inline check, and shifted all of the subsequent instructions up by one address. So this moves \keywordfont{i} to \keywordfont{i+1}, and \keywordfont{i+1} to \keywordfont{i+2}. To make this clear in the diagram, the nodes and edges corresponding to instrumentation are marked in blue.
 \begin{center}
