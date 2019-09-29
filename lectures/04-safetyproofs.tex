@@ -10,6 +10,7 @@
 \newcommand{\lecturer}{Matt Fredrikson}
 \newcommand{\lecurl}{https://15316-cmu.github.io/index}
 
+\usepackage{varwidth}
 \usepackage{lecnotes}
 \usepackage[irlabel]{bugcatch}
 \usepackage{xspace}
@@ -24,7 +25,7 @@
 % \newcommand{\cusfml}{C}
 % \def\leftrule{L}%
 % \def\rightrule{R}%
-\newcommand{\errstate}{\ensuremath{\Lambda}\xspace}
+% \newcommand{\errstate}{\ensuremath{\Lambda}\xspace}
 
 
 \begin{document}
@@ -119,7 +120,7 @@ The \dfn[valuation!of~programs]{trace semantics $\iaccess[\alpha]{\I}$ of a prog
       \(\iaccess[\pwhile{\ivr}{\alpha}]{\I}\)
 =\(\{\atrace^{(0)} \compose \atrace^{(1)} \compose \dots \compose \atrace^{(n)} \with\)
 for some $n\geq0$
-such that for all $0\leq i<n$:
+such that for all $0\leq i\leq n$:
 \textcircled{1} the loop condition is true \m{\atrace^{(i)}_0 \models \ivr} and
 \textcircled{2}
 \m{\atrace^{(i)} \in \iaccess[\asprg]{\Iz[i]}}
@@ -647,7 +648,7 @@ All we need to do is turn it into a sequent and start with this as the desired c
       {\linfer[assignb]
         {\linfer[assignb]
           {\linfer
-            {\linfer[\mathbb{Z}]
+            {\linfer[qear]
               {\lclose}
               {\lsequent{x{=}a\land y{=}b} {y=b\land x=a}}
             }

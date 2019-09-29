@@ -296,6 +296,7 @@ We complete the proof of subtree \textcircled{1} this way, and can move on with 
 \end{itemize}
 
 Now we complete this case of the proof by deriving \textcircled{2}.
+
 Note that we begin by applying the \irref{weakenl} rule, which removes some unneeded assumptions from our context and makes the proof more concise.
 \[
 \cinferenceRule[weakenl|W\leftrule]{left weakening}
@@ -307,7 +308,7 @@ Note that we begin by applying the \irref{weakenl} rule, which removes some unne
 This rule is perfectly sound, which you can verify yourself as a proof exercise.
 \begin{sequentdeduction}
 \linfer[weakenl] {
-  \linfer[cut] {
+  \linfer[applyeqr] {
     \linfer[mreadneq] {
       \linfer[id]{\lclose}{\lsequent{\pderef{i}=v,i \ne (\astrm \bitand s_h) \bitor s_l}{i \ne (\astrm \bitand s_h) \bitor s_l}}
       &\lsequent{\pderef{i}=v,i \ne (\astrm \bitand s_h) \bitor s_l}{0 \le i < \maxmem}
