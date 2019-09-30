@@ -295,13 +295,13 @@ Let's see a brief example of how to use the update-over-write and memory update 
         \lsequent{0 \le w < U, x = a, y = b, w = z}{\dbox{\pderef{w} := x}{y = b \land \pderef{z} = a}}
       }
     } {
-      \lsequent{0 \le w < U, x = a, y = b}{\dbox{\pderef{w} := x}{\dbox{x := y}{x = b \land \pderef{z} = a}}}
+      \lsequent{0 \le w < U, x = a, y = b, w = z}{\dbox{\pderef{w} := x}{\dbox{x := y}{x = b \land \pderef{z} = a}}}
     }
   } {
-    \lsequent{0 \le w < U, x = a, y = b}{\dbox{\pderef{w} := x}{\dbox{x := y}{\dbox{y := \pderef{z}}{x = b \land y = a}}}}
+    \lsequent{0 \le w < U, x = a, y = b, w = z}{\dbox{\pderef{w} := x}{\dbox{x := y}{\dbox{y := \pderef{z}}{x = b \land y = a}}}}
   }
 } {
-  \lsequent{0 \le w < U, x = a, y = b}{\dbox{\pderef{w} := x; x := y; y := \pderef{z}}{x = b \land y = a}}
+  \lsequent{0 \le w < U, x = a, y = b, w = z}{\dbox{\pderef{w} := x; x := y; y := \pderef{z}}{x = b \land y = a}}
 }
 \end{sequentdeduction}
 Now we finish subtree $\textcircled{1}$.
