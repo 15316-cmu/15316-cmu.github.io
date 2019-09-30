@@ -185,10 +185,10 @@ The \dfn[valuation!of~programs]{trace semantics $\iaccess[\alpha]{\I}$ of a prog
       =
       \begin{tabular}{l}
         \(\{\atrace^{(0)} \compose \dots \compose \atrace^{(n)} \with\)
-          for all $0\leq i<n$:
+          for all $0\leq i\leq n$:
           $\atrace^{(i)}_0 \models \ivr$,
           $\atrace^{(i)} \in \iaccess[\asprg]{\Iz[i]}$, and \\
-          \ \ $\atrace^{(n)}$ either doesn't terminate terminates where $\atrace^{(n)}_m \nonmodels \ivr\}~\cup$
+          \ \ $\atrace^{(n)}$ either doesn't terminate, or terminates with $\atrace^{(n)}_m \nonmodels \ivr\}~\cup$
         \\
         \(\{\atrace^{(0)} \compose \atrace^{(1)} \compose \atrace^{(2)} \compose \dots \with\)
           for all $i\in\naturals$:
@@ -197,7 +197,13 @@ The \dfn[valuation!of~programs]{trace semantics $\iaccess[\alpha]{\I}$ of a prog
         \\
         \(\{(\iget[state]{\I}) \with \inonmodels{\I}{\ivr}\}~\cup\)
         \\
-        \(\{(\omega,\errstate) \with \omega\models\ivr~\text{not defined}\}\)
+        \(\{\atrace^{(0)} \compose \dots \compose \atrace^{(n)} \compose (\Lambda) \with\)
+          for all $0\leq i \leq n$:
+          $\atrace^{(i)}_0 \models \ivr$,
+          $\atrace^{(i)} \in \iaccess[\asprg]{\Iz[i]}$, and \\
+          \ \ $\atrace^{(n)}$ terminates with $\atrace^{(n)}_m \models \ivr$ not defined$\}~\cup$
+        \\
+        \(\{(\omega,\Lambda) \with \omega \models \ivr~\text{not defined}\}\)
       \end{tabular}
     \end{enumerate}
 \end{definition}
