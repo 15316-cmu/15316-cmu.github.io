@@ -222,7 +222,7 @@ But how can we prove this without knowing anything about what $\asprg$ is? We ca
 Let $\asprg$ be a program whose memory update commands have been instrumented as prescribed by software fault isolation, and the sandbox low and high bounds are configured correctly, so that for all $x$:
 \begin{equation}
 \label{eq:bounds-assump}
-0 \le s_l \le  (x \bitand s_h) \bitor s_l \le b_h < \maxmem
+0 \le s_l \le  (x \bitand s_h) \bitor s_l \le s_h < \maxmem
 \end{equation}
 Then all valid memory indices outside the sandbox retain the same value after executing $\asprg$ as they had prior to executing it. In other words, Equation~\ref{eq:sfi-integrity} is valid.
 \end{theorem}
@@ -288,9 +288,9 @@ Continuing with subtree \textcircled{1}:
 This part of the derivation asks us to prove that either $s_l \le i \le s_h$ or $\memupd{\pderefop}{(\astrm \bitand s_h) \bitor s_l}{\bstrm}(i)=v$, from the assumptions that $\pderef{i}=v$ and $i = (\astrm \bitand s_h) \bitor s_l$. Let's think about the cases a bit.
 \begin{itemize}
 \item We could try to prove that $\memupd{\pderefop}{(\astrm \bitand s_h) \bitor s_l}{\bstrm}(i)=v$. At first glance this might seem promising, because of the assumption that $\pderef{i}=v$. But we also assume that $i = (\astrm \bitand s_h) \bitor s_l$, and \irref{mreadeq} tells us then that $\memupd{\pderefop}{(\astrm \bitand s_h) \bitor s_l}{\bstrm}(i) = \bstrm$. We don't have an assumption which says that $v = \bstrm$, which we would need to do the proof this way.
-\item We can alternately prove that $s_l \le i \le s_h$. We have in our context that $i = (\astrm \bitand s_h) \bitor s_l$, and the theorem assumes (\ref{eq:bounds-assump}) which gives us an even stronger property $0 \le s_l \le  (x \bitand s_h) \bitor s_l \le b_h < \maxmem$. We can invoke \irref{qmear} to discharge the obligation:
+\item We can alternately prove that $s_l \le i \le s_h$. We have in our context that $i = (\astrm \bitand s_h) \bitor s_l$, and the theorem assumes (\ref{eq:bounds-assump}) which gives us an even stronger property $0 \le s_l \le  (x \bitand s_h) \bitor s_l \le s_h < \maxmem$. We can invoke \irref{qmear} to discharge the obligation:
 \[
-0 \le s_l \le  (x \bitand s_h) \bitor s_l \le b_h < \maxmem \limply s_l \le i \le s_h
+0 \le s_l \le  (x \bitand s_h) \bitor s_l \le s_h < \maxmem \limply s_l \le i \le s_h
 \]
 We complete the proof of subtree \textcircled{1} this way, and can move on with the proof.
 \end{itemize}
