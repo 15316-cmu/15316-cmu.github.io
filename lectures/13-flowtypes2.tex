@@ -5,7 +5,7 @@
 \newcommand{\lecid}{15-316}
 \newcommand{\leccourse}{Software Foundations of Security and Privacy}
 \newcommand{\lecdate}{} %e.g. {October 21, 2013}
-\newcommand{\lecnum}{12}
+\newcommand{\lecnum}{13}
 \newcommand{\lectitle}{Information Flow Types II}
 \newcommand{\lecturer}{Matt Fredrikson}
 \newcommand{\lecurl}{https://15316-cmu.github.io/index}
@@ -269,7 +269,9 @@ Now we have introduced all of the typing rules, and proved two key lemmas that c
 
 \begin{theorem}[Soundness of information flow type system]
 \label{thm:soundness}
-Let $\asprg$ be a program, and $\omega_1, \omega_2$ be states such that $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$. Moreover, let $\omega_1', \omega_2'$ be states such that $\langle\omega_1,\asprg\rangle\bigstep\omega_1'$ and $\langle\omega_2,\asprg\rangle\bigstep\omega_2'$. Then for a type context $\Gamma$, if $\lsequent{\Gamma}{\asprg}$ then $\omega_1' \approx_{\Gamma,\lowsec} \omega_2'$.
+Let $\asprg$ be a program, and $\omega_1, \omega_2$ be states such that $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$. 
+Moreover, let $\omega_1', \omega_2'$ be states such that $\langle\omega_1,\asprg\rangle\bigstep\omega_1'$ and $\langle\omega_2,\asprg\rangle\bigstep\omega_2'$. 
+Then for a policy $\Gamma$ over the lattice $\{\lowsec, \hisec\}$, if $\lsequent{\Gamma}{\asprg}$ then $\omega_1' \approx_{\Gamma,\lowsec} \omega_2'$.
 \end{theorem}
 
 How do we prove Theorem~\ref{thm:soundness}? Given the way things have gone so far with the lemmas, we might think to try an induction on the structure of $\asprg$. This is a sensible initial guess, but we will run into problems when we attempt the case for \keywordfont{while} loops. To see why, first recall the big-step semantics for loops.
@@ -322,12 +324,14 @@ Before we continue with the proof, it is important to point out that our inducti
 
 \subsection{Soundness proof: \keywordfont{while} case}
 
-We will now complete the case for while loops, leaving the remaining cases as an exercise. So we would like to prove that if $\lsequent{\Gamma}{\pwhile{\ivr}{\asprg}}$, then for any $\omega_1, \omega_2$ where $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$ and $\omega_1', \omega_2'$ where 
+We will now complete the case for while loops, leaving the remaining cases as an exercise. So we would like to prove that if $\lsequent{\Gamma}{\pwhile{\ivr}{\asprg}}$, then for any $\omega_1, \omega_2$ where $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$ and $\omega_1', \omega_2'$ where
 \[
 \langle \omega_1, \pwhile{\ivr}{\asprg}\rangle \Downarrow \omega_1'
+\text{ and }
+\langle \omega_2, \pwhile{\ivr}{\asprg}\rangle \Downarrow \omega_2'
 \]
-
-Theorem~\ref{thm:soundness} tells us that $\lsequent{\Gamma}{\pwhile{\ivr}{\asprg}}$, so the last rule used in the type derivation:
+it must be the case that $\omega_1' \approx_{\Gamma,\lowsec} \omega_2'$.
+Using the fact that $\lsequent{\Gamma}{\pwhile{\ivr}{\asprg}}$, we proceed in cases on the label $\ell'$ used to type the subcommand $\alpha$ by the (\irref{whileflow}) rule, reproduced below for convenience.
 \[
 \cinferenceRule[whileflow|While]{while}
 {\linferenceRule[sequent] {
@@ -338,47 +342,67 @@ Theorem~\ref{thm:soundness} tells us that $\lsequent{\Gamma}{\pwhile{\ivr}{\aspr
   \lsequent{\Gamma}{\pwhile{\ivr}{\asprg}}
 }}{}%
 \]
-There are two cases for us to consider. Either the label $\ell'$ of \pc used to type the subcommand $\asprg$ is \lowsec, or it is \hisec.
+Either the label $\ell'$ used to type the subcommand $\asprg$ is \lowsec or it is \hisec.
 \begin{description}
-\item[Case $\ell' = \lowsec$:] Simple security (Lemma~\ref{lemma:simplesec}) tells us that for any variable $x$ in $\astrm$, $\Gamma(x) \posetleq \ell'$. So by the assumption made in this case, and the fact that $\posetleq$ is transitive, $\Gamma(x) = \lowsec$. We can then apply the assumption from Theorem~\ref{thm:soundness} that $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$ to reason that for some constant $b$, $\langle\omega_1,\ivr\rangle\bigstepb b$ and $\langle\omega_2,\ivr\rangle\bigstepb b$ (i.e., $\ivr$ evaluates to the same thing in $\omega_1$ and $\omega_2$).
+\item[Case $\ell' = \lowsec$:] Simple security (Lemma~\ref{lemma:simplesec}) tells us that for any variable $x$ in $\astrm$, $\Gamma(x) \posetleq \lowsec$. 
+But $\lowsec$ is the global bottom element of the lattice $\{\lowsec, \hisec\}$, and because $\posetleq$ is transitive, $\Gamma(x) = \lowsec$. 
+We can then use the fact that $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$ to reason that for some constant $b$, $\langle\omega_1,\ivr\rangle\bigstepb b$ and $\langle\omega_2,\ivr\rangle\bigstepb b$. In other words, $\ivr$ evaluates to the same thing in $\omega_1$ and $\omega_2$, so both executions take the same branch through the loop condition.
 
 If $b = \lfalse$, then $\omega_1 = \omega_1'$ and $\omega_2 = \omega_2'$. Then the theorem holds because $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$, so $\omega_1' \approx_{\Gamma,\lowsec} \omega_2'$.
 
-If $b = \ltrue$, then the case is a bit more nuanced. We know that the last steps of the big-step derivations of $\langle\omega_1,\asprg\rangle\bigstep\omega_1'$ and $\langle\omega_2,\asprg\rangle\bigstep\omega_2'$ were:
+If $b = \ltrue$, then things are a bit more nuanced. We know that the last steps of the big-step derivations of were:
 \[
 \linferenceRule{
-  \langle\omega_1,\ausfml\rangle \bigstep_{\mathbb{B}} \ltrue
-  &\langle\omega_1,\asprg;\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega_1'
+  \langle\omega_1,\ivr\rangle \bigstep_{\mathbb{B}} \ltrue
+  &\langle\omega_1,\asprg;\pwhile{\ivr}{\asprg}\rangle \bigstep \omega_1'
 }{
-  \langle\omega_1,\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega_1'
+  \langle\omega_1,\pwhile{\ivr}{\asprg}\rangle \bigstep \omega_1'
 }
 \quad
 \linferenceRule{
-  \langle\omega_2,\ausfml\rangle \bigstep_{\mathbb{B}} \ltrue
-  &\langle\omega_2,\asprg;\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega_2'
+  \langle\omega_2,\ivr\rangle \bigstep_{\mathbb{B}} \ltrue
+  &\langle\omega_2,\asprg;\pwhile{\ivr}{\asprg}\rangle \bigstep \omega_2'
 }{
-  \langle\omega_2,\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega_2'
+  \langle\omega_2,\pwhile{\ivr}{\asprg}\rangle \bigstep \omega_2'
 }
 \]
 Moreover, the derivation of $\langle\omega_1,\asprg;\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega_1'$ and $\langle\omega_2,\asprg;\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega_2'$ ended with the step:
 \[
 \linferenceRule{
   \langle\omega_1,\asprg\rangle \bigstep \omega_1''
-  &\langle\omega_1'',\bsprg\rangle \bigstep \omega_1'
+  &\langle\omega_1'',\pwhile{\ivr}{\asprg}\rangle \bigstep \omega_1'
 }{
-  \langle\omega_1,\asprg;\bsprg\rangle \bigstep \omega_1'
+  \langle\omega_1,\asprg;\pwhile{\ivr}{\asprg}\rangle \bigstep \omega_1'
 }
 \quad
 \linferenceRule{
   \langle\omega_2,\asprg\rangle \bigstep \omega_2''
-  &\langle\omega_2'',\bsprg\rangle \bigstep \omega_2'
+  &\langle\omega_2'',\pwhile{\ivr}{\asprg}\rangle \bigstep \omega_2'
 }{
-  \langle\omega_2,\asprg;\bsprg\rangle \bigstep \omega_2'
+  \langle\omega_2,\asprg;\pwhile{\ivr}{\asprg}\rangle \bigstep \omega_2'
 }
 \]
-Then the inductive hypothesis tells us that $\omega_1'' \approx_{\Gamma,\lowsec} \omega_2''$, and then using this fact that $\omega_1' \approx_{\Gamma,\lowsec} \omega_2'$. This proves the theorem for the case $\ell' = \lowsec$.
+Observe that the derivation trees ending in $\langle\omega_1,\asprg\rangle \bigstep \omega_1''$ and $\langle\omega_1'',\pwhile{\ivr}{\asprg}\rangle \bigstep \omega_1'$ have exactly one fewer step than that of $\langle\omega_1,\asprg;\pwhile{\ivr}{\asprg}\rangle \bigstep \omega_1'$ (and likewise for the derivations involving $\omega_2, \omega_2'', \omega_2'$).
+The inductive hypothesis applies to the derivation of each:
+\begin{itemize}
+\item From $\langle\omega_i,\asprg\rangle \bigstep \omega_i''$, $i \in \{1,2\}$: If $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$ and $\lsequent{\Gamma}{\asprg}$, then the inductive hypothesis gives us that $\omega_1'' \approx_{\Gamma,\lowsec} \omega_2''$.
+We already know that $\lsequent{\Gamma}{\asprg}$, because $\lsequent{\Gamma, \pc : \lowsec}{\asprg}$ is a premise of the (\irref{whileflow}) rule, and $\Gamma(\pc)$ must have been $\lowsec$ because $\lowsec = \ell \lub \Gamma(\pc)$ (where $\lsequent{\Gamma}{\ivr : \ell}$, and $\lowsec$ is the bottom element of the security lattice.
+Therefore, $\omega_1'' \approx_{\Gamma,\lowsec} \omega_2''$.
+\item From $\langle\omega_i'',\asprg;\pwhile{\ivr}{\asprg}\rangle \bigstep \omega_i'$, $i \in \{1, 2\}$: If $\omega_1'' \approx_{\Gamma,\lowsec} \omega_2''$ and $\lsequent{\Gamma}{\asprg;\pwhile{\ivr}{\asprg}}$, then $\omega_1' \approx_{\Gamma,\lowsec} \omega_2'$.
+We just reasoned in the previous bullet that $\omega_1'' \approx_{\Gamma,\lowsec} \omega_2''$, and that $\lsequent{\Gamma}{\asprg}$.
+We have from the premise of the current case of the soundness proof that $\lsequent{\Gamma}{\pwhile{\ivr}{\asprg}}$.
+So by the (\irref{composeflow}) typing rule, we can conclude that $\lsequent{\Gamma}{\asprg;\pwhile{\ivr}{\asprg}}$.
+\textbf{This leaves us with $\omega_1' \approx_{\Gamma,\lowsec} \omega_2'$.}
+\end{itemize}
+To summarize the case where $\ell' = \lowsec$, we reasoned that executions under both $\omega_1$ and $\omega_2$ would take the same branch of the loop.
+If they both take the $\lfalse$ branch, then because $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$ and the final states $\omega_1', \omega_2'$ will be identical to the initial states, noninterference must hold.
+If they both take the $\ltrue$ branch, then we reason inductively that as long as noninterference holds for the smaller derivations needed to account for first executing the loop body once, and subsequently executing the remaining $n-1$ iterations of the loop, then it must hold for the entire execution of the loop as well.
 
-\item[Case $\ell' = \hisec$:] In this case, the label of \pc used to type $\asprg$ is \hisec, so we need to prove that there are no implicit flows. The confinement lemma (Lemma~\ref{lemma:confinement}) tells us that for any variable $x$ assigned in $\asprg$, $\hisec \posetleq \Gamma(x)$, and thus $\Gamma(x) \not\posetleq \lowsec$. So for every $x$ where $\Gamma(x) \posetleq \lowsec$, $\omega_1(x) = \omega_1'(x)$ and $\omega_2(x) = \omega_2'(x)$. Using the assumption $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$, we can then conclude that $\omega_1' \approx_{\Gamma,\lowsec} \omega_2'$, completing the proof for this case.
+\item[Case $\ell' = \hisec$:] In this case, the label of \pc used to type $\asprg$ is \hisec, either because the \pc in which the loop executes is already \hisec, or because $\lsequent{\Gamma}{\ivr : \hisec}$. 
+The only way that the \hisec content of \pc can influence the \lowsec content of a final state is if an assignent to a variable $x$ labeled $\Gamma(x) = \lowsec$ occurs within $\asprg$.
+The confinement lemma (Lemma~\ref{lemma:confinement}) tells us that for any variable $x$ assigned in $\asprg$, $\hisec \posetleq \Gamma(x)$, and thus $\Gamma(x)$ must not be $\lowsec$. 
+So for every $x$ where $\Gamma(x) = \lowsec$, $\omega_1(x) = \omega_1'(x)$ and $\omega_2(x) = \omega_2'(x)$, because $x$ is never assigned in $\asprg$. 
+Using the assumption $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$, we can then conclude that $\omega_1' \approx_{\Gamma,\lowsec} \omega_2'$, completing the proof for this case.
 \end{description}
 
 The proofs for the remaining cases mirror the structure of  the proof for \keywordfont{while} loops, splitting into cases where the label of \pc is \lowsec and \hisec, and apply the inductive hypothesis to assert \lowsec-equivalence of intermediate states corresponding to immediate subtrees in the big-step derivation. They are left as an exercise, and will help you gain familiarity with this type system, as well as the principle of induction on the structure of derivations, which is a powerful technique that is used widely to establish useful properties of deductive systems.
