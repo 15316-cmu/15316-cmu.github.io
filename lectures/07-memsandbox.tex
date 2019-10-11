@@ -261,6 +261,7 @@ But what about programs that update memory and then read from it afterwards? The
   {\lsequent{\Gamma}{\memupd{\pderefop}{\astrm}{\bstrm}(\astrm')=\bstrm}}
 }{}%
 \]
+Note that because we must prove that $\astrm = \astrm'$ in this case, for the right premise it is fine to alternatively prove that $\lsequent{\Gamma}{0 \le \astrm U}$ for the right premise, as this will not affect soundness.
 In the case where $\astrm\ne\astrm'$, we use similar reasoning to conclude that $\memupd{\pderefop}{\astrm}{\bstrm}(\astrm')$ takes whatever the value at index $\astrm'$ in $\pderefop$ was \emph{before} the update, i.e. $\pderef{\astrm'}$. This gives us the \irref{mreadneq} rules.
 \[
 \cinferenceRule[mreadneq|$\dibox{*}_{2}$]{mreadneq}
