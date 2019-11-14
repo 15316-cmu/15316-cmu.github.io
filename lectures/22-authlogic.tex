@@ -407,6 +407,11 @@ So putting this all together, the context from which Grey will attempt to conduc
 \label{eq:greyctx}
 \Gamma \equiv P_1,P_2
 \end{equation}
+We also denote the following formulas $Q_1, Q_2$ which are needed in this example.
+\begin{align*}
+Q_1 &\equiv \ownsr(\matt,\office) \\
+Q_2 &\equiv \says{\matt}{\studof(\tli,\matt)}
+\end{align*}
 Suppose that Alice needs to access \office to pick up the final exams before class. Alice has Grey installed on her phone, so she should be able to do this as long as her phone is able to construct a proof of $\says{\admin}{\canopen(\tli,\office)}$. Let's begin constructing this proof. 
 
 The first step is rather obvious, as we want to prove a \verb'says' formula on the right of the sequent, so \irref{saysr} is our only option.
