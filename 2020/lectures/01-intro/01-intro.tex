@@ -1,5 +1,5 @@
 %!TEX program = xelatex
-\documentclass[10pt,handout]{beamer}
+\documentclass[10pt]{beamer}
 
 \usepackage{ragged2e}
 \usepackage{fontspec}
@@ -56,7 +56,7 @@
 \title[Software Foundations of S \& P]{
 \RaggedRight
 	Software Foundations of Security \& Privacy \\
-	\ 15316 Fall 2019 \\
+	\ 15316 Fall 2020 \\
 	\ Lecture 1: \\
 	\ Introduction
 }
@@ -84,7 +84,7 @@
 
 \begin{columns}
 
-\begin{column}{0.5\textwidth}
+\begin{column}{0.32\textwidth}
 \centering
 \includegraphics[height=8em]{matt.jpg}
 
@@ -92,11 +92,19 @@ Matt Fredrikson \\
 Instructor
 \end{column}
 
-\begin{column}{0.5\textwidth}
+\begin{column}{0.32\textwidth}
 \centering
 \includegraphics[height=8em]{avatar.jpg}
 
-TBD \\
+Urvi Agarwal \\
+TA
+\end{column}
+
+\begin{column}{0.32\textwidth}
+\centering
+\includegraphics[height=8em]{ryan.jpg}
+
+Ryan Chen \\
 TA
 \end{column}
 
@@ -108,7 +116,67 @@ TA
 
 \begin{frame}
 
-\frametitle{Mundane news}
+\frametitle{Themes and anti-themes}
+
+What is this course about?
+\\[2em]
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+
+\frametitle{This is not a course about encryption...}
+
+\hspace*{-1.5em}
+\includegraphics[width=1.1\textwidth]{crypto.png}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+
+\frametitle{Not a course about hacking...}
+
+\hspace*{-1.5em}
+\includegraphics[width=1.1\textwidth]{hacking.png}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+
+\frametitle{Not a course about social engineering...}
+
+\hspace*{-1.5em}
+\includegraphics[width=1.1\textwidth]{social.png}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+
+\frametitle{This course is about...}
+
+\centering
+\includegraphics[width=0.8\textwidth]{wadler.png}
+
+\vspace*{1em}
+How logic and languages will save us (and make software secure)
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+
+\frametitle{Falling sky}
 
 \centering
 \includegraphics[height=15em]{sidechan-blog.png}
@@ -471,10 +539,10 @@ This script causes V8 to JIT-compile vulnerable bytecode
 How do we fix it?
 \\[1em]
 
-\pause
-Unlike most vulnerabilities, doesn't seem patchable \pause
+Unlike most vulnerabilities, doesn't seem patchable. Why? \pause
 \begin{itemize}
-\item Problem enabled by both software + hardware issues
+\item Problem caused by both software + hardware issues \pause
+\item attacker's input $\rightarrow$ speculative cache $\rightarrow$ ``normal'' cache
 \item Without hardware changes, no apparent universal fix\\[1em]
 \end{itemize}
 
@@ -482,67 +550,66 @@ Unlike most vulnerabilities, doesn't seem patchable \pause
 But there are software-based mitigations
 \begin{enumerate}
   \pause\item Disable speculative execution \emph{(expensive!)}
-  \pause\item Disable caching \emph{(way more expensive!)}
-  \pause\item Fix speculative execution \emph{(hardware changes?)}
-  \pause\item In some settings: \textbf{don't index arrays on untrusted values}
+  \pause\item Disable the cache \emph{(way more expensive!)}
+  \pause\item Don't index arrays on untrusted values \emph{(hard?)}
 \end{enumerate}
 
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{frame}[fragile]
+% \begin{frame}[fragile]
 
-\frametitle{But if you must...}
+% \frametitle{But if you must...}
 
-\begin{lstlisting}[basicstyle=\small,style=customjava]
-struct array {
- unsigned long length;
- unsigned char data[];
-};
-struct array *arr1 = ...; /* 0-padded to size 0xFF */
-struct array *arr2 = ...; /* 0-padded size 0xFFF */
-unsigned long untrusted_offset = network_read(...);
-unsigned char value = arr1->data[untrusted_offset & 0xFF];
-unsigned long index2 = ((value&1)*0x100)+0x200;
-unsigned char value2 = arr2->data[index2 & 0xFFF];
-\end{lstlisting}
+% \begin{lstlisting}[basicstyle=\small,style=customjava]
+% struct array {
+%  unsigned long length;
+%  unsigned char data[];
+% };
+% struct array *arr1 = ...; /* 0-padded to size 0xFF */
+% struct array *arr2 = ...; /* 0-padded size 0xFFF */
+% unsigned long untrusted_offset = network_read(...);
+% unsigned char value = arr1->data[untrusted_offset & 0xFF];
+% unsigned long index2 = ((value&1)*0x100)+0x200;
+% unsigned char value2 = arr2->data[index2 & 0xFFF];
+% \end{lstlisting}
 
-\vspace*{1em}
-\emph{Only} when you have a good reason to require untrusted indexing,
-\begin{itemize}
-\pause\item Make sure the target array never contains secrets
-\pause\item Pad arrays and implement \emph{logical sandboxing}
-\pause\item Use a static checker to make sure you've done this correctly
-\end{itemize}
+% \vspace*{1em}
+% \emph{Only} when you have a good reason to require untrusted indexing,
+% \begin{itemize}
+% \pause\item Make sure the target array never contains secrets
+% \pause\item Pad arrays and implement \emph{logical sandboxing}
+% \pause\item Use a static checker to make sure you've done this correctly
+% \end{itemize}
 
-\end{frame}
+% \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{frame}
+% \begin{frame}
 
-\frametitle{Mitigations}
+% \frametitle{Mitigations}
 
-How do we fix it?
-\\[1em]
+% How do we fix it?
+% \\[1em]
 
-Good question
-\begin{itemize}
-\item We probably don't know the full scope of the problem
-\item Without hardware changes, no apparent universal fix\\[1em]
-\end{itemize}
+% Good question
+% \begin{itemize}
+% \item We probably don't know the full scope of the problem
+% \item Without hardware changes, no apparent universal fix\\[1em]
+% \end{itemize}
 
-But there are software-based mitigations
-\begin{enumerate}
-  \item Disable speculative execution \emph{(expensive!)}
-  \item Disable caching \emph{(probably even more expensive!)}
-  \item Selectively disable spec. execution \emph{(hardware changes?)}
-  \item \textbf{Never index arrays on untrusted values}
-  \pause \item \textbf{Check untrusted code for side channels} \pause \emph{(sounds hard?)}
-\end{enumerate}
+% But there are software-based mitigations
+% \begin{enumerate}
+%   \item Disable speculative execution \emph{(expensive!)}
+%   \item Disable caching \emph{(probably even more expensive!)}
+%   \item Selectively disable spec. execution \emph{(hardware changes?)}
+%   \item \textbf{Never index arrays on untrusted values}
+%   \pause \item \textbf{Check untrusted code for side channels} \pause \emph{(sounds hard?)}
+% \end{enumerate}
 
-\end{frame}
+% \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -570,73 +637,20 @@ Security problems are numerous, can be subtle and challenging
 \pause
 This course will teach you how to deal with hard security problems
 \begin{itemize}
-  \item Understand the essentials of many software security problems
-  \item Evaluate potential solutions and their tradeoffs
-  \item Implement strong defenses using principled techniques
-  \item \textbf{Write code that isn't vulnerable in the first place}
+  \item Understand the general principles behind vulnerabilities
+  \item Design and critically evaluate potential solutions
+  \item Learn a set of rigorous defense strategies, implement some
+  \item Hopefully, write code that isn't vulnerable to begin
 \end{itemize}
 
 \end{frame}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{frame}
 
-\frametitle{Back to the course}
 
-What is this course about?
-\\[2em]
 
-\end{frame}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{frame}
-
-\frametitle{This is not a course about encryption...}
-
-\hspace*{-1.5em}
-\includegraphics[width=1.1\textwidth]{crypto.png}
-
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{frame}
-
-\frametitle{Not a course about hacking...}
-
-\hspace*{-1.5em}
-\includegraphics[width=1.1\textwidth]{hacking.png}
-
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{frame}
-
-\frametitle{Not a course about social engineering...}
-
-\hspace*{-1.5em}
-\includegraphics[width=1.1\textwidth]{social.png}
-
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{frame}
-
-\frametitle{This course is about...}
-
-\centering
-\includegraphics[width=0.8\textwidth]{wadler.png}
-
-\vspace*{1em}
-How logic and languages will save us (and make software secure)
-
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{frame}
 
@@ -648,7 +662,7 @@ Central theme: \emph{security \& correctness are often two sides of a coin}
 \pause
 A way to specify software behaviors that are secure, i.e. \emph{policies} \pause
 \begin{itemize}
-  \item Who can see what data, and when?
+  \item Who can see what data, and when? Who can we trust?
   \item Under what circumstances can a program execute?
   \item ...and what do we expect of its outputs?
   \item How should information flow through a system? \\[1em]
@@ -657,7 +671,7 @@ A way to specify software behaviors that are secure, i.e. \emph{policies} \pause
 \pause
 A way to ensure that software adheres to policy, i.e. \emph{enforcement} \pause
 \begin{itemize}
-  \item With \textbf{convincing guarantees}, not ad-hoc arguments
+  \item With \textbf{provable guarantees}, not ad-hoc arguments
   \item Often, without trusting developers or users
 \end{itemize}
 
@@ -671,19 +685,19 @@ A way to ensure that software adheres to policy, i.e. \emph{enforcement} \pause
 
 \textbf{Precise ways to write down policies} \pause
 \begin{itemize}
-  \item Types, contracts, functional specifications, customized logics
-  \item Devised for correctness, great for security as well \\[1em]
+  \item Types, logical specification, specialized languages
+  \item (Often) devised for correctness, perfect for security also \\[1em]
 \end{itemize}
 
 \pause
-\textbf{Rigorous means of enforcement}
+\textbf{Rigorous ways to enforce policies}
 \begin{itemize}
-  \item Type checking, formal verification for \emph{static} enforcement
-  \item Runtime monitors, sound instrumentation for \emph{dynamic} enforcement \\[1em]
+  \item Type checking, formal verification for \emph{static}
+  \item Runtime monitors, instrumentation for \emph{dynamic} \\[1em]
 \end{itemize}
 
 \pause
-\textbf{Convincing guarantees}: can \emph{prove} that enforcement ensures policy
+Rigorous means: we can \emph{prove} that policy is obeyed
 
 \end{frame}
 
@@ -693,84 +707,62 @@ A way to ensure that software adheres to policy, i.e. \emph{enforcement} \pause
 
 \frametitle{Formalism \& security}
 
-Why is being formal such a big deal?
+Why is proving things important?
+\\[1em]
+
+\pause
+Proof requires formalism
 \\[1em]
 
 \pause
 Formal policies make assumptions and provisions explicit:
 \begin{itemize}
-  \item \textbf{Important}: these define the attacker's capabilities
+  \item These define our goals, the attacker's capabilities
   \item For security, formality means \emph{no surprises}! \\[1em]
 \end{itemize}
 
 \pause
-Formal claims can be proven if true, and refuted if not
+Focus on refutable claims of security
 \begin{itemize}
-  \item ``Is my program secure'' should not be a rhetorical question
-  \item ...instead, a math problem
-  \item Without a proof, why should you trust it? \\[1em]
+  \item Use math to exhaust the relevant space of attacks
+  \item Rely on formalism to make it clear what remains unknown
+  \item Ideal: break out of vuln/patch arms race \\[1em]
 \end{itemize}
 
-\pause
-Formal techniques can often be automated
+% \pause
+% Formal techniques can often be automated
+% \begin{itemize}
+%   \item Formal proof is tedious, automation means less work
+%   \item Proof checkers mitigate human error
+% \end{itemize}
 
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{frame}
+% \begin{frame}
 
-\frametitle{Formalism \& security}
+% \frametitle{What being formal doesn't give us}
 
-Why is being formal such a big deal?
-\\[1em]
+% Formalism isn't a panacea
+% \\[1em]
 
-Formal policies make assumptions and provisions explicit:
-\begin{itemize}
-  \item \textbf{Important}: these define the attacker's capabilities
-  \item For security, formality means \emph{no surprises}! \\[1em]
-\end{itemize}
+% \pause
+% Proofs are relative to the formal definitions and assumptions in play
+% \begin{itemize}
+%   \item When these aren't realistic, neither are the guarantees
+%   \item See Cormac Herley's ``Unfalsifiability of security claims'' in \emph{PNAS} for a healthy dose of skepticism on this matter \\[1em]
+% \end{itemize}
 
-(Useful) Formal guarantees can be proven if true, and refuted if not
-\begin{itemize}
-  \item ``Is my program secure'' is no longer a rhetorical question
-  \item ...instead, a math problem
-  \item If there's no proof, why should you trust it? \\[1em]
-\end{itemize}
+% \pause
+% Creativity, intuition, and good engineering are important for:
+% \begin{itemize}
+%   \item Devising and validating useful definitions
+%   \item Identifying the right threat model, assumptions
+%   \item Building robust and efficient implementations
+% \end{itemize}
 
-Formal techniques can often be automated
-\begin{itemize}
-  \item While formal proof can be tedious, automation means less work
-  \item Proof checkers mitigate human error, enable audit
-\end{itemize}
-
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{frame}
-
-\frametitle{What being formal doesn't give us}
-
-Formalism isn't a panacea
-\\[1em]
-
-\pause
-Proofs are relative to the formal definitions and assumptions in play
-\begin{itemize}
-  \item When these aren't realistic, neither are the guarantees
-  \item See Cormac Herley's ``Unfalsifiability of security claims'' in \emph{PNAS} for a healthy dose of skepticism on this matter \\[1em]
-\end{itemize}
-
-\pause
-Creativity, intuition, and good engineering are important for:
-\begin{itemize}
-  \item Devising and validating useful definitions
-  \item Identifying the right threat model, assumptions
-  \item Building robust and efficient implementations
-\end{itemize}
-
-\end{frame}
+% \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -784,6 +776,7 @@ Some of the topics that we will cover include:
   \item Runtime policy enforcement, reference monitoring
   \item Security type systems
   \item Isolation (SFI, CFI, hardware protections)
+  \item Privacy for individuals
   \item Trusted computing, authorization logic
   \item Web app security \& best practices
   \item Side channel vulnerabilities and defenses
@@ -817,16 +810,15 @@ After taking this course, you should:
 \textbf{Website:} \url{https://15316-cmu.github.io}
 \\[1em]
 
-\textbf{Course staff contact:} Piazza
+\textbf{Course staff contact:} \texttt{15-316-course-staff@lists.andrew.cmu.edu}
 
-\textbf{Lecture}: Tuesdays \& Thursdays, 9:00-10:20 HH B103
+\textbf{Lecture}: Tuesdays \& Thursdays, 8:00-9:20 on Zoom
 \\[1em]
 
 Matt Fredrikson
 \begin{itemize}
 \item Location: CIC 2126
 \item Office Hours: \textbf{answer Piazza poll on good times}
-\item Email: mfredrik@cs
 \end{itemize}
 
 \end{frame}
@@ -841,29 +833,28 @@ Matt Fredrikson
 \begin{column}{0.45\textwidth}
 Breakdown:
 \begin{itemize}
-\item 30\% labs
-\item 30\% written homework
+\item 35\% labs
+\item 35\% written homework
 \item 30\% exams (15\% each, midterm and final)
-\item 10\% participation
 \end{itemize}
 \end{column}
 
 \begin{column}{0.55\textwidth}
-3-4 labs
+2-3 labs
 \\[1em]
 
 Written homework most weeks
 \\[1em]
 
-In-class exams, closed-book, one sheet of handwritten notes
+Exams open-book, some additional time for scanning/typesetting
 \\[1em]
 
 Participation:
 \begin{itemize}
-\item Come to lecture
-\item Ask questions, give answers
+\item Come to lecture if you can
 \item Contribute to discussion
-\item Be active and helpful on Piazza
+\item Answer questions on Piazza
+\item Ask questions \textbf{early}!
 \end{itemize}
 \end{column}
 \end{columns}
@@ -874,7 +865,7 @@ Participation:
 
 \begin{frame}
 
-\frametitle{Written homework (30\% of grade)}
+\frametitle{Written homework (35\% of grade)}
 
 Written homeworks focus on theory and fundamental skills
 \\[1em]
@@ -898,7 +889,7 @@ Strive for \textbf{clarity \& conciseness}
 
 \begin{frame}
 
-\frametitle{Labs (30\% of grade)}
+\frametitle{Labs (35\% of grade)}
 
 Extend HTTP server to serve answers to data queries
 \\[1em]
@@ -927,14 +918,15 @@ Partial credit depending on:
 \frametitle{What to do before Thursday}
 
 \begin{enumerate}
-  \item Make sure that you are enrolled in the Gradescope and Piazza sections for this course
+  \item Make sure that you are enrolled in the Gradescope, Canvas, Piazza sections for this course
   \begin{itemize}
-    \item Gradescope entry code: \textbf{9E62JE}
-    \item Piazza signup link: \url{http://piazza.com/cmu/fall2019/15316}
+    \item Canvas: \url{https://canvas.cmu.edu/courses/19932}
+    \item Gradescope entry code: \textbf{9GNPXE}
+    \item Piazza signup link: \url{https://piazza.com/class/keisqg3c2w43jr}
   \end{itemize}
   \item Answer the Piazza poll about office hours time slots
   \item Read the syllabus on the webpage carefully
-  \item Contact me (on Piazza!) if you have any questions
+  \item Get started on homework (if you can)
 \end{enumerate}
 
 \end{frame}
