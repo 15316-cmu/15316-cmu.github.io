@@ -1,0 +1,140 @@
+!_TAG_FILE_SORTED	2	/0=unsorted, 1=sorted, 2=foldcase/
+Accept	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^int Accept(int s, struct sockaddr *addr, int *addrlen);$/;"	p	language:C++
+Alarm	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^unsigned int Alarm(unsigned int seconds);$/;"	p	language:C++
+app_error	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void app_error(char *msg);$/;"	p	language:C++
+Bind	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Bind(int sockfd, struct sockaddr *my_addr, int addrlen);$/;"	p	language:C++
+buckets	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^  ubarray *buckets;$/;"	m	language:C++	struct:__anon3
+bucket_free	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^void bucket_free(bucket_t *bucket);$/;"	p	language:C++
+bucket_index	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^  size_t bucket_index;$/;"	m	language:C++	struct:__anon4
+bucket_new	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^bucket_t *bucket_new(int local_depth, int common_hash);$/;"	p	language:C++
+BUCKET_SIZE	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^#define BUCKET_SIZE /;"	d	language:C++
+bucket_t	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^} bucket_t;$/;"	t	language:C++	typeref:struct:__anon2
+Calloc	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void *Calloc(size_t nmemb, size_t size);$/;"	p	language:C++
+CHECK	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^#define CHECK(/;"	d	language:C++
+Close	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Close(int fd);$/;"	p	language:C++
+common_hash	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^  size_t common_hash;$/;"	m	language:C++	struct:__anon2
+Connect	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Connect(int sockfd, struct sockaddr *serv_addr, int addrlen);$/;"	p	language:C++
+data	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/ubarray.h	/^  elem_t *data;$/;"	m	language:C++	struct:__anon1
+DEF_MODE	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^#define DEF_MODE /;"	d	language:C++
+DEF_UMASK	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^#define DEF_UMASK /;"	d	language:C++
+deserializer_t	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/ubarray.h	/^typedef void *(*deserializer_t)(int);$/;"	t	language:C++
+destructor_t	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/ubarray.h	/^typedef void(*destructor_t)(void *);$/;"	t	language:C++
+dns_error	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void dns_error(char *msg);$/;"	p	language:C++
+Dup2	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^int Dup2(int fd1, int fd2);$/;"	p	language:C++
+elem_t	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/ubarray.h	/^typedef void *elem_t;$/;"	t	language:C++
+entries	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^  ubarray *entries;$/;"	m	language:C++	struct:__anon2
+entry_free	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^void entry_free(entry_t *entry);$/;"	p	language:C++
+entry_index	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^  size_t entry_index;$/;"	m	language:C++	struct:__anon4
+entry_new	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^entry_t *entry_new(const char *key, int value);$/;"	p	language:C++
+entry_t	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^} entry_t;$/;"	t	language:C++	typeref:struct:__anon1
+Execve	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Execve(const char *filename, char *const argv[], char *const envp[]);$/;"	p	language:C++
+Fclose	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Fclose(FILE *fp);$/;"	p	language:C++
+Fdopen	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^FILE *Fdopen(int fd, const char *type);$/;"	p	language:C++
+Fgets	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^char *Fgets(char *ptr, int n, FILE *stream);$/;"	p	language:C++
+Fopen	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^FILE *Fopen(const char *filename, const char *mode);$/;"	p	language:C++
+Fork	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^pid_t Fork(void);$/;"	p	language:C++
+Fputs	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Fputs(const char *ptr, FILE *stream);$/;"	p	language:C++
+Fread	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^size_t Fread(void *ptr, size_t size, size_t nmemb, FILE *stream);$/;"	p	language:C++
+Free	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Free(void *ptr);$/;"	p	language:C++
+Fstat	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Fstat(int fd, struct stat *buf) ;$/;"	p	language:C++
+Fwrite	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);$/;"	p	language:C++
+Gethostbyaddr	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^struct hostent *Gethostbyaddr(const char *addr, int len, int type);$/;"	p	language:C++
+Gethostbyname	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^struct hostent *Gethostbyname(const char *name);$/;"	p	language:C++
+Getpgrp	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^pid_t Getpgrp();$/;"	p	language:C++
+global_depth	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^  size_t global_depth;$/;"	m	language:C++	struct:__anon3
+handler_t	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^typedef void handler_t(int);$/;"	t	language:C++
+hash	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^int hash(const char *key);$/;"	p	language:C++
+hash_table_check	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^void hash_table_check(hash_table_t *table);$/;"	p	language:C++
+hash_table_deserialize	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^hash_table_t *hash_table_deserialize(int in);$/;"	p	language:C++
+hash_table_find	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^bool hash_table_find(hash_table_t *table, const char *key, int *value);$/;"	p	language:C++
+hash_table_free	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^void hash_table_free(hash_table_t *table);$/;"	p	language:C++
+hash_table_insert	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^void hash_table_insert(hash_table_t *table, const char *key, int value);$/;"	p	language:C++
+hash_table_iterate	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^hash_table_iterator *hash_table_iterate(hash_table_t *table);$/;"	p	language:C++
+hash_table_iterator	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^} hash_table_iterator;$/;"	t	language:C++	typeref:struct:__anon4
+hash_table_new	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^hash_table_t *hash_table_new();$/;"	p	language:C++
+hash_table_remove	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^bool hash_table_remove(hash_table_t *table, const char *key);$/;"	p	language:C++
+hash_table_serialize	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^void hash_table_serialize(hash_table_t *table, int out);$/;"	p	language:C++
+hash_table_t	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^} hash_table_t;$/;"	t	language:C++	typeref:struct:__anon3
+iterator_elem	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^entry_t *iterator_elem(hash_table_iterator *it);$/;"	p	language:C++
+iterator_free	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^void iterator_free(hash_table_iterator *it);$/;"	p	language:C++
+iterator_next	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^void iterator_next(hash_table_iterator *it);$/;"	p	language:C++
+key	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^  char *key;$/;"	m	language:C++	struct:__anon1
+Kill	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Kill(pid_t pid, int signum);$/;"	p	language:C++
+limit	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/ubarray.h	/^  size_t limit;$/;"	m	language:C++	struct:__anon1
+Listen	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Listen(int s, int backlog);$/;"	p	language:C++
+LISTENQ	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^#define LISTENQ /;"	d	language:C++
+local_depth	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^  size_t local_depth;$/;"	m	language:C++	struct:__anon2
+Lseek	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^off_t Lseek(int fildes, off_t offset, int whence);$/;"	p	language:C++
+Malloc	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void *Malloc(size_t size);$/;"	p	language:C++
+MAXBUF	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^#define MAXBUF /;"	d	language:C++
+MAXLINE	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^#define	MAXLINE	/;"	d	language:C++
+Mmap	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void *Mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset);$/;"	p	language:C++
+Munmap	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Munmap(void *start, size_t length);$/;"	p	language:C++
+NULL_CHECK	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^#define NULL_CHECK(/;"	d	language:C++
+Open	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^int Open(const char *pathname, int flags, mode_t mode);$/;"	p	language:C++
+Open_clientfd	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^int Open_clientfd(char *hostname, int port);$/;"	p	language:C++
+open_clientfd	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^int open_clientfd(char *hostname, int portno);$/;"	p	language:C++
+Open_listenfd	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^int Open_listenfd(int port); $/;"	p	language:C++
+open_listenfd	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^int open_listenfd(int portno);$/;"	p	language:C++
+P	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void P(sem_t *sem);$/;"	p	language:C++
+Pause	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Pause(void);$/;"	p	language:C++
+posix_error	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void posix_error(int code, char *msg);$/;"	p	language:C++
+Pthread_cancel	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Pthread_cancel(pthread_t tid);$/;"	p	language:C++
+Pthread_create	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Pthread_create(pthread_t *tidp, pthread_attr_t *attrp, $/;"	p	language:C++
+Pthread_detach	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Pthread_detach(pthread_t tid);$/;"	p	language:C++
+Pthread_exit	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Pthread_exit(void *retval);$/;"	p	language:C++
+Pthread_join	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Pthread_join(pthread_t tid, void **thread_return);$/;"	p	language:C++
+Pthread_once	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Pthread_once(pthread_once_t *once_control, void (*init_function)());$/;"	p	language:C++
+Pthread_self	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^pthread_t Pthread_self(void);$/;"	p	language:C++
+Read	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^ssize_t Read(int fd, void *buf, size_t count);$/;"	p	language:C++
+Realloc	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void *Realloc(void *ptr, size_t size);$/;"	p	language:C++
+rio_buf	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^    char rio_buf[RIO_BUFSIZE]; \/* internal buffer *\/$/;"	m	language:C++	struct:__anon1
+rio_bufptr	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^    char *rio_bufptr;          \/* next unread byte in internal buf *\/$/;"	m	language:C++	struct:__anon1
+RIO_BUFSIZE	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^#define RIO_BUFSIZE /;"	d	language:C++
+rio_cnt	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^    int rio_cnt;               \/* unread bytes in internal buf *\/$/;"	m	language:C++	struct:__anon1
+rio_fd	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^    int rio_fd;                \/* descriptor for this internal buf *\/$/;"	m	language:C++	struct:__anon1
+rio_readinitb	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void rio_readinitb(rio_t *rp, int fd); $/;"	p	language:C++
+Rio_readinitb	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Rio_readinitb(rio_t *rp, int fd); $/;"	p	language:C++
+rio_readlineb	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^ssize_t	rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen);$/;"	p	language:C++
+Rio_readlineb	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^ssize_t Rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen);$/;"	p	language:C++
+rio_readn	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^ssize_t rio_readn(int fd, void *usrbuf, size_t n);$/;"	p	language:C++
+Rio_readn	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^ssize_t Rio_readn(int fd, void *usrbuf, size_t n);$/;"	p	language:C++
+rio_readnb	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^ssize_t	rio_readnb(rio_t *rp, void *usrbuf, size_t n);$/;"	p	language:C++
+Rio_readnb	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^ssize_t Rio_readnb(rio_t *rp, void *usrbuf, size_t n);$/;"	p	language:C++
+rio_t	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^} rio_t;$/;"	t	language:C++	typeref:struct:__anon1
+rio_writen	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^ssize_t rio_writen(int fd, void *usrbuf, size_t n);$/;"	p	language:C++
+Rio_writen	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Rio_writen(int fd, void *usrbuf, size_t n);$/;"	p	language:C++
+SA	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^typedef struct sockaddr SA;$/;"	t	language:C++	typeref:struct:sockaddr
+Select	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^int Select(int  n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, $/;"	p	language:C++
+Sem_init	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Sem_init(sem_t *sem, int pshared, unsigned int value);$/;"	p	language:C++
+serializer_t	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/ubarray.h	/^typedef void(*serializer_t)(int, void *);$/;"	t	language:C++
+Setpgid	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Setpgid(pid_t pid, pid_t pgid);$/;"	p	language:C++
+Setsockopt	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Setsockopt(int s, int level, int optname, const void *optval, int optlen);$/;"	p	language:C++
+Sigaddset	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Sigaddset(sigset_t *set, int signum);$/;"	p	language:C++
+Sigdelset	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Sigdelset(sigset_t *set, int signum);$/;"	p	language:C++
+Sigemptyset	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Sigemptyset(sigset_t *set);$/;"	p	language:C++
+Sigfillset	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Sigfillset(sigset_t *set);$/;"	p	language:C++
+Sigismember	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^int Sigismember(const sigset_t *set, int signum);$/;"	p	language:C++
+Signal	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^handler_t *Signal(int signum, handler_t *handler);$/;"	p	language:C++
+Sigprocmask	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Sigprocmask(int how, const sigset_t *set, sigset_t *oldset);$/;"	p	language:C++
+size	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/ubarray.h	/^  size_t size;$/;"	m	language:C++	struct:__anon1
+Sleep	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^unsigned int Sleep(unsigned int secs);$/;"	p	language:C++
+Socket	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^int Socket(int domain, int type, int protocol);$/;"	p	language:C++
+Stat	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void Stat(const char *filename, struct stat *buf);$/;"	p	language:C++
+table	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^  hash_table_t *table;$/;"	m	language:C++	struct:__anon4
+ubarray	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/ubarray.h	/^} ubarray;$/;"	t	language:C++	typeref:struct:__anon1
+ubarray_check	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/ubarray.h	/^void ubarray_check(const ubarray *array);$/;"	p	language:C++
+UBARRAY_ELEM	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/ubarray.h	/^#define UBARRAY_ELEM(/;"	d	language:C++
+ubarray_elem	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/ubarray.h	/^elem_t *ubarray_elem(ubarray *array, size_t index);$/;"	p	language:C++
+ubarray_free	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/ubarray.h	/^void ubarray_free(ubarray *arrray, destructor_t destructor);$/;"	p	language:C++
+ubarray_new	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/ubarray.h	/^ubarray *ubarray_new(size_t size);$/;"	p	language:C++
+ubarray_push_back	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/ubarray.h	/^ubarray *ubarray_push_back(ubarray *array, elem_t elem);$/;"	p	language:C++
+ubarray_remove	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/ubarray.h	/^elem_t ubarray_remove(ubarray *array, int index);$/;"	p	language:C++
+ubarray_size	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/ubarray.h	/^size_t ubarray_size(const ubarray *array);$/;"	p	language:C++
+unix_error	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void unix_error(char *msg);$/;"	p	language:C++
+V	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^void V(sem_t *sem);$/;"	p	language:C++
+value	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/extendible_hash.h	/^  int value;$/;"	m	language:C++	struct:__anon1
+Wait	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^pid_t Wait(int *status);$/;"	p	language:C++
+Waitpid	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^pid_t Waitpid(pid_t pid, int *iptr, int options);$/;"	p	language:C++
+Write	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^ssize_t Write(int fd, const void *buf, size_t count);$/;"	p	language:C++
+__CSAPP_H__	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/include/csapp.h	/^#define __CSAPP_H__$/;"	d	language:C++

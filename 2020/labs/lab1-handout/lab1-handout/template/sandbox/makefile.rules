@@ -1,0 +1,118 @@
+##############################################################
+#
+# This file includes all the test targets as well as all the
+# non-default build rules and test recipes.
+#
+##############################################################
+
+
+##############################################################
+#
+# Test targets
+#
+##############################################################
+
+###### Place all generic definitions here ######
+
+# This defines tests which run tools of the same name.  This is simply for convenience to avoid
+# defining the test name twice (once in TOOL_ROOTS and again in TEST_ROOTS).
+# Tests defined here should not be defined in TOOL_ROOTS and TEST_ROOTS.
+TEST_TOOL_ROOTS := 
+
+# This defines the tests to be run that were not already defined in TEST_TOOL_ROOTS.
+TEST_ROOTS :=
+
+# This defines the tools which will be run during the the tests, and were not already defined in
+# TEST_TOOL_ROOTS.
+TOOL_ROOTS := em
+
+# This defines the static analysis tools which will be run during the the tests. They should not
+# be defined in TEST_TOOL_ROOTS. If a test with the same name exists, it should be defined in
+# TEST_ROOTS.
+# Note: Static analysis tools are in fact executables linked with the Pin Static Analysis Library.
+# This library provides a subset of the Pin APIs which allows the tool to perform static analysis
+# of an application or dll. Pin itself is not used when this tool runs.
+SA_TOOL_ROOTS :=
+
+# This defines all the applications that will be run during the tests.
+APP_ROOTS := test
+
+# This defines any additional object files that need to be compiled.
+OBJECT_ROOTS :=
+
+# This defines any additional dlls (shared objects), other than the pintools, that need to be compiled.
+DLL_ROOTS :=
+
+# This defines any static libraries (archives), that need to be built.
+LIB_ROOTS :=
+
+###### Place OS-specific definitions here ######
+
+
+###### Handle exceptions here ######
+
+# TODO: These tests fail - fix and remove the following:
+
+# See Mantis 4311 for nonstatica
+ifeq ($(TARGET_OS),windows)
+    TEST_TOOL_ROOTS := $(filter-out nonstatica, $(TEST_TOOL_ROOTS))
+endif
+
+###### Define the sanity subset ######
+
+# This defines the list of tests that should run in sanity. It should include all the tests listed in
+# TEST_TOOL_ROOTS and TEST_ROOTS excluding only unstable tests.
+SANITY_SUBSET := $(TEST_TOOL_ROOTS) $(TEST_ROOTS)
+
+
+##############################################################
+#
+# Test recipes
+#
+##############################################################
+
+# This section contains recipes for tests other than the default.
+# See makefile.default.rules for the default test rules.
+# All tests in this section should adhere to the naming convention: <testname>.test
+
+# This tool is tested in "Debugger/makefile". However, leave this line because it is referenced in the user manual.
+# The user may invoke make stack-debugger.test to build the tool and app shown in the manual.
+# There is an intentional "empty" line which contains a tab character so this "test" will have an empty recipe.
+stack-debugger.test: $(OBJDIR)stack-debugger$(PINTOOL_SUFFIX) $(OBJDIR)fibonacci$(EXE_SUFFIX)
+	
+
+# stand alone pin tool
+statica.test: $(OBJDIR)statica$(SATOOL_SUFFIX)
+	$(SET_DLL_PATH) $(OBJDIR)statica$(SATOOL_SUFFIX) -i $(OBJDIR)statica$(SATOOL_SUFFIX) > $(OBJDIR)statica.dmp
+	$(RM) $(OBJDIR)statica.dmp
+
+nonstatica.test: $(OBJDIR)nonstatica$(PINTOOL_SUFFIX) $(TESTAPP)
+	$(PIN) -t $(OBJDIR)nonstatica$(PINTOOL_SUFFIX) \
+	  -- $(TESTAPP) makefile $(OBJDIR)nonstatica.makefile.copy > $(OBJDIR)nonstatica.dmp
+	$(DIFF) makefile $(OBJDIR)nonstatica.makefile.copy
+	$(RM) $(OBJDIR)nonstatica.makefile.copy $(OBJDIR)nonstatica.dmp
+
+emudiv.test: $(OBJDIR)emudiv$(PINTOOL_SUFFIX) $(OBJDIR)divide_by_zero$(EXE_SUFFIX)
+	$(PIN) -t $(OBJDIR)emudiv$(PINTOOL_SUFFIX) -- $(OBJDIR)divide_by_zero$(EXE_SUFFIX) > $(OBJDIR)emudiv.out 2>&1
+	$(QGREP) "Caught divide by zero exception" $(OBJDIR)emudiv.out
+	$(RM) $(OBJDIR)emudiv.out
+
+fork_jit_tool.test: $(OBJDIR)fork_jit_tool$(PINTOOL_SUFFIX) $(OBJDIR)fork_app$(EXE_SUFFIX)
+	$(PIN) -t $(OBJDIR)fork_jit_tool$(PINTOOL_SUFFIX) -- $(OBJDIR)fork_app$(EXE_SUFFIX)
+
+follow_child_tool.test: $(OBJDIR)follow_child_tool$(PINTOOL_SUFFIX) $(OBJDIR)follow_child_app1$(EXE_SUFFIX) $(OBJDIR)follow_child_app2$(EXE_SUFFIX)
+	$(PIN) -follow_execv 1 -t $(OBJDIR)follow_child_tool$(PINTOOL_SUFFIX) \
+	  -- $(OBJDIR)follow_child_app1$(EXE_SUFFIX) $(OBJDIR)follow_child_app2$(EXE_SUFFIX)
+
+
+##############################################################
+#
+# Build rules
+#
+##############################################################
+
+# This section contains the build rules for all binaries that have special build rules.
+# See makefile.default.rules for the default build rules.
+
+###### Special applications' build rules ######
+

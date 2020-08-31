@@ -1,0 +1,31 @@
+!_TAG_FILE_SORTED	2	/0=unsorted, 1=sorted, 2=foldcase/
+bucket_free	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^void bucket_free(bucket_t *bucket) {$/;"	f	language:C++
+bucket_new	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^bucket_t *bucket_new(int local_depth, int common_hash) {$/;"	f	language:C++
+effective_hash	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^int effective_hash(size_t hash, size_t depth) {$/;"	f	language:C++
+entry_free	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^void entry_free(entry_t *entry) {$/;"	f	language:C++
+entry_new	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^entry_t *entry_new(const char *key, int value) {$/;"	f	language:C++
+find_bucket	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^bucket_t *find_bucket(hash_table_t *table, const char *key) {$/;"	f	language:C++
+grow_table	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^void grow_table(hash_table_t *table) {$/;"	f	language:C++
+hash	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^int hash(const char *key) {$/;"	f	language:C++
+hash_table_check	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^inline void hash_table_check(hash_table_t *table) {$/;"	f	language:C++
+hash_table_deserialize	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^hash_table_t *hash_table_deserialize(int in) {$/;"	f	language:C++
+hash_table_find	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^bool hash_table_find(hash_table_t *table,$/;"	f	language:C++
+hash_table_free	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^void hash_table_free(hash_table_t *table) {$/;"	f	language:C++
+hash_table_insert	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^void hash_table_insert(hash_table_t *table,$/;"	f	language:C++
+hash_table_iterate	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^hash_table_iterator *hash_table_iterate(hash_table_t *table) {$/;"	f	language:C++
+hash_table_new	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^hash_table_t *hash_table_new() {$/;"	f	language:C++
+hash_table_remove	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^bool hash_table_remove(hash_table_t *table, const char *key) {$/;"	f	language:C++
+hash_table_serialize	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^void hash_table_serialize(hash_table_t *table, int out) {$/;"	f	language:C++
+iterator_elem	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^entry_t *iterator_elem(hash_table_iterator *it) {$/;"	f	language:C++
+iterator_free	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^void iterator_free(hash_table_iterator *it) {$/;"	f	language:C++
+iterator_next	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^void iterator_next(hash_table_iterator *it) {$/;"	f	language:C++
+main	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/get.c	/^int main(int argc, char **argv) {$/;"	f	language:C++
+main	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/store.c	/^int main(int argc, char **argv) {$/;"	f	language:C++
+split	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/extendible_hash.c	/^void split(hash_table_t *table, bucket_t *old, const char *key) {$/;"	f	language:C++
+ubarray_check	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/ubarray.c	/^inline void ubarray_check(const ubarray *array) {$/;"	f	language:C++
+ubarray_elem	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/ubarray.c	/^elem_t *ubarray_elem(ubarray *array, size_t index) {$/;"	f	language:C++
+ubarray_free	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/ubarray.c	/^void ubarray_free(ubarray *array, destructor_t destructor) {$/;"	f	language:C++
+ubarray_new	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/ubarray.c	/^ubarray *ubarray_new(size_t size) {$/;"	f	language:C++
+ubarray_push_back	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/ubarray.c	/^ubarray *ubarray_push_back(ubarray *array, elem_t elem) {$/;"	f	language:C++
+ubarray_remove	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/ubarray.c	/^elem_t ubarray_remove(ubarray *array, int index) {$/;"	f	language:C++
+ubarray_size	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/cgi-bin/ubarray.c	/^size_t ubarray_size(const ubarray *array) {$/;"	f	language:C++

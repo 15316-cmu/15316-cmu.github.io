@@ -1,0 +1,25 @@
+\newcommand{\etalchar}[1]{$^{#1}$}
+\begin{thebibliography}{NDAFH17}
+
+\bibitem[ABB{\etalchar{+}}16]{Bacelar2016}
+Jose~Bacelar Almeida, Manuel Barbosa, Gilles Barthe, Fran{\c c}ois Dupressoir,
+  and Michael Emmi.
+\newblock Verifying constant-time implementations.
+\newblock In {\em 25th {USENIX} Security Symposium ({USENIX} Security 16)},
+  pages 53--70, Austin, TX, 2016. {USENIX} Association.
+\newblock URL:
+  \url{https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/almeida}.
+
+\bibitem[HAH11]{Hoffmann11}
+Jan Hoffmann, Klaus Aehlig, and Martin Hofmann.
+\newblock {Multivariate Amortized Resource Analysis}.
+\newblock In {\em {38th Symp. on Principles of Prog. Langs. (POPL'11)}}, pages
+  357--370, 2011.
+
+\bibitem[NDAFH17]{Ngo17}
+V.~C. Ngo, M.~Dehesa-Azuara, M.~Fredrikson, and J.~Hoffmann.
+\newblock Verifying and synthesizing constant-resource implementations with
+  types.
+\newblock In {\em 2017 IEEE Symposium on Security and Privacy (SP)}, May 2017.
+
+\end{thebibliography}

@@ -1,0 +1,194 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath,amssymb,fullpage,graphicx}
+\let\hat\widehat
+\let\tilde\widetilde
+
+\usepackage{xcolor}
+\usepackage{stmaryrd}
+\usepackage{mathpartir}
+
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{mathabx}
+%\usepackage{lsyntax}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newenvironment{proof}{\textbf{ Proof.}}{$\Box$}
+
+\newcommand{\answer}[1]{\text{{\it #1}}}
+\newcommand{\solution}[1]{\textbf{Solution:} #1}
+%\newcommand{\solution}[1]{}
+
+\usepackage[irlabel]{bugcatch}
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+%%%% new version of enumerate with less spacing
+\newenvironment{enum}{
+\begin{enumerate}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{enumerate}}
+
+\parskip 10pt
+\parindent 0pt
+\pagenumbering{gobble}
+\newcommand{\note}[1]{\ \\{\small\color{red}\emph{#1}}\\}
+
+\lstset{%
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries\color{green!60!black},
+  commentstyle=\itshape\color{purple!60!black},
+  stringstyle=\color{orange}
+}
+
+\newcommand{\pand}[2]{\keywordfont{and}(#1, #2)}
+\newcommand{\por}[2]{\keywordfont{or}(#1, #2)}
+\newcommand{\pin}{\keywordfont{pin}\xspace}
+\newcommand{\guess}{\keywordfont{guess}\xspace}
+\newcommand{\match}{\keywordfont{match}\xspace}
+\newcommand{\gt}{\keywordfont{gt}\xspace}
+\newcommand{\ecm}{\keywordfont{ecm}\xspace}
+\newcommand{\prefix}{\keywordfont{pref}\xspace}
+\newcommand{\poly}{\ensuremath{\mathbf{poly}}\xspace}
+
+
+\newcommand{\aff}[2]{\ensuremath{#1~\keywordfont{aff}~#2}}
+\newcommand{\ownsr}{\ensuremath{\keywordfont{owns}}}
+\newcommand{\isfac}{\ensuremath{\keywordfont{isFaculty}}}
+\newcommand{\studof}{\ensuremath{\keywordfont{studentOf}}}
+\newcommand{\canopen}{\ensuremath{\keywordfont{canOpen}}}
+\newcommand{\matt}{\ensuremath{\mathsf{mfredrik}}\xspace}
+\newcommand{\tli}{\ensuremath{\mathsf{tli2}}\xspace}
+\newcommand{\admin}{\ensuremath{\mathsf{admin}}\xspace}
+\newcommand{\jan}{\ensuremath{\mathsf{janh}}\xspace}
+\newcommand{\frank}{\ensuremath{\mathsf{fp}}\xspace}
+\newcommand{\office}{\ensuremath{\mathsf{cic2126}}\xspace}
+\newcommand{\eduroam}{\ensuremath{\mathsf{er}}\xspace}
+\newcommand{\cmu}{\ensuremath{\mathsf{cmu}}\xspace}
+\newcommand{\ca}{\ensuremath{\mathsf{ca}}\xspace}
+\newcommand{\csig}{\ensuremath{\mathsf{cs}}\xspace}
+\newcommand{\tca}{\ensuremath{\mathsf{TrustedCA}}\xspace}
+\newcommand{\dca}{\ensuremath{\mathsf{DiscountCA}}\xspace}
+\newcommand{\tpm}{\ensuremath{\mathsf{tpm}}\xspace}
+\newcommand{\pcr}{\ensuremath{\mathsf{PCR}}\xspace}
+\newcommand{\store}{\ensuremath{\mathsf{store}}\xspace}
+\newcommand{\os}{\ensuremath{\mathsf{os}}\xspace}
+\newcommand{\sktpm}{\sk{\tpm}}
+\newcommand{\pktpm}{\pk{\tpm}}
+\newcommand{\skca}{\sk{\ca}}
+\newcommand{\pkca}{\pk{\ca}}
+\newcommand{\isstu}{\ensuremath{\keywordfont{isStudent}}\xspace}
+\newcommand{\canacc}{\ensuremath{\keywordfont{canAccess}}\xspace}
+
+\newcommand{\pk}[1]{\ensuremath{\keywordfont{pk}_{#1}}\xspace}
+\newcommand{\sk}[1]{\ensuremath{\keywordfont{sk}_{#1}}\xspace}
+\newcommand{\isca}[1]{\ensuremath{\keywordfont{isCA}(#1)}\xspace}
+\newcommand{\cert}[2]{\ensuremath{\keywordfont{cert}_{#1 \to #2}}\xspace}
+\newcommand{\iskey}[2]{\ensuremath{\keywordfont{isKey}(#1,#2)}\xspace}
+\newcommand{\sign}[2]{\ensuremath{\keywordfont{sign}_{#1}(#2)}\xspace}
+\newcommand{\verify}[2]{\ensuremath{\keywordfont{verify}_{#1}(#2)}\xspace}
+\newcommand{\encr}[2]{\ensuremath{\keywordfont{enc}_{#1}(#2)}\xspace}
+\newcommand{\trusts}[1]{\ensuremath{\keywordfont{trusts}(#1)}\xspace}
+\newcommand{\extend}[2]{\ensuremath{\keywordfont{extend}(#1,#2)}\xspace}
+\newcommand{\readpcr}[1]{\ensuremath{\keywordfont{readpcr}(#1)}\xspace}
+\newcommand{\seal}[3]{\ensuremath{\keywordfont{seal}(#1,#2,#3)}\xspace}
+\newcommand{\readf}[1]{\ensuremath{\keywordfont{read}(#1)}\xspace}
+\newcommand{\before}[1]{\ensuremath{\keywordfont{isbefore}(#1)}\xspace}
+
+\lstdefinestyle{customc}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  language=C,
+  showstringspaces=false,
+  numbers=none,
+  % xleftmargin=1ex,
+  framexleftmargin=1ex,
+  % numbersep=5pt,
+  % numberstyle=\tiny\color{mygray},
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\color{blue},
+  commentstyle=\itshape\color{purple!40!black},  
+  stringstyle=\color{orange},
+  morekeywords={output,assume,observe,input,bool,then,fun,match,in,val,list,type,of,string,unit,let,bytes,mov,imul,add,sar,shr,function,forall,nat,requires,ensures,method,returns,assert,new,array,modifies,reads,old,predicate,lemma,seq,calc,nan,var,exists,invariant,decreases,datatype,declassify,uint8},
+  tabsize=2,
+  deletestring=[b]',
+  backgroundcolor=\color{gray!15},
+  frame=tb
+}
+\lstset{escapechar=@,style=customc}
+
+\begin{document}
+
+\begin{center}
+\textbf{ Assignment 6: Problems on Trusting Trust\\15-316 Software Foundations of Security and Privacy}\\
+\end{center}
+Due: \textbf{ 11:59pm}, Friday 12/6/19. {\color{red}\textbf{No late days!}} \\
+Total Points: 50
+
+\vspace{-5mm}
+
+\begin{enumerate}
+
+\item\textbf{Countersigning (25 points).} It is common practice in PKI to have the CA issue weaker certificates that rely on a \emph{countersignature} for verification. So suppose that \ca is the certificate authority and \csig is the countersigner. Then \ca might issue a certificate to \cmu that consists of the following.
+\begin{equation}
+\label{eq:cscert}
+\sign{\sk{\ca}}{\says{\csig}{\iskey{\cmu}{\pk{\cmu}}} \limply \iskey{\cmu}{\pk{\cmu}}}
+\end{equation}
+Then \csig must issue a second certificate, which comes with an expiration date.
+\begin{equation}
+\label{eq:csig}
+\sign{\sk{\csig}}{\before{\mathit{exp}} \limply \iskey{\cmu}{\pk{\cmu}}}
+\end{equation}
+
+\paragraph{Part 1.} Explain how one can verify the authenticity of \pk{\cmu} from (\ref{eq:cscert}) and (\ref{eq:csig}), along with assumptions $\Gamma = \isca{\ca}$, $\iskey{\csig}{\pk{\csig}}$, $\before{\mathit{exp}}$. That is, prove the following judgement:
+\[
+\lsequent{\Gamma, (\ref{eq:cscert}), (\ref{eq:csig})}{\says{\ca}{\iskey{\cmu}{\pk{\cmu}}}}
+\]
+
+\newpage
+
+\paragraph{Part 2.} Explain how countersigning can mitigate the effects of key compromise. In particular, describe the consequences of \cmu's private key being compromised if the corresponding public key is certified in this way, and how they are less severe than if \cmu had obtained a certificate directly from \ca. Then describe the consequences of \csig's signing key being compromised, and why this is less severe than if \ca's signing key is compromised.
+
+\newpage
+
+\item\textbf{Rooting out trust (25 points).} For this question, you should read Section 5 of Lecture 24 for an example application of trusted computing to networked file storage. In the questions below, you can use the following identifiers to denote the relevant formulas.
+\begin{align*}
+Q_1 &\equiv \iskey{\ca}{\pk{\ca}} \\
+Q_2 &\equiv \sign{\skca}{\iskey{\tpm}{\pktpm}} \\
+Q_3 &\equiv \sign{\sktpm}{\iskey{\os}{\pk{\os}}} \\
+Q_4 &\equiv \sign{\sk{\matt}}{\forall x . (\says{\os}{\readf{x}}) \limply (\says{\matt}{\readf{x}})} \\
+Q_5 &\equiv \sign{\sk{\os}}{\readf{\text{'15316-grades.xlsx'}}} \\
+Q_6 &\equiv \forall x . (\says{\tpm}{\iskey{x}{\pk{x}}}) \limply \iskey{x}{\pk{x}} \\
+Q_7 &\equiv \isca{\ca} \\
+Q_8 &\equiv \iskey{\matt}{\pk{\matt}}
+\end{align*}
+
+\paragraph{Part 1 (10 points).} Which formulas are needed to establish the authenticity of the TPM's public key ($\pk{\tpm}$), and which are needed to authenticate the operating system's, i.e. to prove that $\iskey{\tpm,\pk{\tpm}}$ and $\iskey{\tpm,\pk{\os}}$?
+
+\newpage
+
+\paragraph{Part 2 (10 points).} Having authenticated the keys of the TPM and operating system, describe in words the steps that the filesystem will need to take to conclude $\says{\matt}{\readf{\text{'15316-grades.xlsx'}}}$. Note that you are not required to provide a sequent calculus proof for this part.
+
+\newpage
+
+\paragraph{Part 3 (5 points).} It is possible that the network connection between \matt's laptop and the file server cannot be trusted, and that a nefarious party is able to intercept, modify, or drop any messages sent between the two. Explain how the scheme outlined in Section 5 of lecture 24 is vulnerable to a replay attack, and how this vulnerability could be addressed.
+
+\end{enumerate}
+
+\end{document}

@@ -1,0 +1,400 @@
+\documentclass[11pt,twoside]{scrartcl}
+%\documentclass[11pt,twoside]{article}
+
+%opening
+\newcommand{\lecid}{15-316}
+\newcommand{\leccourse}{Software Foundations of Security and Privacy}
+\newcommand{\lecdate}{} %e.g. {October 21, 2013}
+\newcommand{\lecnum}{12}
+\newcommand{\lectitle}{Information Flow Types II}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecurl}{https://15316-cmu.github.io/index}
+
+\usepackage{varwidth}
+\usepackage{lecnotes}
+\usepackage[irlabel]{bugcatch}
+
+\usepackage{tikz}
+\usetikzlibrary{automata,shapes,positioning,matrix,shapes.callouts,decorations.text,patterns,trees,backgrounds}
+
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+\begin{document}
+
+\newcommand{\atrace}{\sigma}%
+%% the standard interpretation naming conventions
+\newcommand{\stdI}{\dTLint[state=\omega]}%
+\newcommand{\Ip}{\dTLint[trace=\atrace]}%
+\newcommand{\ws}{\omega}\newcommand{\wt}{\nu}% 
+
+\maketitle
+\thispagestyle{empty}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+
+In the previous lecture, we began our study of a type system that enforces the information flow property non-interference~\cite{Volpano1996}. Recall that the relation $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$ denotes the fact that states $\omega_1$ and $\omega_2$ agree on the values of variables typed $\lowsec$ by type context $\Gamma$. Then Definition~\ref{def:nonint} says that a program $\asprg$ satisfies non-interference if and only if it does not allow the values of $\hisec$-typed variables in the initial state to influence $\lowsec$-typed variables in the final state.
+
+\begin{definition}[Non-interference]
+\label{def:nonint}
+Let $\asprg$ be a program and $\Gamma$ a type environment associating security labels to all of the variables in $\asprg$. Then $\asprg$ satisfies non-interference under $\Gamma$ if and only if executing $\asprg$ under \lowsec-equivalent states leads to final states that are also \lowsec-equivalent. More precisely,
+\begin{equation}
+\label{eq:noninterference}
+\forall \omega_1,\omega_2 . \omega_1 \approx_{\Gamma,\lowsec} \omega_2 \land 
+\langle \omega_1, \asprg\rangle \bigstep \omega_1' \land 
+\langle \omega_2, \asprg\rangle \bigstep \omega_2'
+\limply
+\omega_1' \approx_{\Gamma,\lowsec} \omega_2'
+\end{equation}
+where $\omega_1$ and $\omega_2$ range over the set of possible program states.
+\end{definition}
+
+We then began looking at a set of typing rules that would allow us to decide whether a given program satisfies this definition under a given typing context: if we can use the rules to prove that the program is well-typed according to this system, then the program satisfies the property. We developed the rules for expressions, which form judgements of the form $\lsequent{\Gamma}{\astrm : \ell}$, meaning that under context $\Gamma$ expression $\astrm$ is typed $\ell$.
+\[
+\cinferenceRule[constl|ConstL]{const low}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma}{c : \lowsec}}
+}{}%
+\quad
+\cinferenceRule[truel|TrueL]{true low}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma}{\keywordfont{true} : \lowsec}}
+}{}%
+\quad
+\cinferenceRule[falsel|FalseL]{false low}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma}{\keywordfont{false} : \lowsec}}
+}{}%
+\]
+\[
+\cinferenceRule[vartype|Var]{variable type}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma}{x : \Gamma(x)}}
+}{}%
+\quad
+\cinferenceRule[unop|UnOp]{unary operator}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma}{\astrm : \ell}}
+  {\lsequent{\Gamma}{\odot~\astrm : \ell}}
+}{}%
+\quad
+\cinferenceRule[binop|BinOp]{binary operator}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma}{\astrm : \ell_1} & \lsequent{\Gamma}{\bstrm : \ell_2}}
+  {\lsequent{\Gamma}{\astrm\odot\bstrm : \ell_1 \lub \ell_2}}
+}{}%
+\]
+Recall that when we developed the rule \irref{binop}, we introduced a partial order $\posetleq$ on security types. The partial order is reflexive and transitive, so $\ell \posetleq \ell$ and if $\ell_1 \posetleq \ell_2$ and $\ell_2 \posetleq \ell_3$ then $\ell_1 \posetleq \ell_3$. For the types $\lowsec,\hisec$, we formalized our intuition about these labels corresponding to ``low'' and ``high'' by specifying the partial ordering $\lowsec \posetleq \hisec, \hisec \not\posetleq \lowsec$. Finally, we attached the operator $\ell_1 \sqcup \ell_2$ to our partial order on security types, which returns the smallest label that is as least as large as $\ell_1$ and $\ell_2$, where ``smallest'' and ``largest'' come from the order relation $\posetleq$.
+
+Today we will continue developing this type system, covering a set of rules that let us judge the type-correctness of commands. But first we will introduce a lemma about the rules for expressions called the \emph{simple security lemma} which says that if an expression can be typed with label $\ell$ by the rules, then the expression does not depend on any information given a higher label. This lemma will be crucial later on when we prove that the full type system is sound, meaning that only programs satisfying non-interference have derivations of their typing judgement in this system.
+
+\section{Simple Security}
+
+So far we have introduced the typing rules for expressions in our imperative language, and for each one we tried to build an intuition for why the rule appropriately capture the intent of the type system to prevent information flows from $\hisec$ to $\lowsec$ variables. But we haven't formalized this, and before pressing on with the typing rules for commands it will be helpful to understand what the system gives us from judgements on expressions.
+
+Expressions in our language are only capable of reading sensitive information, and possibly carrying that information in their value. So we would like to formalize a property that says something like, ``an expression never reads what it isn't supposed to read''. What does ``supposed to'' mean? Recall that judgements on expressions take the form $\lsequent{\Gamma}{\astrm : \ell}$. So for example if we were able to use the rules to derive $\lsequent{\Gamma}{\astrm : \lowsec}$, then we would hope that $\astrm$ doesn't read any data typed $\hisec$ by $\Gamma$. The simple security lemma says exactly this, which is that expressions typed by the system never read data from sources with higher types according to $\posetleq$.
+
+\begin{lemma}[Simple Security]
+\label{lemma:simplesec}
+If $\lsequent{\Gamma}{\astrm : \ell}$, then for every variable subexpression $x$ appearing in $\astrm$, $\Gamma(x) \posetleq \ell$. In other words, expressions never read variables above their type.
+\end{lemma}
+\begin{proof}
+This proof is done most appropriately by induction on the structure of $\astrm$. We will treat arithmetic and Boolean expressions at once, so the inductively-defined syntax that we are working with is as follows:\[
+  \astrm,\bstrm ~\bebecomes~
+  c
+  \alternative
+  \keywordfont{true}
+  \alternative
+  \keywordfont{false}
+  \alternative
+  x
+  \alternative
+  \odot \astrm
+  \alternative
+  \astrm\odot\bstrm
+\]
+As before, we use $\odot$ to represent unary and binary operators.
+
+The base cases in this proof correspond to the expressions with no subexpressions, which are the numeric and Boolean constants $c,\keywordfont{true},\keywordfont{false}$, as well as variable expressions $x$. We proceed with the inductive argument by cases.
+\begin{description}
+\item[Base case: constants.] The rules \irref{constl},\irref{truel},\irref{falsel} type all expressions $\ell$. The proof for these cases is indeed trivial, because constants do not contain any variable subexpressions.
+
+\item[Base case: variables.] The rule \irref{vartype} gives us the judgement $\lsequent{\Gamma}{x : \Gamma(x)}$. The only variable appearing in the expression is $x$, and $\posetleq$ is reflexive so $\Gamma(x) \posetleq \Gamma(x)$.
+
+\item[Inductive case: unary operators.] The rule \irref{unop} says that if $\lsequent{\Gamma}{\astrm : \ell}$, then $\lsequent{\Gamma}{\odot \astrm : \ell}$. The only variables appearing in $\odot \astrm$ are those that also appear in $\astrm$, and the inductive hypothesis tells us that for all variables $x$ appearing in $\astrm$, if $\lsequent{\Gamma}{x : \ell'}$ then $\ell' \posetleq \ell$.
+
+\item[Inductive case: binary operators.] The rule \irref{binop} says that if $\lsequent{\Gamma}{\astrm : \ell_1}$ and $\lsequent{\Gamma}{\bstrm : \ell_2}$, then $\lsequent{\Gamma}{\astrm \odot \bstrm : \ell_1 \sqcup \ell_2}$. The only variables appearing in $\astrm \odot \bstrm$ are those that also appear in either $\astrm$ or $\bstrm$, and the inductive hypothesis tells us that for all variables $x$ appearing in $\astrm$, if $\lsequent{\Gamma}{x : \ell_1'}$ then $\ell_1' \posetleq \ell_1$, and likewise for any variable appearing in $\bstrm$, $\lsequent{\Gamma}{x : \ell_2'}$ then $\ell_2' \posetleq \ell_2$. But $\ell_1 \posetleq \ell_1 \sqcup \ell_2$, and $\ell_2 \posetleq \ell_1 \sqcup \ell_2$, so because $\posetleq$ is transitive it must be that for any variable $x$ appearing in \emph{either} $\astrm$ or $\bstrm$, if $\lsequent{\Gamma}{x : \ell'}$ then $\ell' \posetleq \ell_1 \sqcup \ell_2$. This completes the proof.
+\end{description}
+\end{proof}
+
+The simple security lemma gives us a straightforward guarantee to work with as we develop typing rules for commands that contain expressions. Namely, we can assume that whatever label the type system gives us for an expression will be an upper-bound of all of the labels assigned to variables within the expression, and thus an upper bound on the security type of information that may influence an expression.
+
+\subsection{Type-checking commands}
+
+Now that we know how to assign types to expressions, we can move on to the more interesting question of how to check that a given command satisfies non-interference under a type context $\Gamma$. We will proceed as before, developing a set of rules that we can later prove give us this property. The judgements that the rules derive is slightly different than with expressions, though. Keeping in mind that the security types \lowsec, \hisec denote the fact that a given data element, e.g. an expression in our language, carries information of a particular security level, it does not make sense to write something like the following:
+\[
+\lsequent{\Gamma}{\pif{x \le 0}{y := 1}{y := 0} : \hisec}
+\]
+We have not thought of programs as any sort of data element capable of carrying information by themselves, and however intriguing such an idea may seem, doing so would distract us from our goal of enforcing non-interference at the moment.
+
+Instead, we have thought of programs as objects that compute, i.e., by applying operations to data and moving it between variables. Our goal is to make it impossible to use the typing rules to constructa proof that a program satisfies non-interference when it doesn't. So the judgements that our rules for commands will use takes the form shown in Equation~\ref{eq:command-judgement}, and should be read as ``under type context $\Gamma$, program $\asprg$ is well-typed''. We will set up the rules so that ``well-typed'' implies ``satisfies non-interference'', but we'll say more on this later.
+\begin{equation}
+\label{eq:command-judgement}
+\lsequent{\Gamma}{\asprg}
+\end{equation}
+Now we proceed to design typing rules for each of the commands in our language.
+
+\paragraph{Assignments.} To design a typing rule for assignment commands, we must ask ourselves what conditions might result in a violation of Definition~\ref{def:nonint}. More intuitively, what conditions on $\Gamma$ and the command $x := \astrm$ would result in a flow of information from variables labeled \hisec to those labeled \lowsec?
+
+Certainly, if the target of the assignment $x$ is labeled \lowsec and the expression on the right-hand side is labeled \hisec, then such a flow will occur. More generally, if $\Gamma(x) = \ell_1$ and $\lsequent{\Gamma}{\astrm : \ell_2}$, where $\ell_2 \not\posetleq \ell_2$, then an information flow will occur when the value of $\astrm$ is assigned to $x$. Perhaps we can write the following rule, shown in Equation~\ref{eq:assignbroken}.
+\begin{equation}
+\label{eq:assignbroken}
+\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\astrm : \ell_1}
+  &\ell_1 \posetleq \Gamma(x)
+} {
+  \lsequent{\Gamma}{x := \astrm}
+}
+\end{equation}
+This rule says that if the label of $\astrm$ as no larger (i.e., ``more secret'') than that of $x$, then the assignment is well-typed. Does this work? What about the ``implicit'' information flows we discussed last lecture, such as that in the following judgement?
+\begin{equation}
+\lsequent{x : \hisec, y : \lowsec}{\pif{x}{y:=1}{y:=0}}
+\end{equation}
+We know that this doesn't satisfy non-interference, but it seems as though we might not reject it using the rule shown in (\ref{eq:assignbroken}).
+
+In order to reject programs with implicit flows, we will keep track of the security label of a distinguished ``program counter'' variable \pc in $\Gamma$. Later when we design rules for conditionals and loops, we will make sure to account for this part of the type context so that whenever the control flow is currently influenced by \hisec-labeled data, then $\Gamma(\pc) = \hisec$. But for now we will just assume that this has been properly accounted for in the context, and use it to define our rule for assignment.
+\[
+\cinferenceRule[asgnflow|Asgn]{assignment}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\astrm : \ell_1}
+  &\ell_1 \lub \Gamma(\pc) \posetleq \Gamma(x)
+}{
+  \lsequent{\Gamma}{x := \astrm}
+}}{}%
+\]
+The rule \irref{asgnflow} says that if the label of $x$ is at least as large as the larger of the label for the right-hand side and \pc, then the assignment is well-typed. Thinking through a few cases, this means that whenever $\Gamma(\pc) = \hisec$, then $\Gamma(x)$ must be \lowsec because $\hisec \lub \ell = \hisec$ and $\hisec \not\posetleq \lowsec$. Really, if either of $\astrm$ or \pc is $\hisec$, then in order for the assignment to be well-typed then $x$ must also be $\hisec$. This seems like what we want, so we move to the next command.
+
+\paragraph{Composition.} Compared to the surprisingly nuanced reasoning we had to do for assignment commands, composition is relatively easy to think about. If we want to reason that a program $\asprg;\bsprg$ is well-typed, then the only rule that makes any sense is to require that both $\asprg$ and $\bsprg$ also be well-typed on their own.
+\[
+\cinferenceRule[composeflow|Comp]{composition}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\asprg}
+  &\lsequent{\Gamma}{\bsprg}
+}{
+  \lsequent{\Gamma}{\asprg;\bsprg}
+}}{}%
+\]
+The rule \irref{composeflow} above says exactly this.
+
+\paragraph{Conditionals.} Now we come to conditionals. Unlike the previous cases, conditionals raise the possibility of influencing control flow (represented in our type system by $\Gamma(\pc)$) on \hisec-labeled data. We need to account for this in the typing rule, so that when we reason about whether the branches are well-typed we properly account for whether the \pc might carry \hisec data.
+
+Recall that we treat type environments similar to updateable maps, so that if $\Gamma$ is an environment, possibly containing a mapping for $x$, then $(\Gamma, x:\lowsec)$ is the environment that maps $x$ to \lowsec and everything else $y$ to $\Gamma(y)$. Then to carry the type of the Boolean expression $\ivr$ in the guard of a conditional to the type contexts of its branches, we want to use a context that maps \pc to the least upper bound of the current \pc, and the type of $e$.
+\[
+\cinferenceRule[condflow|If]{conditional}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\ivr : \ell}
+  &\ell' = \ell \lub \Gamma(\pc)
+  &\lsequent{\Gamma,\pc : \ell'}{\asprg}
+  &\lsequent{\Gamma,\pc : \ell'}{\bsprg}
+}{
+  \lsequent{\Gamma}{\pif{\ivr}{\asprg}{\bsprg}}
+}}{}%
+\]
+The rule \irref{condflow} above does this. Looking at the antecedent, we first type the guard expression $\ivr$ as $\ell$, and then compute the least upper bound $\ell'$ of $\ell$ and the current label of \pc. We then check that both branches are well-typed under the environment where $\Gamma(pc) = \ell'$. If this is the case, then the conditional is well-typed.
+
+\paragraph{While Loops.} The last command that we need to derive a rule for is our looping construct \keywordfont{while}. Much like in the case of conditionals, while loops can leak information from \hisec data to the program counter through their conditional test. Not surprisingly, the rule for while loops can use the same approach as that for conditionals, as shown in \irref{whileflow} below.
+\[
+\cinferenceRule[whileflow|While]{while}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\ivr : \ell}
+  &\ell' = \ell \lub \Gamma(\pc)
+  &\lsequent{\Gamma,\pc : \ell'}{\asprg}
+}{
+  \lsequent{\Gamma}{\pwhile{\ivr}{\asprg}}
+}}{}%
+\]
+It may seem strange that the rule for \keywordfont{while} is in some ways simpler than the one for \keywordfont{if} statements, as this was certainly not the case when we discussed axioms for proving safety. However, the type of reasoning that this type system does about program behaviors is significantly more ``coarse'' than what we did when proving arbitrary postconditions, and in this case the only special consideration that we need to account for is whether the loop flows \hisec data to \lowsec state through the program counter.
+
+\subsection{Confinement}
+
+Before moving on, let's return to the type system's treatment of implicit information flows resulting from $\hisec$-typed influence on control flow. To type a branching command, the rules first obtain the label $\ell$ of the condition, and then attempt to type the subcommands under a \pc label that is the least upper bound of the current \pc label $\Gamma(\pc)$ and $\ell$. The point of this is to ensure that if a subcommand writes to a variable typed with a label that is lower than the current \pc label, or lower than the label given to the condition, then the system will be unable to derive a judgement for the subcommand and thus its enclosing branching command.
+
+The confinement lemma below formalizes this property, and as with the simple security lemma, will be a useful building block when we attempt to prove the soundness of the entire type system.
+
+\begin{lemma}[Confinement]
+\label{lemma:confinement}
+Well-typed commands never write to variables below the \pc label. More precisely, if $\lsequent{\Gamma}{\asprg}$, then for every variable $x$ assigned in $\asprg$, $\Gamma(\pc) \posetleq \Gamma(x)$.
+\end{lemma}
+\begin{proof}
+As we did with simple security, we can prove this lemma by induction on the structure of $\asprg$. The inductive definition of command syntax is:
+\[
+  \asprg,\bsprg ~\bebecomes~
+  \pupdate{\pumod{x}{\astrm}}
+  \alternative
+  \pif{\ivr}{\asprg}{\bsprg}
+  \alternative
+  \asprg;\bsprg
+  \alternative
+  \pwhile{\ivr}{\asprg}
+\]
+So the only base case containing no sub-commands is assignment, and the rest will make use of the inductive hypothesis which says that confinement holds for any subcommand appearing in $\asprg$. We proceed with the cases below.
+\begin{description}
+\item[Base case: assignment.] If we can derive the judgement  $\lsequent{\Gamma}{x:=\astrm}$, then the rule \irref{asgnflow} tells us that $\Gamma(\pc) \posetleq \Gamma(x)$ because in fact $\ell_1 \sqcup \Gamma(\pc) \posetleq \Gamma(x)$, where $\lsequent{\Gamma}{\astrm} : \ell_1$, and we know that $\Gamma(pc) \posetleq \ell_1 \sqcup \Gamma(\pc)$.
+
+\item[Inductive case: conditionals.] If $\lsequent{\Gamma}{\pif{\ivr}{\asprg}{\bsprg}}$, then \irref{condflow} tells us that both $\lsequent{\Gamma,\pc : \ell'}{\asprg}$ and $\lsequent{\Gamma,\pc : \ell'}{\bsprg}$, where $\ell' = \ell \lub \Gamma(pc)$. But $\Gamma(\pc) \posetleq \ell'$, and the inductive hypothesis gives us that for any variable $x$ assigned in either $\asprg$ or $\bsprg$, $\ell' \posetleq \Gamma(x)$. So because $\posetleq$ is transitive, $\Gamma(\pc) \posetleq \Gamma(x)$.
+
+\item[Inductive case: composition.] This case follows immediately from the inductive hypothesis. If $\lsequent{\Gamma}{\asprg;\bsprg}$ then by \irref{composeflow} we have $\lsequent{\Gamma}{\asprg}$ and $\lsequent{\Gamma}{\bsprg}$. The inductive hypothesis tells us that for all $x$ assigned in $\asprg$ or $\bsprg$, $\Gamma(\pc) \posetleq \Gamma(x)$.
+
+\item[Inductive case: while loops.] This case is very similar to that of conditionals. If $\lsequent{\Gamma}{\pwhile{\ivr}{\asprg}}$, then \irref{whileflow} tells us $\lsequent{\Gamma,\pc : \ell'}{\asprg}$ where $\ell' = \ell \lub \Gamma(\pc)$ and $\lsequent{\Gamma}{\astrm : \ell}$. Then the inductive hypothesis says that any variables $x$ assigned in $\asprg$ are typed such that $\Gamma(\ell') \posetleq \Gamma(x)$. Then by transitivity of $\posetleq$ and the fact that $\Gamma(pc) \posetleq \ell$, we conclude that $\Gamma(\pc) \posetleq \Gamma(x)$. This completes the proof.
+\end{description}
+\end{proof}
+
+\section{Soundness}
+
+Now we have introduced all of the typing rules, and proved two key lemmas that characterize what they accomplish. Our ultimate goal is to prove that the type system is \emph{sound}, in the sense that if $\lsequent{\Gamma}{\asprg}$, i.e. $\asprg$ is well-typed, then $\asprg$ satisfies non-interference under typing context $\Gamma$. More formally, we would like to prove Theorem~\ref{thm:soundness}.
+
+\begin{theorem}[Soundness of information flow type system]
+\label{thm:soundness}
+Let $\asprg$ be a program, and $\omega_1, \omega_2$ be states such that $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$. Moreover, let $\omega_1', \omega_2'$ be states such that $\langle\omega_1,\asprg\rangle\bigstep\omega_1'$ and $\langle\omega_2,\asprg\rangle\bigstep\omega_2'$. Then for a type context $\Gamma$, if $\lsequent{\Gamma}{\asprg}$ then $\omega_1' \approx_{\Gamma,\lowsec} \omega_2'$.
+\end{theorem}
+
+How do we prove Theorem~\ref{thm:soundness}? Given the way things have gone so far with the lemmas, we might think to try an induction on the structure of $\asprg$. This is a sensible initial guess, but we will run into problems when we attempt the case for \keywordfont{while} loops. To see why, first recall the big-step semantics for loops.
+\begin{equation}
+\label{eq:sem-while}
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} \lfalse
+}{
+  \langle\omega,\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} \ltrue
+  &\langle\omega,\asprg;\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega'
+}{
+  \langle\omega,\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega'
+}
+\end{equation}
+Were we to proceed with induction on the structure of $\asprg$, the case where $\langle\omega, P\rangle\bigstepb\lfalse$ would not pose a problem because $\omega_1=\omega_1'$ and $\omega_2=\omega_2'$. But in the case where $\langle\omega, P\rangle\bigstepb\ltrue$, we would need to invoke the inductive hypothesis on $\langle\omega,\asprg;\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega'$ in order to conclude that $\omega_1',\omega_2'$ are $\lowsec$-equivalent. But we should not even think about doing this, because it is not in any way induction! Notice that $\asprg;\pwhile{\ausfml}{\asprg}$ is not structurally ``smaller'' than $\pwhile{\ausfml}{\asprg}$, in fact it contains a copy of the loop. Invoking the inductive hypothesis in this way is tantamount to assuming what we are trying to prove, and is not sound reasoning.
+
+\subsection{Induction on the structure of the big-step derivation}
+
+To avoid the pitfall above, we need to find some kind of structure to do induction on that we know has a base case, i.e., that terminates. 
+Notice that because we assume $\langle\omega_1,\asprg\rangle\bigstep\omega_1'$ and $\langle\omega_2,\asprg\rangle\bigstep\omega_2'$, we know that $\asprg$ must terminate when executed on $\omega_1$ and $\omega_2$, and that there is a derivation tree using the rules of the big-step semantics ending with $\langle\omega_1,\asprg\rangle\bigstep\omega_1'$ (and another for $\omega_2,\omega_2'$).
+Perhaps we can do induction on the structure of that derivation.
+Specifically, perhaps we can reason that the property holds for all derivations of minimal size (i.e., one application of a semantic rule), and then break larger derivation trees into parts, assuming that the property holds for the smaller sub-derivations to prove that it holds for the entire tree.
+
+This may seem like a new kind of inductive principle, but recall that we used it to prove the soundness of the propositional sequent calculus. The principle is the same as any other structural induction that we have done so far, but our cases come from the derivation rules of the big-step semantics $\bigstep$. We will prove Theorem~\ref{thm:soundness} by induction on $\langle\omega_1,\asprg\rangle\bigstep\omega_1'$, giving an argument for each case of what the final derivation rule could be. The base cases correspond to derivation trees where only one rule was applied, which in this case is assignment commands. The inductive cases are those where the derivation tree may have more than one rule, and the inductive hypothesis that we use says that Theorem~\ref{thm:soundness} holds for each immediate subtree.
+
+So for example, when we do the case for \keywordfont{if} commands, there are two ways that the derivation could end.
+\begin{equation}
+\label{eq:sem-if}
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} \ltrue
+  &\langle\omega,\asprg\rangle \bigstep \omega'
+}{
+  \langle\omega,\pif{\ausfml}{\asprg}{\bsprg}\rangle \bigstep \omega'
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} \lfalse
+  &\langle\omega,\bsprg\rangle \bigstep \omega'
+}{
+  \langle\omega,\pif{\ausfml}{\asprg}{\bsprg}\rangle \bigstep \omega'
+}
+\end{equation}
+We will give a case for each rule, and our inductive hypothesis will let us assume that the theorem holds for $\langle\omega,\asprg\rangle \bigstep \omega'$ (in the case where $\ausfml$ evaluates to true), and $\langle\omega,\bsprg\rangle \bigstep \omega'$ (in the case where $\ausfml$ evaluates to false). More precisely, the inductive hypothesis in the $\ltrue$ case would tell us that if $\lsequent{\Gamma}{\asprg}$, then for any $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$ if $\langle\omega_1,\asprg\rangle \bigstep \omega_1'$ and $\langle\omega_2,\asprg\rangle \bigstep \omega_2'$ then $\omega_1' \approx_{\Gamma,\lowsec} \omega_2'$.
+
+Before we continue with the proof, it is important to point out that our induction on the derivation structure will not include derivations for expressions that use $\bigstepa$ and $\bigstepb$. These are different relations than $\bigstep$, and while it is possible to include their derivation in this induction, it is not necessary. We proved Lemmas~\ref{lemma:simplesec} and \ref{lemma:confinement} for a reason, and as we will see, they give us everything that we need to know about expressions to complete the proof.
+
+\subsection{Soundness proof: \keywordfont{while} case}
+
+We will now complete the case for while loops, leaving the remaining cases as an exercise. So we would like to prove that if $\lsequent{\Gamma}{\pwhile{\ivr}{\asprg}}$, then for any $\omega_1, \omega_2$ where $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$ and $\omega_1', \omega_2'$ where 
+\[
+\langle \omega_1, \pwhile{\ivr}{\asprg}\rangle \Downarrow \omega_1'
+\]
+
+Theorem~\ref{thm:soundness} tells us that $\lsequent{\Gamma}{\pwhile{\ivr}{\asprg}}$, so the last rule used in the type derivation:
+\[
+\cinferenceRule[whileflow|While]{while}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\ivr : \ell}
+  &\ell' = \ell \lub \Gamma(\pc)
+  &\lsequent{\Gamma,\pc : \ell'}{\asprg}
+}{
+  \lsequent{\Gamma}{\pwhile{\ivr}{\asprg}}
+}}{}%
+\]
+There are two cases for us to consider. Either the label $\ell'$ of \pc used to type the subcommand $\asprg$ is \lowsec, or it is \hisec.
+\begin{description}
+\item[Case $\ell' = \lowsec$:] Simple security (Lemma~\ref{lemma:simplesec}) tells us that for any variable $x$ in $\astrm$, $\Gamma(x) \posetleq \ell'$. So by the assumption made in this case, and the fact that $\posetleq$ is transitive, $\Gamma(x) = \lowsec$. We can then apply the assumption from Theorem~\ref{thm:soundness} that $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$ to reason that for some constant $b$, $\langle\omega_1,\ivr\rangle\bigstepb b$ and $\langle\omega_2,\ivr\rangle\bigstepb b$ (i.e., $\ivr$ evaluates to the same thing in $\omega_1$ and $\omega_2$).
+
+If $b = \lfalse$, then $\omega_1 = \omega_1'$ and $\omega_2 = \omega_2'$. Then the theorem holds because $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$, so $\omega_1' \approx_{\Gamma,\lowsec} \omega_2'$.
+
+If $b = \ltrue$, then the case is a bit more nuanced. We know that the last steps of the big-step derivations of $\langle\omega_1,\asprg\rangle\bigstep\omega_1'$ and $\langle\omega_2,\asprg\rangle\bigstep\omega_2'$ were:
+\[
+\linferenceRule{
+  \langle\omega_1,\ausfml\rangle \bigstep_{\mathbb{B}} \ltrue
+  &\langle\omega_1,\asprg;\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega_1'
+}{
+  \langle\omega_1,\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega_1'
+}
+\quad
+\linferenceRule{
+  \langle\omega_2,\ausfml\rangle \bigstep_{\mathbb{B}} \ltrue
+  &\langle\omega_2,\asprg;\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega_2'
+}{
+  \langle\omega_2,\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega_2'
+}
+\]
+Moreover, the derivation of $\langle\omega_1,\asprg;\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega_1'$ and $\langle\omega_2,\asprg;\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega_2'$ ended with the step:
+\[
+\linferenceRule{
+  \langle\omega_1,\asprg\rangle \bigstep \omega_1''
+  &\langle\omega_1'',\bsprg\rangle \bigstep \omega_1'
+}{
+  \langle\omega_1,\asprg;\bsprg\rangle \bigstep \omega_1'
+}
+\quad
+\linferenceRule{
+  \langle\omega_2,\asprg\rangle \bigstep \omega_2''
+  &\langle\omega_2'',\bsprg\rangle \bigstep \omega_2'
+}{
+  \langle\omega_2,\asprg;\bsprg\rangle \bigstep \omega_2'
+}
+\]
+Then the inductive hypothesis tells us that $\omega_1'' \approx_{\Gamma,\lowsec} \omega_2''$, and then using this fact that $\omega_1' \approx_{\Gamma,\lowsec} \omega_2'$. This proves the theorem for the case $\ell' = \lowsec$.
+
+\item[Case $\ell' = \hisec$:] In this case, the label of \pc used to type $\asprg$ is \hisec, so we need to prove that there are no implicit flows. The confinement lemma (Lemma~\ref{lemma:confinement}) tells us that for any variable $x$ assigned in $\asprg$, $\hisec \posetleq \Gamma(x)$, and thus $\Gamma(x) \not\posetleq \lowsec$. So for every $x$ where $\Gamma(x) \posetleq \lowsec$, $\omega_1(x) = \omega_1'(x)$ and $\omega_2(x) = \omega_2'(x)$. Using the assumption $\omega_1 \approx_{\Gamma,\lowsec} \omega_2$, we can then conclude that $\omega_1' \approx_{\Gamma,\lowsec} \omega_2'$, completing the proof for this case.
+\end{description}
+
+The proofs for the remaining cases mirror the structure of  the proof for \keywordfont{while} loops, splitting into cases where the label of \pc is \lowsec and \hisec, and apply the inductive hypothesis to assert \lowsec-equivalence of intermediate states corresponding to immediate subtrees in the big-step derivation. They are left as an exercise, and will help you gain familiarity with this type system, as well as the principle of induction on the structure of derivations, which is a powerful technique that is used widely to establish useful properties of deductive systems.
+
+\section{Completeness}
+
+Now that we have  established the soundness of the information flow type system, it is natural to ask whether it is \emph{complete} in the sense that if a program satisfies non-interference, then it is well-typed according to the rules.
+
+Unfortunately, this is not the case, and the reason is the way that implicit flows are handled. Consider the following program, which satisfies the definition of non-interference (Definition~\ref{def:nonint}) under type context $\Gamma = (x : \hisec, y : \lowsec, \pc : \lowsec)$.
+\[
+\pif{x = 0}{y := 1}{y := 1}
+\]
+The expression rule \irref{binop} will only let us prove $\lsequent{\Gamma}{x = 0 : \hisec}$, and so \irref{condflow} requires that we derive $\lsequent{\Gamma,\pc : \hisec}{y := 1}$. But \irref{asgnflow} then requires that $\lowsec \lub \hisec \posetleq \Gamma(y)$ and $\Gamma(y) = \lowsec$, so we are unable to complete the type derivation. So in short, we are unable to type this command even though it satisfies non-interference.
+
+Perhaps this should not come as a surprise, considering that non-interference is a semantic property and our typing rules are all based on the syntax of the program. If we want to prove that programs such as this one satisfy non-interference, then we must use the self-composition technique outlined in Lecture 10. Alternatively, we can try to find a way to write programs so that they always typecheck, avoiding control dependence on \hisec-labeled data wherever it is not necessary. This is almost always the right approach to take: write the program in a way that makes it easy to prove the desired security property, rather than attempting to ``retrofit'' security as an afterthought.
+
+% \bibliographystyle{abbrv}
+\bibliography{bibliography}
+\end{document}

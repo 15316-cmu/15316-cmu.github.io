@@ -1,0 +1,23 @@
+\newcommand{\etalchar}[1]{$^{#1}$}
+\begin{thebibliography}{SMB{\etalchar{+}}10}
+
+\bibitem[ABEL09]{Abadi2009}
+Mart\'{\i}n Abadi, Mihai Budiu, \'{U}lfar Erlingsson, and Jay Ligatti.
+\newblock Control-flow integrity: Principles, implementations, and
+  applications.
+\newblock {\em ACM Transactions on Information and Systems Security},
+  13(1):4:1--4:40, November 2009.
+
+\bibitem[SMB{\etalchar{+}}10]{Sehr2010}
+David Sehr, Robert Muth, Cliff Biffle, Victor Khimenko, Egor Pasko, Karl
+  Schimpf, Bennet Yee, and Brad Chen.
+\newblock Adapting software fault isolation to contemporary cpu architectures.
+\newblock In {\em Proceedings of the 19th USENIX Conference on Security}, 2010.
+
+\bibitem[YSD{\etalchar{+}}09]{Yee2009}
+Bennet Yee, David Sehr, Greg Dardyk, Brad Chen, Robert Muth, Tavis Ormandy,
+  Shiki Okasaka, Neha Narula, and Nicholas Fullagar.
+\newblock Native client: A sandbox for portable, untrusted x86 native code.
+\newblock In {\em IEEE Symposium on Security and Privacy}, 2009.
+
+\end{thebibliography}

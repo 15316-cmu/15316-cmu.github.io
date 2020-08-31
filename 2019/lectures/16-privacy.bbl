@@ -1,0 +1,48 @@
+\begin{thebibliography}{CMS11}
+
+\bibitem[CMS11]{Chaudhuri2011}
+K.~Chaudhuri, C.~Monteleoni, and A.~D. Sarwate.
+\newblock Differentially private empirical risk minimization.
+\newblock {\em Journal of Machine Learning Research}, 2011.
+
+\bibitem[DR14]{Dwork2014}
+Cynthia Dwork and Aaron Roth.
+\newblock The algorithmic foundations of differential privacy.
+\newblock {\em Foundations and Trends in Theoretical Computer Science},
+  9(3-4):211--407, August 2014.
+
+\bibitem[Dwo06]{dwork06}
+Cynthia Dwork.
+\newblock Differential privacy.
+\newblock In {\em International Colloquium on Automata, Languages, and
+  Programming (ICALP)}, 2006.
+
+\bibitem[EKP14]{ErlingssonKP14}
+{\'{U}}lfar Erlingsson, Aleksandra Korolova, and Vasyl Pihur.
+\newblock {RAPPOR:} randomized aggregatable privacy-preserving ordinal
+  response.
+\newblock {\em CoRR}, abs/1407.6981, 2014.
+\newblock URL: \url{http://arxiv.org/abs/1407.6981}, \href
+  {http://arxiv.org/abs/1407.6981} {\path{arXiv:1407.6981}}.
+
+\bibitem[McS09]{McSherry2009}
+Frank~D. McSherry.
+\newblock Privacy integrated queries: An extensible platform for
+  privacy-preserving data analysis.
+\newblock In {\em Proceedings of the 2009 ACM SIGMOD International Conference
+  on Management of Data}, 2009.
+
+\bibitem[VS00]{Volpano2000}
+D.~Volpano and G.~Smith.
+\newblock Verifying secrets and relative secrecy.
+\newblock In {\em Proceedings of the 27th ACM SIGPLAN-SIGACT symposium on
+  Principles of Programming Languages (POPL)}, 2000.
+
+\bibitem[War65]{Warner1965}
+Stanley Warner.
+\newblock Randomized response: A survey technique for eliminating evasive
+  answer bias.
+\newblock {\em Journal of the American Statistical Association},
+  60(309):63--69, 1965.
+
+\end{thebibliography}

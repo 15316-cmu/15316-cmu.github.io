@@ -1,0 +1,19 @@
+\begin{thebibliography}{BRJI08}
+
+\bibitem[BRJI08]{Barthe08}
+Adam Barth, Charles Reis, Collin Jackson, and Google Chrome Team~Google Inc.
+\newblock The security architecture of the {C}hromium browser, January 2008.
+\newblock URL:
+  \url{http://seclab.stanford.edu/websec/chromium/chromium-security-architecture.pdf}.
+
+\bibitem[Cro08]{Crockford2008}
+Douglas Crockford.
+\newblock Appendix {B}: The {B}ad {P}arts.
+\newblock In {\em JavaScript: The Good Parts}. O'Reilly Media, Inc., 2008.
+
+\bibitem[Rau14]{Rauschmayer2014}
+Axel Rauschmayer.
+\newblock {\em Speaking JavaScript}.
+\newblock O'Reilly Media, Inc., 1st edition, 2014.
+
+\end{thebibliography}

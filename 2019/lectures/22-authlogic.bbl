@@ -1,0 +1,31 @@
+\newcommand{\etalchar}[1]{$^{#1}$}
+\begin{thebibliography}{BGM{\etalchar{+}}05}
+
+\bibitem[BGM{\etalchar{+}}05]{Bauer2005}
+Lujo Bauer, Scott Garriss, Jonathan~M. McCune, Michael~K. Reiter, Jason Rouse,
+  and Peter Rutenbar.
+\newblock Device-enabled authorization in the {Grey}~{System}.
+\newblock In {\em Information Security}, 2005.
+
+\bibitem[CG09]{ChaudhuriG09}
+Avik Chaudhuri and Deepak Garg.
+\newblock {PCAL:} language support for proof-carrying authorization systems.
+\newblock In {\em {ESORICS}}, pages 184--199. Springer, 2009.
+
+\bibitem[GP06]{Garg06}
+Deepak Garg and F.~Pfenning.
+\newblock Non-interference in constructive authorization logic.
+\newblock In {\em 19th IEEE Computer Security Foundations Workshop (CSFW'06)},
+  2006.
+
+\bibitem[KL14]{Katz2014}
+Jonathan Katz and Yehuda Lindell.
+\newblock {\em Introduction to Modern Cryptography, Second Edition}.
+\newblock Chapman \& Hall/CRC, 2nd edition, 2014.
+
+\bibitem[LABW92]{Lampson1992}
+Butler Lampson, Mart\'{\i}n Abadi, Michael Burrows, and Edward Wobber.
+\newblock Authentication in distributed systems: Theory and practice.
+\newblock {\em ACM Transactions on Computer Systems}, 10(4), November 1992.
+
+\end{thebibliography}

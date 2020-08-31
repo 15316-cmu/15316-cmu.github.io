@@ -1,0 +1,815 @@
+\ProvidesPackage{dL}
+\NeedsTeXFormat{LaTeX2e}
+%%
+%% Copyright (c) 2005-2016 Andre Platzer
+%%
+%% This package provides the tools for writing logical formulas in
+%% differential logics (also differential dynamic logic or hybrid logic) for hybrid dynamic systems.
+%% Supports:
+%%   differential dynamic logic \dL
+%%   differential algebraic dynamic logic \DAL
+%%   differential temporal dynamic logic \dTL
+%%   hybrid-nominal differential dynamic logic \dLh
+
+%\RequirePackage{lsyntax}
+%\RequirePackage{lsemantics} % dL semantics will only be defined if lsemantics package is loaded
+%% for implementation
+\RequirePackage{progreg}
+\RequirePackage{xspace}
+
+
+%% \@dL@interpretationformatfix{const,algebra}{state,assign}{formula}
+\newcommand*{\@dL@interpretationformatfix}[3]{{#2}^{#1}(#3)}
+%%\@dL@modalinterpretationformatfix{I}{\alpha}
+\newcommand{\@dL@modalinterpretationformatfix}[2]
+{\iaccessibility\ifthenelse{\equal{#1}{}}{}{(#1)}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% optional parameters to this package
+%%
+
+%% dDL = Differential Dynamic Logic
+\newcommand{\dDL}[1][]
+{\text{\upshape\textsf{d{\kern-0.1em}$\mathcal{L}$}}\xspace}
+%{\text{\upshape\textsf{d{\kern-0.1em}$\mathscr{L}$}}\xspace}
+%% dGL = Differential Game Logic
+\newcommand{\dGL}[1][]
+{\text{\upshape\textsf{d{\kern-0.05em}G{\kern-0.15em}$\mathcal{L}$}}\xspace}%{\text{\upshape\textsf{d$\Game{\kern-0.1em}\mathcal{L}$}}\xspace}
+
+% differential-form differential dynamic logic
+\DeclareOption{differentialdL}{\renewcommand{\dDL}[1][]
+{\text{\upshape\textsf{d{\kern-0.05em}L}}\xspace}
+\renewcommand{\dGL}[1][]
+{\text{\upshape\textsf{d{\kern-0.05em}G{\kern-0.05em}L}}\xspace}
+}
+
+\newif\if@dL@interpretationabbreviated
+\@dL@interpretationabbreviatedfalse
+\newif\if@dL@interpretationusesformatfix
+\@dL@interpretationusesformatfixfalse
+
+\@ifpackageloaded{lsemantics}
+{
+
+%% Whether to use abbreviated interpretation notation whenever possible
+%% Use long verbose interpretation notation val_I(s,...)
+\DeclareOption{longinterpret}{\global\@dL@interpretationabbreviatedfalse}
+%% Use subscript bracket interpretation notation [[...]]_{I,s}
+\DeclareOption{bracketinterpret}{\global\@dL@interpretationusesformatfixtrue\renewcommand*{\@dL@interpretationformatfix}[3]{{\lenvelope#3\renvelope}^{#1}_{#2}}}
+%% Use superscript interpretation notation [[...]]^{I,s}
+\DeclareOption{superinterpret}{\global\@dL@interpretationusesformatfixtrue\renewcommand*{\@dL@interpretationformatfix}[3]{{\lenvelope#3\renvelope}_{#1}^{#2}}}
+%% Use abbreviated interpretation notation I(...) whenever possible
+%\DeclareOption{abbrinterpret}{\global\@dL@interpretationabbreviatedtrue}
+%% Use prefix notation for interpretations I,s[[...]] or I,s(...)
+\DeclareOption{prefixinterpret}{\global\@dL@interpretationusesformatfixtrue
+\renewcommand*{\@dL@interpretationformatfix}[3]{{#2}^{#1}\lenvelope#3\renvelope}}
+%% Use prefix flat line notation for interpretations I,s[[...]] or I,s(...)
+\DeclareOption{prefixflatinterpret}{\global\@dL@interpretationusesformatfixtrue
+\renewcommand*{\@dL@interpretationformatfix}[3]{{#1}#2\lenvelope#3\renvelope}}
+%% Use postfix notation for interpretations [[...]]^I s or (...)^I s
+\DeclareOption{postfixinterpret}{\global\@dL@interpretationusesformatfixtrue
+\renewcommand*{\@dL@interpretationformatfix}[3]{\lenvelope#3\renvelope^{#1}#2}}
+%% Use postfix flat line notation for interpretations [[...]]I,s or (...)I,s
+\DeclareOption{postfixflatinterpret}{\global\@dL@interpretationusesformatfixtrue
+\renewcommand*{\@dL@interpretationformatfix}[3]{\lenvelope#3\renvelope{#1}#2}}
+
+\DeclareOption{bracketmodalinterpret}{\renewcommand*{\@dL@modalinterpretationformatfix}[2]{\lenvelope#2\renvelope^{#1}}}
+
+%NOTE does less than \usepackage[fixformat]{lsemantics}
+\DeclareOption{fixformat}{%
+\global\@modelsinterpretationsettrue%
+\renewcommand*{\@dL@modalinterpretationformatfix}[2]{\@dL@interpretationformatfix{#1}{}{#2}}
+\PassOptionsToPackage{\CurrentOption}{lsemantics}
+\renewcommand*{\@modelsinterpretationformatfix}[3][]{\iget[state]{#2}\in{\@dL@interpretationformatfix{\iget[const]{#2}}{}{#3}}}
+\renewcommand{\@nonmodelsinterpretationformatfix}[3][]{\iget[state]{#2}\not\in{\@dL@interpretationformatfix{\iget[const]{#2}}{}{#3}}}
+}%
+
+%% suppress \iget[const] and \iget[algebra] parts to be silent in notations, with only explicit access if needed.
+\DeclareOption{silentconst}{\let\@dL@oldinterpretationformatfix\@dL@interpretationformatfix%
+\renewcommand*{\@dL@interpretationformatfix}[3]{\@dL@oldinterpretationformatfix{}{#2}{#3}}%
+\let\@dL@oldmodalinterpretationformatfix\@dL@modalinterpretationformatfix
+\renewcommand{\@dL@modalinterpretationformatfix}[2]
+{\@dL@oldmodalinterpretationformatfix{}{#2}}%
+%
+%like \PassOptionsToPackage{\CurrentOption}{lsemantics}
+%NOTE adapt depending on whether [fixformat] or [setfixinterpret] has been set
+\if@modelsinterpretationset
+\renewcommand*{\@modelsinterpretationformatfix}[3][]{\iget[state]{#2}\in{\@interpretationformatfix{}{}{#3}}}
+\renewcommand{\@nonmodelsinterpretationformatfix}[3][]{\iget[state]{#2}\not\in{\@interpretationformatfix{}{}{#3}}}%
+\else
+\renewcommand*{\@modelsinterpretationformatfix}[3][]{\iget[state]{#2}\models_{#1}#3}%
+\renewcommand*{\@nonmodelsinterpretationformatfix}[3][]{\iget[state]{#2}\nonmodels_{#1}#3}%
+\fi
+}
+
+}%%end: \RequirePackage{lsemantics}
+
+% single \dbox and \ddiamond modalities
+\providecommand*{\useoperatordbox}[1]{[{#1}]}
+\providecommand*{\useoperatorddiamond}[1]{\langle{#1}\rangle}
+\DeclareOption{dmodality}{}
+% double \dbox and \ddiamond modalities
+\DeclareOption{Dmodality}{\renewcommand*{\useoperatordbox}[1]{\lenvelope{#1}\renvelope}%
+\renewcommand*{\useoperatorddiamond}[1]{\Langle{#1}\Rangle}}
+
+%% declare more precise name defaults \asfml,\asprg
+\DeclareOption{precisenames}{
+% notational conventions
+% schema variables for formulas
+\newcommand{\asfml}{\phi}
+\newcommand{\bsfml}{\psi}
+\newcommand{\csfml}{\varphi}
+\newcommand*{\isfml}[1]{\phi_{#1}}
+% optional uniform substitution predicate or predicational for formulas where both P and p(#1) are sound with optional argument #1
+\newcommand{\ousfml}[1][]{p(#1)}
+\newcommand{\ousfmlc}[1][]{r(#1)}
+% evolution domain constraint with optional argument #1
+\newcommand{\oivr}[1][]{q(#1)}
+% schema variables for programs
+\newcommand{\asprg}{\alpha}
+\newcommand{\bsprg}{\beta}
+\newcommand{\csprg}{\gamma}
+\newcommand*{\isprg}[1]{\alpha_{#1}}
+% schema variables for terms
+\newcommand{\astrm}{\theta}
+\newcommand{\bstrm}{\eta}
+% schema variables for term indexed #1
+\newcommand*{\istrm}[1]{\theta_{#1}}
+% meta schema variable meaning for real schematic rules for formulas
+\newcommand{\msformula}{\varphi}
+\newcommand{\msterm}{\theta}
+
+% uniform substitution for arbitrary terms
+\let\austrm\astrm
+\let\bustrm\bstrm
+% optional uniform substitution for terms where both \austrm and f(#1) are sound with optional argument #1
+\newcommand{\oustrm}[1][]{f\ifthenelse{\equal{#1}{}}{}{(#1)}}
+% uniform substitution predicational for formulas
+\newcommand{\ausfml}{P}%{p(\usall)}
+\newcommand{\busfml}{Q}%{q(\usall)}
+% uniform substitution program constant
+\newcommand{\ausprg}{a}
+\newcommand{\busprg}{b}
+% constant symbols, nullary functions
+\newcommand{\aconst}{f} %NOTE: c clashes with c for differential program constants.
+
+%% \astrm for differential axioms
+\newcommand{\asdtrm}{f(\usall)}%
+\newcommand{\bsdtrm}{g(\usall)}%
+%% \asfml for differential axioms
+\let\asdfml\ausfml
+\let\bsdfml\busfml
+
+\newcommand*{\genDE}[1]{f(#1)}%{\theta}%
+\newcommand*{\genDJ}[1]{\astrm}
+\newcommand{\ivr}{Q}%{H}%{\chi}
+\newcommand{\inv}{\phi}%{j(x)}%{\varphi}%{j(\usall)}
+\newcommand{\var}{\varphi}
+}
+
+
+%% declare simple name defaults \asfml,\asprg etc.
+\DeclareOption{simplenames}{
+% notational conventions
+% schema variables for formulas
+\newcommand{\asfml}{P}%{\phi}
+\newcommand{\bsfml}{Q}%{\psi}
+\newcommand{\csfml}{R}%{\varphi}
+\newcommand*{\isfml}[1]{P_{#1}}
+% optional uniform substitution predicate or predicational for formulas where both P and p(#1) are sound with optional argument #1
+\newcommand{\ousfml}[1][]{\ausfml}%{\ausfml}%{p(#1)}
+\newcommand{\ousfmlc}[1][]{C}%{R}
+% evolution domain constraint with optional argument #1
+\newcommand{\oivr}[1][]{Q}
+% schema variables for programs
+\newcommand{\asprg}{\alpha}%{a}%{\alpha} %a is for acceleration
+\newcommand{\bsprg}{\beta}%{b}%{\beta}
+\newcommand{\csprg}{\gamma}%{c}%{\gamma}
+\newcommand*{\isprg}[1]{\alpha_{#1}}
+% schema variables for terms
+\newcommand{\astrm}{e}%{e_1}%{e}%{\theta}
+\newcommand{\bstrm}{\tilde{e}}%{e_2}%{d}%{\eta}
+% schema variables for term indexed #1
+\newcommand{\istrm}[1]{e_{#1}}
+% meta schema variable meaning for real schematic rules for formulas
+\newcommand{\msformula}{\varphi}
+\newcommand{\msterm}{e}%{\theta}%{e}%{\theta}
+
+% uniform substitution for arbitrary terms
+\let\austrm\astrm
+\let\bustrm\bstrm
+% optional uniform substitution for terms where both \austrm and f(#1) are sound with optional argument #1
+\newcommand{\oustrm}[1][]{\austrm}
+% uniform substitution predicational for formulas
+\let\ausfml\asfml%{p(\usall)}
+\let\busfml\bsfml%{q(\usall)}
+\newcommand{\cusfml}{C}
+% uniform substitution program constant
+\let\ausprg\asprg
+\let\busprg\bsprg
+% constant symbols, nullary functions
+\newcommand{\aconst}{c()}%{f}%{c}%{f} %NOTE: c clashes with c for differential program constants.
+
+%% \astrm for differential axioms
+\newcommand{\asdtrm}{e}%{f(\usall)}%
+\newcommand{\bsdtrm}{k}%{g(\usall)}%
+%% \asfml for differential axioms
+\let\asdfml\ausfml
+\let\bsdfml\busfml
+
+\newcommand*{\genDE}[1]{f(#1)}%{\theta}%
+\newcommand*{\genDJ}[1]{\astrm}%{f(#1)}%{\theta}%
+\newcommand{\ivr}{Q}%{H}%{\chi}
+\newcommand{\inv}{J}%{j(x)}%{\varphi}%{j(\usall)}
+\newcommand{\var}{\varphi}
+}
+
+\DeclareOption*{\PackageError{dL}{Unknown option `\CurrentOption' or usepackage{lsemantics} needs to be loaded first.}}
+\ProcessOptions\relax
+
+\if@dL@interpretationusesformatfix
+  \if@dL@interpretationabbreviated
+    \PackageError{dL}{Option clash involving abbrinterpret led to contradictory format preferences}
+  \fi
+\fi
+
+%% redefine notation for HP
+\def\lprogramsname{\operatorname{HP}}
+
+%% differential Logic
+%% differential dynamic logic for hybrid dynamic systems
+%% @internal not to be confused with hybrid(-nominal) modal logic
+%%
+%% Language Classes
+%%
+%% dL = differential Logic
+%% HyLo = HyDL = DynHy Hybrid Dynamic Logic =
+%boldface dL
+\newcommand{\dLbf}[1][]
+{\text{\upshape\textsf{d{\kern-0.1em}$\boldsymbol{\mathcal{L}}$}}\xspace}
+%% differential temporal dynamic logic \dTL
+\newcommand{\dTL}[1][]
+{\text{\upshape\text{dTL}}\xspace}
+%% differential-algebraic dynamic logic \DAL = DADL
+\newcommand{\DAL}[1][]
+{\text{\upshape\text{DAL}}\xspace}
+%% differential-algebraic temporal dynamic logic \DATL
+\newcommand{\DATL}[1][]
+{\text{\upshape\text{DATL}}\xspace}
+\@ifundefined{dL}{\let\dL\dDL}{}
+\newcommand{\QdL}[1][]
+{\text{\upshape\text{Q}\textsf{d{\kern-0.1em}$\mathcal{L}$}}\xspace}
+\newcommand{\QdLbf}[1][]
+{\text{\upshape\text{Q}\textsf{d{\kern-0.1em}$\boldsymbol{\mathcal{L}}$}}\xspace}
+\let\HyCTL\dTL
+\let\HyLo\dDL
+%%{\textsf{\upshape h{\kern-0.15em}y{\kern-0.1em}l{\kern-0.1em}o}\xspace}
+%%{\textsf{\upshape h{\kern-0.1em}y{\kern-0.05em}l{\kern-0.05em}o}\xspace}
+%% SdL = Stochastic Differential Dynamic Logic
+\newcommand{\SdL}[1][]
+{\text{\upshape\text{S}\textsf{d{\kern-0.1em}$\mathcal{L}$}}\xspace}
+\newcommand{\SdLbf}[1][]
+{\text{\upshape\text{S}\textsf{d{\kern-0.1em}$\boldsymbol{\mathcal{L}}$}}\xspace}
+\newcommand{\dGLbf}[1][]
+{\text{\upshape\textsf{d{\kern-0.1em}G{\kern-0.1em}$\boldsymbol{\mathcal{L}}$}}\xspace}%{\text{\upshape\textsf{d$\Game{\kern-0.1em}\mathcal{L}$}}\xspace}
+
+
+% hybrid programs
+\newcommand{\HP}{\text{HP}\xspace}%
+\newcommand{\HPs}{\text{HPs}\xspace}%
+
+% quantified hybrid programs
+\newcommand{\QHP}{\text{QHP}\xspace}%
+\newcommand{\QHPs}{\text{QHPs}\xspace}%
+
+
+\newcommand{\KeYmaera}{Ke\kern-0.1emYmaera\xspace}
+\newcommand{\KeYmaeraD}{Ke\kern-0.1emYmaeraD\xspace}
+\newcommand{\KeYmaeraX}{KeYmaera~X\xspace}
+\let\HyKeY\KeYmaera
+
+
+%% the hybrid-nominal variant of \dL
+\newcommand{\dLh}[1][]
+{\text{\upshape\textsf{d{\kern-0.1em}$\mathcal{L}_h$}}\xspace}
+
+
+% \der{#1} differential of #1 for differential invariant operators
+\newcommand{\der}[1]{(#1)'}%{\DD{(#1)}}%
+
+% \Lie[i]{p}{h} i-th Lie derivative of h along x'=p
+\providecommand*{\lie}[3][]{#3\ifthenelse{\equal{#1}{}}{'}{^{(#1)}_{#2}}}
+%{\ifthenelse{\equal{#1}{}}{'}{\subst[(#3^{(#1)})]{\D{x}}{#2}}%
+
+% \constpart{\Gamma} meta-operator denoting the constant parameter part of \Gamma
+\newcommand*{\constpart}[1]{#1_{\text{const}}}%{\restrict{#1}{\text{const}}}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% SYNTAX
+%%
+
+%%
+%% Differential Dynamic Logic (Language)
+%%
+%% Graceful excerpt from lsyntax.sty:
+
+%% \dbox[format]{program}{formula} for the box modality with program
+%% applied on formula.
+%% format=f : formatted output with brackets around formula
+%% format=d : direct output of formula as is
+%% format=lr : \left< .... \right> left right notation
+\providecommand{\dbox}[3][d]
+{\ensuremath{%
+  \ifthenelse{\equal{#1}{lr}}{\left[{#2}\right]}
+  \useoperatordbox{#2}%
+  \ifthenelse{\equal{#1}{f}}{(#3)}{#3}%
+}}
+\providecommand{\ddiamond}[3][d]
+{\ensuremath{%
+  \ifthenelse{\equal{#1}{lr}}{\left\langle{#2}\right\rangle}{\useoperatorddiamond{#2}}%
+  \ifthenelse{\equal{#1}{f}}{(#3)}{#3}%
+}}
+%% \dmodality[format]{program}{formula} schematic for any dynamic logic modality
+\providecommand{\dmodality}[3][d]
+{\ensuremath{\lstrike{#2}\rstrike\ifthenelse{\equal{#1}{f}}{(#3)}{#3}}}
+%%{\ensuremath{[\!\langle{#2}\rangle\!]\ifthenelse{\equal{#1}{d}}{#3}{(#3)}}}
+%%{\langle\ifx\blank#1\else\textrm{\lstinline{#1}}\fi\rangle}
+
+    \providecommand{\limply}{\rightarrow}
+    \providecommand{\lbisubjunct}{\leftrightarrow}
+
+
+%%
+%% Hybrid Programs (Language)
+%%
+
+\let\hevolve\pevolve
+%% \pevolvein{ode}{inv} evolve along ode within invariance region inv
+\newcommand{\pevolvein}[2]
+{\ensuremath{{\pevolve{#1}}\,\&\,#2}}
+\let\hevolvein\pevolvein
+%% the separator symbol for systems of differential equations
+\newcommand{\syssep}{,}
+%% discrete jump
+\let\hupdate\pupdate
+\let\updatevar\pupdatevar
+\newcommand{\humod}[2]
+{#1\hspace{-0.05em}\mathrel{{:}{=}}\hspace{-0.07em}#2}
+
+\let\htest\ptest
+\let\hchoice\pchoice
+\let\hrepeat\prepeat
+%% independent parallel composition of #1 and #2
+\newcommand{\hiparallel}[2]{#1\cap#2}
+%% joint synchronous parallel composition of #1 and #2
+\newcommand{\hsparallel}[2]{#1\Vert#2}
+
+%% @deprecated a non-deterministic assignment value, use \prandom{x} instead
+\newcommand{\hnondet}{\ast}%%\dice
+%% the global model time variable convention (optional, non-essential)
+%% i.e., the symbol for time passing in the model
+\newcommand{\htime}{\tau}
+
+% definable extension
+\newcommand{\huntil}[2]{\ensuremath{#1\,\,{\normalfont\textit{until}}\,\,#2}}
+
+
+%%
+%% Misc
+%%
+
+%% quantifier-elimination method
+\DeclareMathOperator{\QE}{QE}
+\newcommand{\qelim}[2][]{\ensuremath{\QE_{#1}\ifthenelse{\equal{#2}{}}{}{(#2)}}}
+
+
+% \dbox variant for \index
+\def\dibox#1{[#1]}
+% \ddiamond variant for \index
+\def\didia#1{\protect\langle#1\protect\rangle}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% UNIFORM SUBSTITUTIONS
+%%
+
+% applying a uniform substitution #1 to #2
+\newcommand*{\applyusubst}[2]{#1(#2)}%
+
+%% notation for the uniform substitution replacing #2(\usarg) by #3(\usarg) applied to #1
+\newcommand*{\usubst}[3][]{\subst[#1]{#2(\usarg)}{#3(\usarg)}}%
+\newcommand*{\preusubst}[2][]{#1}%
+%% \usubstjoin{\sigma}{\tau} joins/merges the two uniform substitutions by unioning their replacement lists (provided compatible)
+\newcommand*{\usubstjoin}[2]{#1\cup#2}%
+% \usubstcompose{s}{t} is the composition of substitutions s after t
+\newcommand*{\usubstcompose}[2]{#1\compose#2}
+
+% uniform substitution representation #1
+\newcommand*{\usubstlist}[1]{\{#1\}}
+% uniform substitution representation substituting #1 to be replaced with #2
+\newcommand*{\usubstmod}[2]{#1\mapsto#2}%
+% identity uniform substitution representation
+\newcommand{\usubstid}{\{\}}
+
+%\newsavebox{\USarg}%
+%\sbox{\USarg}{$\boldsymbol{\cdot}$}
+%
+%\newsavebox{\UScarg}%
+%\sbox{\UScarg}{$\boldsymbol{\_}$}
+
+% argument placeholder for uniform substitution, a reserved function symbol of arity zero.
+\newcommand{\usarg}{\usebox{\USarg}}%{.}%{\cdot}{\bullet}%
+% context argument placeholder for uniform substitution, a reserved predicational symbol of arity zero.
+\newcommand{\uscarg}{\usebox{\UScarg}}%{\cdot}{\bullet}%
+% the argument representing all variables
+\newcommand{\usall}{\bar{x}}
+%% marker for clashed substitutions
+%\newcommand{\usclash}{\bot}%
+
+% \urename[\phi]{x}{y} is the result of simultaneously uniformly renaming all occurrences of x to y and all y to x in \phi.
+\newcommand{\urename}[3][]{{#1}{\tfrac{#3}{#2}}}%{#1_{#2}^{#3}}%
+
+% uniform renaming representation #1
+\let\urenlist\usubstlist
+% uniform renaming representation renaming #1 to #2
+\newcommand*{\urenmod}[2]{#1\leadsto#2}%
+
+
+
+%% the set of all variables in the signature
+\newcommand*{\allvars}{\mathcal{V}}
+
+%% signs in the signature for the interpretation, i.e. function, predicate, and program constants. That is the symbols that are subject to interpretation by $\iget[const]{\I}$
+\newcommand*{\intsigns}[1]{\Sigma(#1)}
+%% variables, i.e. occurring in #1, whether written or read
+\newcommand*{\vars}[1]{\mathop{\text{V}}(#1)}
+%% free variables, i.e. may potentially be read (or not)
+\newcommand*{\freevars}[1]{\mathop{\text{FV}}(#1)}
+%% bound variables, i.e. may potentially be written to
+\newcommand*{\boundvars}[1]{\mathop{\text{BV}}(#1)}
+%% must bound variables, i.e. must definitely be written to on all paths
+\newcommand*{\mustboundvars}[1]{\mathop{\text{MBV}}(#1)}
+% the terms that are to be replaced, i.e., left-hand sides of the substitutions, alias domain
+\newcommand*{\replacees}[1]{#1}
+
+%% \contextapp{C}{\phi} is context/quantifier/predicational C applied to formula \phi
+\newcommand*{\contextapp}[2]{#1\text{\footnotesize$($}#2\text{\footnotesize$)$}}%{#1\text{\footnotesize$\{$}#2\text{\footnotesize$\}$}}%{#1\text{\footnotesize$[$}#2\text{\footnotesize$]$}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% SEMANTICS
+%%
+\@ifpackageloaded{lsemantics}
+{
+
+%% hybrid games
+% \inflop[n]{X} inflationary/extensive operator of order n for Knaster-Tarski fixpoint theorem.
+%\newcommand{\inflop}[2][]{\varsigma_\alpha^{#1}(#2)}
+
+% \inflopstrat[n][alpha]{X} inflationary/extensive operator of order n for game alpha with winning condition X
+\newcommand{\inflopstrat}[1][]{\def\inflopstratargI{{#1}}\inflopstratRelay}
+\newcommand{\inflopstratRelay}[2][]{\varsigma_{#1}^{\inflopstratargI}(#2)}
+
+% \strategyfor[alpha]{X} Angel's winning region for hybrid game alpha with winning condition X
+\newcommand*{\strategyfor}[2][]{\varsigma_{#1}(#2)}
+% \dstrategyfor[alpha]{X} Demon's winning region for hybrid game alpha with winning condition X
+\newcommand*{\dstrategyfor}[2][]{\delta_{#1}(#2)}
+
+%%%%%%
+%% Data structure inheritance.
+%% \vdL extends \usepackage{logic}\interpretation management
+%% for \dL
+%% verbose mode, i.e. with variable assignments spread all over the place.
+%%
+  %%%%%%
+  %% Constructors for data structure
+  %% 
+  %%\vdLint[const=\ell,assign=\beta,state=\nu]
+  %%\vdLint[state=\nu]
+  \newcommand{\vdLint}[1][]{\interpretation[#1,@typeid=vdL]}
+
+  %%%%%%
+  %% Overwriting operations on data structure
+  %% 
+  \newcommand{\o@vdL@interpretationconstname}{interpretation}
+  \newcommand{\o@vdL@interpretationstatename}{state}
+  \newcommand{\o@vdL@interpretationflowname}{flow}
+  \newcommand{\o@vdL@interpretationtracename}{trace}
+
+  %% derived values for worlds
+%   \newmethodimplementation{dL}{iget}{2}[2]{%
+%     \ifthenelse{\equal{#1}{worlds}}{\o@@iget{#1}{const}
+%     {\o@@iget{#1}{#2}}}%
+%   }
+
+  %\newmethodinherit{dTL}{iportray}{}
+  %\newmethodinherit{dTL}{imodels}{}
+  
+  \newmethodimplementation{vdL}{iaccess}{2}[2]
+  {%
+    \@dL@modalinterpretationformatfix{\doFormatList[,]{\Interpretation@algebra}{\Interpretation@const}{\Interpretation@assign}\vargend}{#1}
+%    \iaccessibility_{\doFormatList[,]{\Interpretation@algebra}{\Interpretation@const}{\Interpretation@assign}\vargend}
+%  \ifthenelse{\equal{#1}{}}{}{(#1)}
+  }
+
+  %% \itime{\I}
+  %% pretty-prints the absolute time associated with \I
+  %% @deprecated This method is obsolete as unnecessary in the semantics.
+  \newmethod{itime}{1}[1]
+  \newmethodimplementation{vdL}{itime}{1}[1]{%
+    \iget[state]{#1}(\htime)%
+  }
+  
+%%
+%% End of data structure
+%%%%%%
+
+
+%%%%%%
+%% Data structure inheritance.
+%% extend \dLint management for \dL
+%% non-verbose mode, i.e. no variable assignments
+%%
+  %%%%%%
+  %% Constructors for data structure
+  %% 
+  %%\dLint[const=\ell,state=\nu]
+  \newcommand{\dLint}[1][]{\interpretation[#1,@typeid=dL]}
+
+  %%%%%%
+  %% Overwriting operations on data structure
+  %%
+  \newmethodinherit{dL}{interpretationconstname}{vdL}
+  %%%\newmethodinherit{dL}{interpretationassignname}{vdL}
+  \newmethodinherit{dL}{interpretationstatename}{vdL}
+
+  %\newmethodinherit{dL}{imodel}{}
+  %\newmethodinherit{dL}{imodels}{}
+  \newmethodinherit{dL}{itime}{vdL}
+  
+  \if@dL@interpretationusesformatfix
+  \newmethodimplementation{dL}{ivaluation}{1}[2]
+  {%
+  %% suppressed {\Interpretation@const}
+      \@dL@interpretationformatfix{\Interpretation@algebra}{%
+        \doFormatList[,]{\Interpretation@state}{\Interpretation@assign}\vargend%
+      }{#2}%
+  }
+  \else
+  \newmethodimplementation{dL}{ivaluation}{1}[2]
+  {%
+      %% suppressed {\Interpretation@const}
+      val_{
+        \doFormatList[,]{\Interpretation@algebra}{\Interpretation@assign}
+      \vargend
+      }
+      (\ifthenelse{\equal{\Interpretation@state}{}}{}{\Interpretation@state,}
+      #2)
+  }
+  \fi
+
+  \newmethodimplementation{dL}{iportray}{1}[1]{%
+      %% suppressed {\Interpretation@const}
+    \doFormatList[,]{\Interpretation@algebra}{\Interpretation@assign}{\Interpretation@state}\vargend%
+  }
+
+  \newmethodimplementation{dL}{iaccess}{2}[2]
+  {%%\doFormatList[,]{\Interpretation@algebra}{\Interpretation@const}{\Interpretation@assign}\vargend
+\@dL@modalinterpretationformatfix{\Interpretation@const}{#1}%
+  }
+
+%%
+%% End of data structure
+%%%%%%
+
+
+%%%%%%
+%% Data structure inheritance.
+%% \dLh extends \dLint management
+%% with nominals.
+%%
+  %%%%%%
+  %% Constructors for data structure
+  %% 
+  %%\dLhint[const=\ell,assign=\eta,state=\nu]
+  %%\dLhint[assign=\eta,state=t]
+  \newcommand{\dLhint}[1][]{\interpretation[#1,@typeid=dLh]}
+
+  %%%%%%
+  %% Overwriting operations on data structure
+  %%
+  \newmethodinherit{dLh}{interpretationconstname}{dL}
+  \newmethodinherit{dLh}{interpretationstatename}{dL}
+
+  \newmethodinherit{dLh}{ivaluation}{dL}
+  \newmethodinherit{dLh}{itime}{dL}
+
+  \newmethodimplementation{dLh}{iaccess}{2}[2]
+  {% suppressed {\Interpretation@const}
+  \iaccessibility_{\doFormatList[,]{\Interpretation@algebra}{\Interpretation@assign}\vargend}
+  \ifthenelse{\equal{#1}{}}{}{(#1)}
+  }
+
+  \newmethodimplementation{dLh}{iportray}{1}[1]{%
+      %% suppressed {\Interpretation@const} and put nominal assignment last
+    \doFormatList[,]{\Interpretation@algebra}{\Interpretation@state}{\Interpretation@assign}\vargend%
+  }
+
+%%
+%% End of data structure
+%%%%%%
+
+%%%%%%
+%% Data structure inheritance.
+%% \dTL extends \dLint management
+%% with trace semantics for temporal path formulas.
+%%
+  %%%%%%
+  %% Defining additional attributes for interpretation data structure
+  %%
+  \newattribute{Interpretation}{trace}[]{\def\Interpretation@trace{#1}}
+  %%%%%%
+  %% Constructors for data structure
+  %% 
+  %% alternatives
+  %%\dTLint[state=\nu]
+  %%\dTLint[trace=\sigma]
+  \newcommand{\dTLint}[1][]{\interpretation[#1,@typeid=dTL]}
+
+  %%%%%%
+  %% Overwriting operations on data structure
+  %%
+  \newmethodinherit{dTL}{interpretationconstname}{dL}
+  \newmethodinherit{dTL}{interpretationstatename}{dL}
+  \newmethodinherit{dTL}{interpretationtracename}{vdL}
+
+  \newmethodinherit{dTL}{itime}{dL}
+  %\newmethodinherit{dTL}{imodels}{}
+
+  \newmethodimplementation{dTL}{iaccess}{2}[2]
+  {% suppressed {\Interpretation@const}
+  \tau_{\doFormatList[,]{\Interpretation@algebra}{\Interpretation@assign}\vargend}
+  \ifthenelse{\equal{#1}{}}{}{(#1)}
+  }
+
+\if@dL@interpretationusesformatfix
+  \newmethodimplementation{dTL}{ivaluation}{1}[2]
+  {%
+  %% suppressed {\Interpretation@const}, add @trace
+  \@dL@interpretationformatfix{\Interpretation@algebra}{%
+        \doFormatList[,]{\Interpretation@state}{\Interpretation@trace}{\Interpretation@assign}\vargend%
+      }{#2}%
+  }
+\else
+  \newmethodimplementation{dTL}{ivaluation}{1}[2]
+  {% suppressed {\Interpretation@const}, add @trace
+      val_{%
+        \doFormatList[,]{\Interpretation@algebra}{\Interpretation@assign}\vargend
+      }%
+      (\ifthenelse{\equal{\Interpretation@state}{}\AND\equal{\Interpretation@trace}{}}{}{\Interpretation@state\Interpretation@trace,}
+      #2)%
+  }
+\fi
+  
+  %% formats the whole interpretation \I in pretty-print
+  \newmethodimplementation{dTL}{iportray}{1}[1]
+  {% suppressed {\Interpretation@const}, add @trace
+    \doFormatList[,]{\Interpretation@algebra}{\Interpretation@assign}{\Interpretation@trace}{\Interpretation@state}\vargend%
+  }
+
+%%
+%% End of data structure
+%%%%%%
+
+
+%%%%%%
+%% Data structure inheritance.
+%% \DAL extends \dLint management
+%% with additional flows
+%%
+  \newattribute{Interpretation}{flow}[]{\def\Interpretation@flow{#1}}
+  
+  %%%%%%
+  %% Constructors for data structure
+  %% 
+  %% alternatives
+  %%\DALint[state=\nu]
+  %%\DALint[flow=\varphi]
+  \newcommand{\DALint}[1][]{\interpretation[#1,@typeid=DAL]}
+
+  %%%%%%
+  %% Overwriting operations on data structure
+  %%
+  \newmethodinherit{DAL}{interpretationconstname}{dL}
+  \newmethodinherit{DAL}{interpretationstatename}{dL}
+  \newmethodinherit{DAL}{interpretationflowname}{vdL}
+
+  \newmethodinherit{DAL}{ivaluation}{dL}
+  %\newmethodinherit{DAL}{imodels}{}
+
+  \newmethodimplementation{DAL}{imodels}{2}[3]
+  {\iportray{#2}\models_{#1}#3}
+
+  %% \iportray{\I}
+  %% formats the whole interpretation \I in pretty-print
+  \newmethodimplementation{DAL}{iportray}{1}[1]{%
+    \doFormatList[,]{\Interpretation@algebra}{\Interpretation@const}{\Interpretation@assign}{\Interpretation@flow}{\Interpretation@state}\vargend%
+  }
+
+%%
+%% End of data structure
+%%%%%%
+
+%%%%%%
+%% Data structure inheritance.
+%% \SDL extends \dLint management
+%% with additional time
+%%
+  \newattribute{Interpretation}{time}[]{\def\Interpretation@time{#1}}
+  
+  %%%%%%
+  %% Constructors for data structure
+  %% 
+  %% alternatives
+  %%\SDLint[state=\nu]  % \nu is the initial starting state
+  %%\SDLint[state=\nu,time=t]  % \nu is the initial starting state after time t
+  \newcommand{\SDLint}[1][]{\interpretation[#1,@typeid=SDL]}
+
+  %%%%%%
+  %% Overwriting operations on data structure
+  %%
+  \newmethodinherit{SDL}{interpretationconstname}{dL}
+  \newmethodinherit{SDL}{interpretationstatename}{dL}
+  \newcommand{\o@SDL@interpretationtimename}{time}
+
+  \newmethodinherit{SDL}{ivaluation}{dL}
+  %\newmethodinherit{SDL}{imodels}{}
+
+  \newmethodimplementation{SDL}{iaccess}{2}[2]{\lenvelope#1\renvelope^{\iget[state]{#2}}_{\iget[time]{#2}}}
+
+  \newmethodo{istop}{2}[2][]
+  \newmethodimplementation{}{istop}{2}[2]
+  {\lbanana#1\rbanana^{\iget[state]{#2}}}%
+
+  %% \iportray{\I}
+  %% formats the whole interpretation \I in pretty-print
+  \newmethodimplementation{SDL}{iportray}{1}[1]{%
+    {\Interpretation@state}
+    %\doFormatList[,]{\Interpretation@algebra}{\Interpretation@const}{\Interpretation@assign}{\Interpretation@time}{\Interpretation@state}\vargend%
+  }
+
+%% default initial values
+  \setkeys{Interpretation}{const,assign,state,flow,trace,time,@typeid}
+
+%%
+%% End of data structure
+%%%%%%
+
+
+\newcommand{\gameat}[2]{#2:#1}%
+%%%%%%
+%% Data structure inheritance.
+%% \pdGL extends \dLint management
+%% with additional games, gameplay version
+%%
+  \newattribute{Interpretation}{game}[]{\def\Interpretation@game{#1}}
+  
+  %%%%%%
+  %% Constructors for data structure
+  %% 
+  %% alternatives
+  %%\pdGLint[state=s]
+  %%\pdGLint[state=s,game=\gamma]
+  \newcommand{\pdGLint}[1][]{\interpretation[#1,@typeid=pdGL]}
+
+  %%%%%%
+  %% Overwriting operations on data structure
+  %%
+  \newmethodinherit{pdGL}{interpretationconstname}{dL}
+  \newmethodinherit{pdGL}{interpretationstatename}{dL}
+  \newcommand{\o@pdGL@interpretationflowname}{game}
+
+  \newmethodinherit{pdGL}{ivaluation}{dL}
+
+  %% \iportray{\I}
+  %% formats the whole interpretation \I in pretty-print
+  \newmethodimplementation{pdGL}{iportray}{1}[1]{%
+    \ifx\blank\Interpretation@game%
+       \Interpretation@state%
+     \else%
+       \gameat{\Interpretation@game}{\Interpretation@state}%
+     \fi%
+  }
+
+%%
+%% End of data structure
+%%%%%%
+
+
+}{}

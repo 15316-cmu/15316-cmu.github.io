@@ -1,0 +1,192 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath,amssymb,fullpage,graphicx}
+\let\hat\widehat
+\let\tilde\widetilde
+
+\usepackage{xcolor}
+\usepackage{stmaryrd}
+\usepackage{mathpartir}
+
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{mathabx}
+%\usepackage{lsyntax}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newenvironment{proof}{\textbf{ Proof.}}{$\Box$}
+
+\newcommand{\answer}[1]{\text{{\it #1}}}
+\newcommand{\solution}[1]{\textbf{Solution:} #1}
+%\newcommand{\solution}[1]{}
+
+\usepackage[irlabel]{bugcatch}
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+%%%% new version of enumerate with less spacing
+\newenvironment{enum}{
+\begin{enumerate}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{enumerate}}
+
+\parskip 10pt
+\parindent 0pt
+\pagenumbering{gobble}
+\newcommand{\note}[1]{\ \\{\small\color{red}\emph{#1}}\\}
+
+\lstset{%
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries\color{green!60!black},
+  commentstyle=\itshape\color{purple!60!black},
+  stringstyle=\color{orange}
+}
+
+\newcommand{\pand}[2]{\keywordfont{and}(#1, #2)}
+\newcommand{\por}[2]{\keywordfont{or}(#1, #2)}
+
+\begin{document}
+
+\begin{center}
+\textbf{ Assignment 3: The Highs and Lows of Information Flow\\15-316 Software Foundations of Security and Privacy}\\
+\end{center}
+Due: \textbf{ 11:59pm}, Wednesday 10/30/19 \\
+Total Points: 50
+
+\vspace{-5mm}
+
+\begin{enumerate}
+\item \textbf{Flow types (15 points).} 
+
+Consider the following program.
+\begin{lstlisting}[escapechar=\#]
+      if(a = b) {
+        c := 0
+        d := d + 1
+      } else {
+        d := c #$\times$# e
+      }
+      b := c
+\end{lstlisting}
+\paragraph{Part 1 (5 points).}
+Identify a \emph{minimal} policy $\Gamma$ under which this program type checks in the information flow type system described in lecture.
+The policy that you form must assign $\Gamma(a) = \hisec$, and be minimal in the sense that it assigns as few variables the label $\hisec$ as possible while still type checking.
+
+%%
+%% Write your solution here
+%%
+
+\newpage
+
+\paragraph{Part 2 (10 points).}
+Use the rules of the information flow type system to show that the program typechecks under your policy.
+
+%%
+%% Write your solution here
+%%
+
+\newpage
+
+\item \textbf{Exclusive interference (20 points).}
+
+Consider the following program under the policy $\Gamma = (a : \hisec, b : \hisec, c : \lowsec)$.
+
+\begin{lstlisting}[escapechar=\#]
+      if(a > 0) {
+        if(b > 0) {
+          c := 0;
+        } else {
+          c := 1;
+        }
+      } else {
+        if(b > 0) {
+          c := 1;
+        } else {
+          c := 0;
+        }
+      }
+\end{lstlisting}
+
+\paragraph{Part 1 (5 points).}
+Show that this program does not satisfy noninterference by providing a pair of inputs $(a, b, c)$ and $(a', b', c')$ that violate the formal definition given in lecture.
+
+%%
+%% Write your solution here
+%%
+
+\newpage
+
+\paragraph{Part 2 (10 points).}
+Although this program does not satisfy noninterference, does it leak any information about the $\hisec$ variables $a$ and $b$ to an observer who sees the initial and final values of $c$?
+Describe the feasible set of initial values of $a, b$ to justify your answer.
+
+%%
+%% Write your solution here
+%%
+
+\newpage
+
+\paragraph{Part 3 (5 points).}
+Building on the insights gained in the previous parts of this question, suppose that we propose a declassification rule for exclusive-or terms.
+(\irref{declassxor}) below says that when $\astrm, \bstrm$ take Boolean (0, 1) values, then their exclusive-or can safely be leaked to the bottom security label.
+\[
+\cinferenceRule[declassxor|DeclassXor]{Declassify Xor}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma}{\astrm : \ell_1}
+  &\lsequent{\Gamma}{\bstrm : \ell_2}
+  &\astrm, \bstrm \text{ evaluate to either } \{0,1\}}
+  {\lsequent{\Gamma}{\astrm \oplus \bstrm : \bot}}
+}{}%
+\]
+Explain why this may be a justifiable rule to use in terms of the uncertainty remaining about $\astrm,\bstrm$.
+You may reference points that you have already made in Part 2 of this question.
+
+
+%%
+%% Write your solution here
+%%
+
+\newpage
+
+\item \textbf{Leveraging interference (15 points).} 
+
+Consider the following program, under the type context $\Gamma = (a : \hisec, b : \lowsec, c : \lowsec)$.
+\begin{lstlisting}[escapechar=\#]
+      if(a < 0) {
+        if(b < a) c := 0
+        else c := 1
+      } else {
+        if(a < b) c := 0
+        else c := 1
+      }
+\end{lstlisting}
+Describe a procedure that leverages the fact that this program does not satisfy non-interference under $\Gamma$ to learn the value of the $\hisec$-typed variable. You can make use of the following assumptions.
+\begin{itemize}
+\item Assume that an attacker can control the values of $\lowsec$-typed variables prior to executing the program, and observe their value afterwards. They can neither control nor observe $\hisec$ variables at any point. 
+\item $-N \le a \le N$ for some $N$ whose value is unknown to the attacker. 
+\item Finally, the attacker can run the program with different $\lowsec$ inputs any number of times, and the $\hisec$ input will remain the same.
+\end{itemize}
+How many times does the attacker need to run the program using your procedure to learn $a$? 
+
+%%
+%% Write your solution here
+%%
+
+\end{enumerate}
+
+\end{document}

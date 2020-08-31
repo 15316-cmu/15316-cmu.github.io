@@ -1,0 +1,15 @@
+!_TAG_FILE_SORTED	2	/0=unsorted, 1=sorted, 2=foldcase/
+CC	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/Makefile	/^CC = gcc$/;"	m	language:Make
+CFLAGS	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/Makefile	/^CFLAGS = -g -Wall -I .\/include\/$/;"	m	language:Make
+clienterror	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/tiny.c	/^void clienterror(int fd, char *cause, char *errnum, char *shortmsg,$/;"	f	language:C++
+clienterror	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/tiny.c	/^void clienterror(int fd, char *cause, char *errnum, char *shortmsg,$/;"	p	language:C++	file:
+handle_request	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/tiny.c	/^void handle_request(int fd, char *dbfile) {$/;"	f	language:C++
+handle_request	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/tiny.c	/^void handle_request(int fd, char *dbfile);$/;"	p	language:C++	file:
+LIB	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/Makefile	/^LIB = -lpthread$/;"	m	language:Make
+main	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/tiny.c	/^int main(int argc, char **argv) {$/;"	f	language:C++
+parse_uri	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/tiny.c	/^void parse_uri(char *uri, char *filename, char *cgiargs) {$/;"	f	language:C++
+parse_uri	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/tiny.c	/^void parse_uri(char *uri, char *filename, char *cgiargs);$/;"	p	language:C++	file:
+read_requesthdrs	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/tiny.c	/^void read_requesthdrs(rio_t *rp) {$/;"	f	language:C++
+read_requesthdrs	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/tiny.c	/^void read_requesthdrs(rio_t *rp);$/;"	p	language:C++	file:
+serve_dynamic	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/tiny.c	/^void serve_dynamic(int fd, char *filename, char *cgiargs, char *dbfile) {$/;"	f	language:C++
+serve_dynamic	/Users/Tianyu/Desktop/15316-content/lab0/lab0-handout/tiny.c	/^void serve_dynamic(int fd, char *filename, char *cgiargs, char *dbfile);$/;"	p	language:C++	file:

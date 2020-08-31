@@ -1,0 +1,25 @@
+\begin{thebibliography}{DZ05}
+
+\bibitem[DZ05]{cardsystems}
+Eric Dash and Tom~Jr. Zeller.
+\newblock {M}aster{C}ard says 40 million files put at risk.
+\newblock {\em New York Times}, June 2005.
+
+\bibitem[Foua]{csrfmitigation}
+{OWASP} Foundation.
+\newblock Cross-site request forgery (csrf) prevention cheat sheet.
+\newblock
+  \url{https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)_Prevention_Cheat_Sheet}.
+
+\bibitem[Foub]{owasphtml}
+{OWASP} Foundation.
+\newblock Java {HTML} sanitizer project.
+\newblock
+  \url{https://www.owasp.org/index.php/OWASP_Java_HTML_Sanitizer_Project}.
+
+\bibitem[Fouc]{owasp10}
+{OWASP} Foundation.
+\newblock {OWASP} {T}op 10 {A}pplication {S}ecurity {R}isks - 2017.
+\newblock \url{https://www.owasp.org/index.php/Top_10-2017_Top_10}.
+
+\end{thebibliography}

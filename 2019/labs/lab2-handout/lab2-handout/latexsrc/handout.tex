@@ -1,0 +1,759 @@
+\documentclass[11pt]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+% EDIT THESE TWO COMMANDS TO BE YOUR ANDREW ID AND NAME
+\newcommand*{\stulogin}{}
+\newcommand*{\stuname}{}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+\usepackage{algorithm2e}
+\usepackage{fancyheadings}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{fullpage-old}
+\usepackage{graphics}
+\usepackage{sudoku}
+\usepackage[colorlinks,linkcolor=blue,urlcolor=blue]{hyperref}
+\usepackage{url}
+\usepackage{framed}
+\usepackage[dvipsnames,usenames]{xcolor}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{tikz}
+\usepackage{xspace}
+\usepackage{soul}
+
+\usepackage{ragged2e}
+% \usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{listings}
+% \usepackage{syntax}
+% \usepackage{semantic}
+% \usepackage{mathpartir}
+\usepackage{stmaryrd}
+\usepackage{amsmath}
+\usepackage{xspace}
+\usepackage{adjustbox}
+\usepackage{xspace}
+\usepackage{algpseudocode}
+\usepackage{mathtools}
+\usepackage{array}
+\usepackage{rotating}
+\usepackage{dirtree}
+
+\usepackage[irlabel]{bugcatch}
+
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{backgray}{gray}{0.95}
+\lstdefinelanguage
+   [x86]{Assembler}     
+   [x86masm]{Assembler}    
+   {morekeywords={movl, addl, subl, cmpl}} 
+\lstdefinestyle{customc}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  language=C,
+  showstringspaces=false,
+  numbers=none,
+  % xleftmargin=1ex,
+  framexleftmargin=1ex,
+  numbers=left,
+  numbersep=5pt,
+  numberstyle=\tiny\color{mygray},
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\color{blue},
+  commentstyle=\itshape\color{purple!40!black},  
+  stringstyle=\color{orange},
+  morekeywords={as,principal,password,do,exit,return,create,change,set,append,to,local,foreach,in,replacewith,filtereach,with,if,then,else,true,false,equal,notequal,bool},
+  tabsize=2,
+  deletestring=[b]',
+  backgroundcolor=\color{gray!15},
+  frame=tb
+}
+\lstset{escapechar=^,style=customc}
+
+\usetikzlibrary{automata,shapes,positioning}
+
+\renewenvironment{shaded}{%
+  \def\FrameCommand{\fboxsep=\FrameSep \colorbox{shadecolor}}%
+  \MakeFramed{\advance\hsize-\width \FrameRestore\FrameRestore}}%
+ {\endMakeFramed}
+\definecolor{shadecolor}{gray}{0.95}
+
+% \newcommand{\ex}{\ensuremath{\mathbf{EX\ }}\xspace}
+% \newcommand{\eg}{\ensuremath{\mathbf{EG\ }}\xspace}
+% \newcommand{\ef}{\ensuremath{\mathbf{EF\ }}\xspace}
+% \newcommand{\ax}{\ensuremath{\mathbf{AX\ }}\xspace}
+% \newcommand{\ag}{\ensuremath{\mathbf{AG\ }}\xspace}
+% \newcommand{\af}{\ensuremath{\mathbf{AF\ }}\xspace}
+% \newcommand{\nextt}{\ensuremath{\mathbf{X\ }}\xspace}
+% \newcommand{\future}{\ensuremath{\mathbf{F\ }}\xspace}
+% \newcommand{\always}{\ensuremath{\mathbf{G\ }}\xspace}
+% \newcommand{\until}{\ensuremath{\mathbf{\ U\ }}\xspace}
+% \newcommand{\release}{\ensuremath{\mathbf{\ R\ }}\xspace}
+% \newcommand{\existpath}{\ensuremath{\mathbf{E\ }}\xspace}
+% \newcommand{\forallpath}{\ensuremath{\mathbf{A\ }}\xspace}
+
+% \newcommand{\imp}{\ensuremath{\mathsf{Imp}}\xspace}
+% \newcommand{\aexp}{\ensuremath{\mathsf{AExp}}\xspace}
+% \newcommand{\bexp}{\ensuremath{\mathsf{BExp}}\xspace}
+% \newcommand{\com}{\ensuremath{\mathsf{Com}}\xspace}
+% \newcommand{\var}{\ensuremath{\mathsf{Var}}\xspace}
+% \newcommand{\strue}{\ensuremath{\mathsf{true}}\xspace}
+% \newcommand{\sfalse}{\ensuremath{\mathsf{false}}\xspace}
+% \newcommand{\true}{\ensuremath{\mathit{true}}\xspace}
+% \newcommand{\false}{\ensuremath{\mathit{false}}\xspace}
+
+\newcommand*{\escape}[1]{\expandafter\string\csname #1\endcsname}
+
+\newcommand*{\assignmentnumb}{2}
+% ---------------------------------------------------------------------------
+
+\lhead[{\bfseries 15-316\quad Lab \assignmentnumb\ \ \ \stulogin}]{{\bfseries 15-316\quad Lab \assignmentnumb\ \ \ \stulogin}}
+\rhead[{\bfseries\thepage}]{{\bfseries\thepage}}
+\pagestyle{fancy}
+\parskip 1ex
+\parindent 0mm
+
+% -----------Danny's Macros-------------
+
+\newcommand{\problem}[1]{\section{#1}\vspace{-1em}}
+\newcounter{partnumber}
+\newenvironment{parts}{\begin{list}{
+      % \arabic{problemnumber}\alph{partnumber}:}{
+      (\alph{partnumber})}{
+      \usecounter{partnumber} \setlength{\rightmargin}{\leftmargin}}
+    \setlength{\itemsep}{.0 in}}{
+  \end{list} \vspace*{.0 in}}
+
+% ---------------------------------------
+
+\begin{document}
+
+\centerline{Instructor: Matt Fredrikson \hfill TA: Milijana Surbatovich} 
+Due date: {November 23 11:59pm \\
+Total points: 100 \\[1.5em]
+\vspace{1.5ex}
+\centerline{\Large\bf Lab \assignmentnumb: Better Control with Information Flow Policies}
+\vspace{0.5ex}
+\centerline{\Large\bf \stuname}
+
+\begin{problem}{Introduction}
+Now that your server contains a safe interpreter for working with persistent data, users are beginning to grow 
+uneasy with the fact that all of their data and results are stored in plain view of all the other users. They 
+demand some form of protection, so that others cannot see their data and learn from the results of their script computations.
+
+This lab will have you apply what you learned about information flow type systems to the interpreter you implemented 
+in the previous lab. You will enhance the server so that it keeps track of which users execute scripts, and associates
+ the data stored in its persistent database files with the user that created it. The server will associate each user 
+ with an information flow label, and statically verify that the scripts that it runs on behalf of users do not result 
+ in information flows from other users' data to any sort of observation that the user executing the script might make.
+
+To make all of this happen, you will need to design a custom type system for the scripting language that enforces 
+non-interference with respect to a security lattice that accounts for all users of the system. You will then implement 
+type checking functionality that embodies the formal rules of your type system, and integrate this functionality with 
+your existing interpreter. When all of this is finished, you will have addressed you users' concerns about the 
+confidentiality of their data stored on the server, and learned a great deal about bringing theory to practice 
+in the service of making your server more secure.
+  
+  \paragraph{Learning goals.}
+    As you complete this lab, you will:
+    \begin{itemize}
+      \item Design a novel information flow type system for the scripting language introduced in the previous lab. 
+      Optionally for extra credit, you will also further develop formal proof skills by showing that your type system is sound.
+      \item Gain experience translating formal typing rules into an implementation of a type checker.
+      \item Develop a deeper understanding of the practical security guarantees afforded by information flow controls 
+      by integrating your type checker with the script interpreter that you developed in the previous lab.
+      \item Undertake a critical evaluation of the resulting protections by writing a brief report that weighs the 
+      pros and cons of using your information flow type system to achieve the desired protections against possible alternatives.
+    \end{itemize}
+
+  \newpage
+  \paragraph{Evaluation.}
+    This lab is worth 100 points, and will be graded by a combination of test cases and manual inspection by the course staff. 
+    The manual inspection will evaluate the soundness of your information flow type system, i.e., whether it correctly enforces 
+    non-interference for the scripting language. The test cases will \emph{(i)} evaluate the correctness of your type checker, 
+    and \emph{(ii)} evaluate the correctness of your integration of the type checker with your interpreter.
+    The point breakdown is as follows.
+    \begin{description}
+      \item[Correct typing rules (35 points, 10 possible extra credit).] Your typing rules should enforce the non-interference 
+      policy outlined in Section~\ref{sect:task1}. Partial credit will be given based on how many rules are correct. 
+      For 10 points of extra credit, you can prove that your rules are sound against the semantics given in Section~\ref{sect:task1}. 
+      Partial credit for the soundness proof will be awarded based on how close your proof is to being correct, but incomplete proofs 
+      that only cover a subset of the rules will be awarded no points.
+      \item[Correct type checker (30 points).] Your type checker should faithfully correspond to the typing rules that you provided in 
+      the first task. Partial credit will be awarded based on how many test cases you pass. If your typing rules from the first task 
+      are unsound, you will not be double-penalized for failed test cases that are consistent with the typing rules you provided.
+      \item[Correct integration (25 points).] Your type checker must be integrated with your interpreter to achieve a meaningful 
+      practical guarantee of security. Test cases will evaluate whether the interpreter allows information flows that it shouldn't
+       based on the lattice policy, and whether it correctly allows well-typed programs to execute normally. The same double-penalty
+        policy from the previous task applies here. Partial credit will be awarded based on how many test cases your implementation passes.
+      \item[Discussion (10 points)] A brief discussion of your solution, including the security considerations and any assumptions you made 
+      while developing it, as well as a critical comparison to other possible approaches to the solution.
+    \end{description}
+\end{problem}
+
+\paragraph{What to hand in.} When you have completed the lab, you should hand in a \verb'.zip' archive of the same directory 
+tree from the previous lab (see Section~\ref{sect:start}), but with your completed solution filled into the appropriate files.
+ Your type system should be provided in a file called \verb'typesystem.pdf', and we strongly urge you to typeset it. We will 
+ not attempt to second-guess illegible handwriting, and there will not be opportunities to clarify your rules after the due date. 
+ You should not hand in your sandbox implementation from the previous lab. As before, it is recommended to build everything in a 
+ \verb'build' subdirectory so that you can easily delete it before handing in.
+
+Finally, if you are doing the extra credit parts, provide a EC\_README file detailing the tasks you have chosen to complete. 
+
+\newpage
+\section{Getting started}
+\label{sect:start}
+
+In this lab you will continue to build on your implementation from the previous two labs. You should copy your current 
+implementation to a new directory after removing any compiled binaries and makefiles emitted by \verb'CMake'.
+The directory tree shown below is color-coded to help you set up the lab. {\color{Orange}{\st{Orange}}} strikethrough 
+files can be removed. {\color{blue}{Blue}} files are those in which you will spend most of your time implementing the 
+lab. \verb'sectypes.h' and \verb'sectypes.c' are in the handout, so you will need to copy 
+them over to their proper locations. {\color{Purple}{Purple}} files need to be replaced with new 
+versions provided with the current lab handout (see Section~\ref{sec:integrate}).
+\\
+
+{
+\dirtree{%
+  .1 CMakeLists.txt\DTcomment{Build file, \emph{do not modify}}.
+  .1 \color{Orange}{\st{sandbox}}\DTcomment{Template sandbox implementation, \emph{not needed for this lab}}.
+  .2 \color{Orange}{\st{em.cpp}}\DTcomment{Template Pintool}.
+  .2 \color{Orange}{\st{makefile}}\DTcomment{Pin build file}.
+  .2 \color{Orange}{\st{makefile.rules}}\DTcomment{Pin build file}.
+  .1 src.\DTcomment{Template server and interpreter}.
+  .2 common\DTcomment{Common library for server}.
+  .3 CMakeLists.txt\DTcomment{Build file, \emph{do not modify}}.
+  .3 csapp.c\DTcomment{Robust IO routines}.
+  .3 extendible\_hash.c\DTcomment{Your memory-safe extendible hash}.
+  .3 safemem.c\DTcomment{Sandbox memory manager}.
+  .3 ubarray.c\DTcomment{Your memory-safe unbounded array}.
+  .2 include\DTcomment{Header files}.
+  .3 common\DTcomment{Definitions for common library}.
+  .4 csapp.h\DTcomment{Definitions for robust IO}.
+  .4 extendible\_hash.h\DTcomment{Your extendible hash definitions}.
+  .4 safemem.h\DTcomment{Sandbox memory manager definitions}.
+  .4 ubarray.h\DTcomment{Your unbounded array definitions}.
+  .3 tinyscript\DTcomment{Definitions for interpreter}.
+  .4 \color{Purple}{ast.h}\DTcomment{Abstract syntax tree definitions}.
+  .4 interp.h\DTcomment{Interpreter definitions}.
+  .4 \color{blue}{sectypes.h}\DTcomment{Type checker definitions}.
+  .2 server\DTcomment{Core server implementation}.
+  .3 CMakeLists.txt\DTcomment{Build file, \emph{do not modify}}.
+  .3 client.c\DTcomment{Simple client to test server functionality}.
+  .3 tiny.c\DTcomment{Server implementation}.
+  .2 tinyscript\DTcomment{Interpreter}.
+  .3 CMakeLists.txt\DTcomment{Build file, \emph{do not modify}}.
+  .3 \color{Purple}{ast.c}\DTcomment{Functions to build abstract syntax trees}.
+  .3 interp.c\DTcomment{Core interpreter routines}.
+  .3 \color{blue}{interp\_main.c}\DTcomment{Interpreter shell}.
+  .3 \color{blue}{sectypes.c}\DTcomment{Type checker implementation}.
+  .3 parser\DTcomment{Parser implementation, \emph{do not modify}}.
+  .4 \color{Purple}{lexer.l}\DTcomment{Rules for scanning strings containing programs}.
+  .4 \color{Purple}{parser.y}\DTcomment{Grammar for language syntax}.
+  .3 testscripts\DTcomment{Example programs to test interpreter}.
+}
+}
+
+\newpage
+
+\section{Task 1: Design the type system}
+\label{sect:task1}
+
+The syntax of the scripting language that you will use in this lab is mostly unchanged from Lab 1, with a single exception. 
+Because there are multiple users on the system with varying levels of trust between them, we must now require users to 
+declare who they are and provide credentials in the form of a password to demonstrate that they are authorized to run 
+their script. The $\langle\mathbf{prog}\rangle$ production reflects this change by requiring scripts to start with a 
+header containing the user on behalf of whom the script is run, as well as their password. Note that the user names 
+provided in this header correspond with security type labels, and passwords are alphanumeric strings containing no
+ spaces or special symbols.
+
+\begin{center}
+\begin{tabular}{lcll}
+$\langle\mathbf{prog}\rangle$ & ::= & $\mathtt{using}~\mathit{table}~\mathtt{as}~\mathit{user}~\mathtt{with}~\mathit{password}~\mathtt{:}~\langle\mathbf{com}\rangle$ &
+\\
+$\langle\mathbf{com}\rangle$ & ::= & $\mathtt{skip}$ & \textit{// do nothing}
+\\
+& $\mid$ & $x := \langle\mathbf{aexp}\rangle$ & \textit{// assignment}
+\\
+& $\mid$ & $\mathtt{undef(}x\mathtt{)}$ & \textit{// remove variable}
+\\
+& $\mid$ & $\mathtt{output}~\langle\mathbf{aexp}\rangle$ & \textit{// print expression value}
+\\
+& $\mid$ & $\langle\mathbf{com}\rangle\mathtt{;}\langle\mathbf{com}\rangle$ & \textit{// composition}
+\\
+& $\mid$ & $\mathtt{if}~\langle\mathbf{bexp}\rangle~\mathtt{then}~\langle\mathbf{com}\rangle~\mathtt{else}~\langle\mathbf{com}\rangle~\mathtt{endif}$
+ & \textit{// conditional}
+\\
+& $\mid$ & $\mathtt{while}~\langle\mathbf{bexp}\rangle~\mathtt{do}~\langle\mathbf{com}\rangle~\mathtt{done}$ & \textit{// loop}
+\\
+$\langle\mathbf{aexp}\rangle$ & ::= & $c$ & \textit{// integer constant}
+\\
+& $\mid$ & $x$ &  \textit{// variable identifier}
+\\
+& $\mid$ & $(\langle\mathbf{aexp}\rangle)$ &   \textit{// parenthesized expression}
+\\
+& $\mid$ & $\langle\mathbf{aexp}\rangle~\text{\texttt{+}}~\langle\mathbf{aexp}\rangle$ & \textit{// addition}
+\\
+& $\mid$ & $\langle\mathbf{aexp}\rangle~\text{\texttt{-}}~\langle\mathbf{aexp}\rangle$ & \textit{// subtraction}
+\\
+& $\mid$ & $\langle\mathbf{aexp}\rangle~\text{\texttt{*}}~\langle\mathbf{aexp}\rangle$ & \textit{// multiplication}
+\\
+$\langle\mathbf{bexp}\rangle$ & ::= & $\mathtt{true} \mid \mathtt{false}$ &  \textit{// boolean constants}
+\\
+& $\mid$ & $\mathtt{hasdef}(x)$ & \textit{// check that variable is defined}
+\\
+& $\mid$ & $\text{\texttt{!}}\langle\mathbf{bexp}\rangle$ & \textit{// negation}
+\\
+& $\mid$ & $(\langle\mathbf{bexp}\rangle)$ & \textit{// parenthesized expression}
+\\
+& $\mid$ & $\langle\mathbf{bexp}\rangle~\text{\texttt{\&\&}}~\langle\mathbf{bexp}\rangle$ & \textit{// conjunction}
+\\
+& $\mid$ & $\langle\mathbf{bexp}\rangle~\text{\texttt{||}}~\langle\mathbf{bexp}\rangle$ & \textit{// disjunction}
+\\
+& $\mid$ & $\langle\mathbf{aexp}\rangle~\text{\texttt{==}}~\langle\mathbf{aexp}\rangle$ & \textit{// equality}
+\\
+& $\mid$ & $\langle\mathbf{aexp}\rangle~\text{\texttt{<=}}~\langle\mathbf{aexp}\rangle$ & \textit{// inequality}
+\end{tabular}
+\end{center}
+
+The semantics are unchanged from Lab 1, and are shown in Figure~\ref{fig:semantics} for your convenience. 
+
+\begin{figure}[t]
+\textbf{Arithmetic expressions}
+\begin{center}
+\linferenceRule{}{\langle\omega,c\rangle \bigstep_{\mathbb{Z}} c}
+\quad
+\linferenceRule{
+  \omega_v(x)~\text{is defined}
+  &\omega_v(x) = v
+}{
+  \langle\omega,x\rangle \bigstep_{\mathbb{Z}} v
+}
+\quad
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}} v
+}{
+  \langle\omega,(\astrm)\rangle \bigstep_{\mathbb{Z}} v
+}
+\quad
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}} v_1
+  &\langle\omega,\bstrm\rangle \bigstep_{\mathbb{Z}} v_2
+}{
+  \langle\omega,\astrm \odot \bstrm\rangle \bigstep_{\mathbb{Z}} v_1 \odot v_2
+}
+\end{center}
+\textbf{Boolean expressions}
+\begin{center}
+\linferenceRule{}{\langle\omega,\mathtt{true}\rangle \bigstep_\mathbb{B} \ltrue}
+\quad
+\linferenceRule{}{\langle\omega,\mathtt{false}\rangle \bigstep_\mathbb{B} \lfalse}
+\quad
+\linferenceRule{
+  \omega_v(x)~\text{is defined}  
+}{
+  \langle\omega,\mathtt{hasdef}(x)\rangle \bigstep_\mathbb{B} \ltrue
+}
+\quad
+\linferenceRule{
+  \omega_v(x)~\text{not defined}  
+}{
+  \langle\omega,\mathtt{hasdef}(x)\rangle \bigstep_\mathbb{B} \lfalse
+}
+\\[1ex]
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_\mathbb{B} b
+}{
+  \langle\omega,\text{\texttt{!}}\ausfml\rangle \bigstep_\mathbb{B} \lnot b
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_\mathbb{B} b
+}{
+  \langle\omega,(\ausfml)\rangle \bigstep_\mathbb{B} b
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_\mathbb{B} b_1
+  &\langle\omega,\busfml\rangle \bigstep_\mathbb{B} b_2
+}{
+  \langle\omega,\ausfml~\text{\texttt{\&\&}}~\busfml\rangle \bigstep_\mathbb{B} b_1 \land b_2
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_\mathbb{B} b_1
+  &\langle\omega,\busfml\rangle \bigstep_\mathbb{B} b_2
+}{
+  \langle\omega,\ausfml~\text{\texttt{||}}~\busfml\rangle \bigstep_\mathbb{B} b_1 \lor b_2
+}
+\\[1ex]
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_\mathbb{Z} v_1
+  &\langle\omega,\bstrm\rangle \bigstep_\mathbb{Z} v_2
+}{
+  \langle\omega,\ausfml~\text{\texttt{==}}~\busfml\rangle \bigstep_\mathbb{B} v_1 = v_2
+}
+\quad
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_\mathbb{Z} v_1
+  &\langle\omega,\bstrm\rangle \bigstep_\mathbb{Z} v_2
+}{
+  \langle\omega,\ausfml~\text{\texttt{<=}}~\busfml\rangle \bigstep_\mathbb{B} v_1 \le v_2
+}
+\end{center}
+
+\textbf{Commands}
+\begin{center}
+\linferenceRule{}{\langle\omega,\mathtt{skip}\rangle \bigstep \omega}
+\quad
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}} v
+}{
+  \langle\omega,x := \astrm\rangle \bigstep \memupd{\omega}{x}{v}
+}
+\quad
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}} v
+  &\omega'_v = \omega_v
+  &\omega'_o = \omega_o,v
+}{
+  \langle\omega,\mathtt{output}~\astrm\rangle \bigstep \omega'
+}
+\\[1ex]
+\linferenceRule{
+  \omega_v(x)~\text{is defined}
+  &\omega'=\omega~\text{except}~x~\text{is undef. in}~\omega'_v
+}{
+  \langle\omega,\mathtt{undef}(x)\rangle \bigstep \omega'
+}
+\quad
+\linferenceRule{
+  \omega_v(x)~\text{is undef.}
+}{
+  \langle\omega,\mathtt{undef}(x)\rangle \bigstep \omega
+}
+\\[1ex]
+\linferenceRule{
+  \langle\omega,\asprg\rangle \bigstep \omega_1
+  &\langle\omega_1,\bsprg\rangle \bigstep \omega_2
+}{
+  \langle\omega,\asprg;\bsprg\rangle \bigstep \omega_2
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} \ltrue
+  &\langle\omega,\asprg\rangle \bigstep \omega'
+}{
+  \langle\omega,\pif{\ausfml}{\asprg}{\bsprg}\rangle \bigstep \omega'
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} \lfalse
+  &\langle\omega,\bsprg\rangle \bigstep \omega'
+}{
+  \langle\omega,\pif{\ausfml}{\asprg}{\bsprg}\rangle \bigstep \omega'
+}
+\\[1ex]
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} \lfalse
+}{
+  \langle\omega,\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} \ltrue
+  &\langle\omega,\asprg;\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega'
+}{
+  \langle\omega,\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega'
+}
+\end{center}
+
+\caption{Semantics of the scripting language held over from Lab 1.}
+\label{fig:semantics}
+\end{figure}
+
+\paragraph{Derive typing rules.} The first thing that you will do is provide typing rules for the language 
+which ensure that programs satisfy non-interference under a given typing context $\Gamma$. You should assume
+ that $\Gamma$ associates any variable appearing in the script with a label $\ell \in L$ that comes from a 
+ security lattice $(L, \sqsubseteq, \bot, \top, \sqcup)$. 
+
+The lattice that you will use consists of labels $\ell_1, \ldots, \ell_n$ for each of the users that run 
+scripts on the system (more on this in the next task), as well as two distinguished users \verb'admin' and
+ \verb'pub'. You should assume that \verb'admin' corresponds to the greatest element $\top$, and \verb'pub'
+  to the least element $\bot$.
+\begin{equation}
+\mathtt{pub} \sqsubseteq \ell_i \sqsubseteq \mathtt{admin},~\mathrm{for~all}~1 \le i \le n
+\end{equation}
+Moreover, none of the remaining ordinary users are allowed to read or write each other's data.
+\begin{equation}
+\ell_i \not\sqsubseteq \ell_j~\mathrm{and}~\ell_j \not\sqsubseteq \ell_i,~\mathrm{for~any}~i,j~\mathrm{where}~1\le i < j \le n
+\end{equation}
+
+Scripts are executed by the server on behalf of the user specified in the program header, which we will assume corresponds 
+to label $\ell_u$. \textbf{Your goal in designing the information flow type system is to make sure that this user can only 
+observe values that are derived from variables that this security lattice allows.} So for example, if the system has users 
+Alice and Bob corresponding to labels $\ell_{\rm Alice}$ and $\ell_{\rm Bob}$, respectively, then when Alice executes a 
+script she should only be able to observe the value of expressions typed $\ell \sqsubseteq \ell_{\rm Alice}$ but not 
+necessarily those typed $\ell' \sqsubseteq \ell_{\rm Bob}$. Before defining the typing rules, you are advised to create a 
+list of all of the ways in which the interpreter might allow users to ``observe'' something about an expression; 
+\verb'output' commands are one way, but error messages returned by the server are also a type of observation that might 
+constitute an implicit flow.
+
+You will provide two forms of typing rules: one for expressions, and one for commands. The rules that you provide for 
+expressions will give judgments 
+of the form shown in Equation~\ref{eq:expjudgement}, associating each expression with a label from the security lattice.
+\begin{equation}
+\label{eq:expjudgement}
+\lsequent{\Gamma}{\astrm : \ell}
+\end{equation}
+The rules that you provide for commands will give judgments of the form shown in Equation~\ref{eq:comjudgement}, 
+which state that the given command is well-typed under context $\Gamma$ for execution on behalf of the user with label $\ell_u$.
+\begin{equation}
+\label{eq:comjudgement}
+\Gamma \vdash_{\ell_u} \asprg
+\end{equation}
+You are encouraged to draw inspiration from the information flow type system that we studied in class. However, notice 
+that there are command and expression forms in our scripting language that were not discussed in lecture. While you do 
+not need to prove soundness of your type system to receive full credit for this part of the lab, it is your job to design 
+rules for these forms that soundly enforce non-interference. You should think carefully about how information could possibly
+ flow into program states as the result of executing each form, and set up typing rules to ensure that these flows will not 
+ violate the security lattice described above. Correctly designing rules for new program forms is the key conceptual challenge
+  of this lab, so please work independently to reason through this part, and don't be afraid to check your work by hand on 
+  smaller example programs containing any constructs you are uncertain about.
+
+\paragraph{Extra credit (10 points): prove soundness.}  Are you confident that your type system soundly enforces non-interference? 
+There's only one way to know for sure--prove it! Notice that your type system must work with a more complicated lattice than the simple 
+\verb'L'/\verb'H' one that we discussed in class. Come to think of it we did not define non-interference for general security lattices, 
+so before proving soundness you will need to write down a formal definition of non-interference when labels from an arbitrary lattice 
+appear in $\Gamma$. 
+
+The key to getting this right is to generalize the notion of state equivalence that underpins non-interference, and your formal definition 
+should capture the following high-level intuition: \emph{two states are $\ell$-equivalent with respect to context $\Gamma$ if and only if 
+all variables $x$ where $\ell \sqsubseteq \Gamma(x)$ are the same in both states.} Once you have formalized this more general notion of 
+state equivalence, you should formalize non-interference as the property satisfied by programs that preserve $\ell$-equivalence between 
+initial and final states.
+
+\clearpage
+\section{Task 2: Implement the type checker}
+
+Now that you have derived a set of typing rules to enforce non-interference, it's time to use them. You will implement everything needed 
+to verify non-interference using types in two parts.
+
+\paragraph{Given: the lattice.} To make implementing the type inference rules simpler, we 
+have provided you with the data structures for defining the lattice and some routines for managing security labels. 
+You may add or change the struct fields if you wish, but you don't have to.
+
+\begin{lstlisting}
+struct sec_label {
+  char *name; // human-readable name associated with label, e.g., "admin"
+};
+typedef struct sec_label sec_label;
+
+struct sec_lattice {
+  sec_label* user_label;
+  ubarray* uba;     // ubarray of sec_label* for pub, users, and admin
+};
+typedef struct sec_lattice sec_lattice;
+\end{lstlisting}
+
+Next we define some utility functions for working with labels and lattices. 
+Your typing rules should have made use of the partial order $\sqsubseteq$, so you will need the function \verb'sec_lessthan'
+ in \verb'sectypes.c' that encapsulates its meaning. \verb'sec_lessthan' takes two labels \verb'l1' and \verb'l2', 
+ as well as a security lattice structure \verb'L', and returns \verb'true' whenever \verb'l1' $\sqsubseteq$ \verb'l2' 
+ according to \verb'L', or \verb'false' otherwise. Again, you can change the internal implementation of these functions if you wish, 
+ but we ask that you don't change function names or parameters.
+ 
+\begin{lstlisting}
+bool sec_lessthan(sec_lattice *L, sec_label *l1, sec_label *l2) {
+  // should implement the partial order relation to return true
+  // if and only if l1 is less than (i.e., can "flow to") l2
+  // in the lattice defined by L, and false otherwise
+
+  // l1 = pub or l2 = admin
+  if((strcmp(l1->name,"pub") == 0)||(strcmp(l2->name, "admin") == 0)) return true;
+
+  // l1 = admin and l2 = pub
+  if(strcmp(l1->name,"admin") == 0 && strcmp(l2->name,"pub") == 0) return false;
+   
+  // otherwise, neither l1 nor l2 is admin/pub
+  return (strcmp(l1->name, l2->name) == 0); 
+}
+\end{lstlisting}
+The next operation that you should expect to make use of is the least-upper-bound $\sqcup$ defined by a given security lattice. 
+Again located in \verb'sectypes.c', the function \verb'sec_lub' takes  in two labels --- 
+\verb'l1' and \verb'l2' --- and a security lattice \verb'L'
+, and returns the element \verb'l1' $\sqcup$ \verb'l2'.
+\begin{lstlisting}
+sec_label *sec_lub(sec_lattice *L, sec_label *l1, sec_label *l2) {
+  // should implement the least-upper-bound operation to return 
+  // the smallest element of L that is at least as large as both
+  // l1 and l2
+  
+  // if both are pub, pub is the least upper bound
+  if (strcmp(l1->name,"pub") == 0 && strcmp(l2->name,"pub") == 0) return l1;
+
+  // if either is admin, then admin will be the least upper bound
+  if (strcmp(l1->name,"admin") == 0) return l1;
+  if (strcmp(l2->name,"admin") == 0) return l2;
+
+  // if one is pub, then the other is a user, so return the user
+  if (strcmp(l1->name,"pub") == 0) return l2;
+  if (strcmp(l2->name,"pub") == 0) return l1;
+
+  // if the names aren't equal (same user), return admin
+  if (strcmp(l1->name, l2->name) == 0) {
+    return l1;
+  } else {
+    return (sec_label*)(*ubarray_elem(L->uba, 1));
+  }   
+}
+\end{lstlisting}
+
+You may find it useful to define additional helper functions, 
+such as ones that create fresh unpopulated lattices, fresh labels, and add labels 
+associated with users to existing lattices. Do so at your own discretion.
+
+\paragraph{Implement type inference for expressions.} Since you now have everything 
+you need to work with security labels and lattices, it is time to put them to use on expressions. 
+For this, you will assume that you are given an already-constructed type context, and you will write a 
+function that returns a label denoting the highest label class of information that could be carried by an expression. 
+There is no part of this that ``checks'' the type against any criterion, so rather this is a form of type inference 
+where the type of an entity whose label is not explicitly provided is derived according to your rules and the labels given in the context.
+
+But first, you will need to construct a data type that holds the context. In the next task, you will populate 
+this data type with label information stored in the server's state, but for now, you can focus on writing a 
+suitable definition and using it to implement inference and checking. In \verb'sectypes.h', 
+we have provided a possible definition for the \verb'sec_ctxt' structure.
+\begin{lstlisting}
+struct sec_ctxt {
+  sec_label* pc;    // the pc
+  hash_table_t* ht; // maps variable ids (char *) to indices in the lattice uba
+};
+typedef struct sec_ctxt sec_ctxt;
+\end{lstlisting}
+Now, you will need to implement the functions \verb'type_aexp' and \verb'type_bexp' in \verb'sectypes.c' 
+using your rules for 
+expressions from the previous task, where you defined the typing system. 
+If $\lsequent{\Gamma}{\astrm : \ell}$ under your rules, then these functions should
+ return the \verb'sec_label' corresponding to $\ell$.
+ 
+\begin{lstlisting}
+sec_label *type_aexp(sec_ctxt *G, sec_lattice *L, aexp *a) {
+  // should implement type inference using your rules for arithmetic 
+  // expressions to return a label reflecting the greatest label of 
+  // information that the given expression could carry under context G
+}
+sec_label *type_bexp(sec_ctxt *G, sec_lattice *L, bexp *b) {
+  // should implement type inference using your rules for boolean
+  // expressions to return a label reflecting the greatest label of 
+  // information that the given expression could carry under context G
+}
+\end{lstlisting}
+We recommend that you confirm these functions work in isolation before moving on to the next part.
+
+\paragraph{Implement type checking for commands.} Finally, you have everything that you need to verify that 
+a given command satisfies non-interference with respect to a type context \verb'G' and security lattice 
+\verb'L' to execute on behalf of user with security label \verb'lu'. Implement a function \verb'typecheck_com' 
+in \verb'sectypes.c' so that it returns \verb'true' iff $\Gamma \vdash_{\ell_u} \asprg$ for 
+command $\asprg$ according to your rules, and \verb'false' otherwise.
+\begin{lstlisting}
+bool *typecheck_com(sec_ctxt *G, sec_lattice *L, sec_label *lu, com *c) {
+  // should implement type checking for commands to verify that
+  // the script will not leak information to label lu in violation
+  // of the lattice policy L in type context G.
+}
+\end{lstlisting}
+Again, we cannot stress enough that you should test this function on its own using examples for which you 
+know the correct outcome prior to integrating the type checker with your server in the next task. The type 
+inference and checking functions in this task are the most intricate part of the lab, and it will be much 
+easier to identify and isolate mistakes if you set up the type context and lattice by hand, and check that 
+the result is what you expect.
+
+\newpage
+\section{Task 3: Integrate the type system}
+\label{sec:integrate}
+
+\paragraph{Update the parser.} The first thing that you will need to do to integrate information flow type 
+checking into the server is update the parser. The lab handout contains updated versions of {\color{red}\verb'lexer.l'}, 
+{\color{red}\verb'parser.y'}, {\color{red}\verb'ast.h'}, and {\color{red}\verb'ast.c'}. Replace these files in your 
+current server implementation with those provided as part of the lab handout.
+\begin{center}
+\begin{tabular}{lcl}
+{\color{red}\verb'lexer.l'} & $\longrightarrow$ & \verb'src/tinyscript/parser/lexer.l' \\
+{\color{red}\verb'parser.y'} & $\longrightarrow$ & \verb'src/tinyscript/parser/parser.y' \\
+{\color{red}\verb'ast.h'} & $\longrightarrow$ & \verb'src/include/tinyscript/ast.h' \\
+{\color{red}\verb'ast.c'} & $\longrightarrow$ & \verb'src/tinyscript/ast.c'
+\end{tabular}
+\end{center}
+Verify that your server still compiles by cleaning out your \verb'build' subdirectory holding the makefiles emitted 
+by \verb'CMake', and completing a fresh build.
+
+\paragraph{Check login credentials.} Now that different users hold their own data and must authenticate to access 
+and modify it, the server will need to check provided login credentials. You should associate each username with a
+ password, and store this information in a \verb'passwd.db' file (you can choose where to put this). The format 
+ of the \verb'passwd.db' file should match the format of the interpreter's database files, with space-separated 
+ username/password pairs separated by newlines \verb'\n'. How you choose to manage this file is up to you, but one
+  potential option is to use the \verb'extendible_hash' data structure and its deserialization routine. 
+  When testing your server, you are responsible for creating example \verb'passwd.db' files.
+
+Your server should check provided username/password pairs against the contents of \verb'passwd.db' prior to loading the 
+specified program table, performing typechecking, or interpreting a script. If the check passes, then the server should 
+proceed with the above three tasks. Otherwise, the interpreter should exit after producing the output: 
+\begin{center}
+\verb'Fatal Error: unauthorized access, invalid credentials'
+\end{center}
+
+\paragraph{Populate the type context.} Before you can run the type checker, you will need to populate the type context 
+with information that associates every variable appearing in the program with a \verb'sec_label'. In addition to the 
+server storing values of variables in named tables, it will now also store label databases corresponding to every table. 
+For any table \verb'table.db', the server should maintain a file \verb'table.labels' that associates a security label 
+with every variable stored in \verb'table.db'. 
+
+The labels appearing in this file should correspond to the human-readable names contained in the \verb'sec_label.name' 
+field. So for example, if \verb'table.db' contains variables \verb'x', \verb'y', and \verb'foo', then \verb'table.labels'
+ might look as follows:
+\begin{lstlisting}
+x alice
+y bob
+foo admin
+\end{lstlisting}
+Prior to performing type checking, the interpreter should start by populating a fresh type context using the label 
+associations stored in the \verb'.labels' file corresponding to the \verb'.db' file specified by the script. 
+However, it may be that the script references variables that are not mentioned in the \verb'.db' or \verb'.labels' files, 
+and \textbf{in these cases the context should associate the label of the user executing the script with each such variable.}
+
+\paragraph{Verify before interpreting.} Once you have correctly populated the type context, the server should be in a 
+position to verify that the provided script satisfies the noninterference policy implemented in your type system. 
+Use the \verb'typecheck_com' function that you implemented in the previous task to ensure that the script will not 
+leak policy-violating information to the currently logged-in user. If type checking completes successfully (i.e., 
+returns \verb'true'), then the server should proceed to execute the script and save the resulting state in the 
+\verb'.db' file given in the program header. If type checking fails, then the server should exit immediately after 
+producing the output:
+\begin{center}
+\verb'Fatal Error: unauthorized access, policy violation'
+\end{center}
+
+\paragraph{Persist security labels.} If the server successfully authenticates the user with the provided credentials, 
+typechecks the given script, and interprets it to its natural termination, then it can exit successfully without producing 
+further output. However, before doing so it must update the \verb'.labels' database associated with the state database of 
+the program it just interpreted. Because the script may have created new variables that are saved in the state \verb'.db' 
+file, the label database must be updated to reflect the type context under which the current script was checked and executed.
+
+\paragraph{Test it.} As you implement the interpreter, don't forget to write test cases to make sure you've done it correctly. 
+
+\newpage
+\section{Task 4: Discussion}
+
+Write a brief report about your information flow type system and its implementations. Explain your rationale for any of the 
+rules that you think might be counter-intuitive, or that differ non-trivially from the rules we discussed in class. If you 
+found it necessary to make assumptions about the threat model, your implementation, or the platform that it runs on to achieve
+ the desired security goals, briefly discuss those as well.
+
+Finally, evaluate the protections offered by your information flow type system critically. Is this the best way to achieve the
+ broad, high-level security goals described in the introduction and first task? Would a simple access control mechanism work as
+  well, if not better?
+
+\end{document}

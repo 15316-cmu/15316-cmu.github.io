@@ -1,0 +1,17 @@
+using test.db :
+y := 10;
+x := 1 + y;
+if true then 
+	x := 2*x;
+	undef(y)
+else 
+	while !true do 
+		skip; 
+		undef(x) 
+	done 
+endif;
+if hasdef(x) then
+	output x
+else
+	skip
+endif

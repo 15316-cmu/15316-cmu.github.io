@@ -1,0 +1,192 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath,amssymb,fullpage,graphicx}
+\let\hat\widehat
+\let\tilde\widetilde
+
+\usepackage{xcolor}
+\usepackage{stmaryrd}
+\usepackage{mathpartir}
+
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{mathabx}
+%\usepackage{lsyntax}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newenvironment{proof}{\textbf{ Proof.}}{$\Box$}
+
+\newcommand{\answer}[1]{\text{{\it #1}}}
+\newcommand{\solution}[1]{\textbf{Solution:} #1}
+%\newcommand{\solution}[1]{}
+
+\usepackage[irlabel]{bugcatch}
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+%%%% new version of enumerate with less spacing
+\newenvironment{enum}{
+\begin{enumerate}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{enumerate}}
+
+\parskip 10pt
+\parindent 0pt
+\pagenumbering{gobble}
+\newcommand{\note}[1]{\ \\{\small\color{red}\emph{#1}}\\}
+
+\lstset{%
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries\color{green!60!black},
+  commentstyle=\itshape\color{purple!60!black},
+  stringstyle=\color{orange}
+}
+
+\newcommand{\pand}[2]{\keywordfont{and}(#1, #2)}
+\newcommand{\por}[2]{\keywordfont{or}(#1, #2)}
+\newcommand{\pin}{\keywordfont{pin}\xspace}
+\newcommand{\guess}{\keywordfont{guess}\xspace}
+\newcommand{\match}{\keywordfont{match}\xspace}
+\newcommand{\gt}{\keywordfont{gt}\xspace}
+\newcommand{\ecm}{\keywordfont{ecm}\xspace}
+\newcommand{\prefix}{\keywordfont{pref}\xspace}
+\newcommand{\poly}{\ensuremath{\mathbf{poly}}\xspace}
+
+\begin{document}
+
+\begin{center}
+\textbf{ Assignment 4: Relaxed Secrecy and Privacy\\15-316 Software Foundations of Security and Privacy}\\
+\end{center}
+Due: \textbf{ 11:59pm}, Thursday 11/10/19 \\
+Total Points: 50 (+5 possible extra credit)
+
+\vspace{-5mm}
+
+\begin{enumerate}
+
+\item \textbf{Not quite perfect timing (20 points).}
+
+RSA is a public key cryptosystem that performs encryption by taking powers modulo $N$ of an exponent $e$, and decryption by taking powers modulo $N$ of an exponent $d$. The details of how $N$, $e$ and $d$ are chosen are not important for this problem, but the pair $(e, N)$ is the \emph{public key} and $d$ is the secret \emph{private key}.
+
+To encrypt a plaintext message $M$, one computes the ciphertext $C = \mathrm{mod}(M^e, N)$. Likewise to perform decryption given $C$ to recover $M$, one computes $M = \mathrm{mod}(C^d, N)$. Thus modular exponentiation lies at the core of the algorithm, so is the essential primitive needed to implement RSA. 
+
+The program below implements modular exponentiation using the square-and-multiply method. Given ciphertext $C$, the approach iterates over each bit $j$ of the $L$-bit private decryption key $d$, squaring (mod $N$) the ciphertext at each step. If the current bit $d[j]$ is 1, then the current result is multiplied by the original ciphertext (again mod $N$). The modulo operation here is implemented in a very simple manner by repeated subtraction.
+\begin{lstlisting}
+    x := C;
+    while (j < L) {
+      x := x * x;
+      while (N <= x) { x := x - N; }
+      if (d[j] = 1) {
+        x := x * C;
+        while (N <= x) { x := x - N; }
+      }
+    }
+\end{lstlisting}
+Assuming that all variables except $d$ are public and $j$ is initialized to 0, this modular exponentiation program contains a timing side channel. 
+
+Explain what the side channel vulnerability is by describing how to exploit it. 
+\begin{itemize}
+\item As the attacker, you may assume that you can run the above code as many times as you like with whatever values of \verb'C' and \verb'd' that you choose, and observe the execution time.
+\item The attacker is also allowed to run the program arbitrarily many times, providing their choice of \verb'C', with the secret value of \verb'd' provided as input, and observe the execution time.
+\item You should assume that each arithmetic operation, comparison, and assignment takes one unit of time, and that you are able to observe the exact number of operations executed when you run the program.
+\end{itemize}
+Your answer does not need to be a formal algorithm, but to receive full credit, you should explain the following:
+\begin{itemize}
+\item (13 pts) How to recover a single chosen bit of \verb'd' by observing timing differences when running the program on different inputs for \verb'C'. Your answer to this should not require brute-forcing all of \verb'd' and then selecting the chosen bit. \emph{Hint: start with \texttt{d[0]}, and generalize your solution for that special case.}
+\item (7 pts) How many times do you need to run the code above to recover the full $L$-bit key \verb'd'?
+\end{itemize}
+
+\newpage
+
+\ 
+
+\newpage
+
+\item \textbf{Constant-time fix (15 points).} Fix the timing channel in the program from Part 2 so that the runtime no longer depends on the value of $d$. If it helps make your answer more clear, you can assume that the language contains a $\mathrm{mod}(x,N)$ primitive, but you must also assume that it runs in $\left\lfloor{\frac{x}{N}}\right\rfloor$ units of time. What is the runtime of your fixed implementation?
+
+\newpage
+
+\item \textbf{Randomized enough? (15 points).} Recall the randomized response mechanism. It flips a fair coin (i.e., one with equal probability $1/2$ or returning 0 or 1). If the coin comes heads, then it returned the contents of \pderef{0} (which we assumed to be either 0 or 1). If the coin comes up tails, then it flips another fair coin and returns the value. We saw that this satisfies $\ln(3)$-differential privacy.
+
+Consider the following variant, which computes a function of both \pderef{0} and \pderef{1}. Namely, if $b = 1$, then this program releases some information about \pderef{0}, and otherwise it releases something about \pderef{1}.
+\begin{equation}
+\begin{array}{l}
+%
+b := \flip(0.5) \\
+\mathbf{if}\ b = 1\ \mathbf{then} \\
+\ \ o := \flip(0.5) + \pderef{0} \\
+\mathbf{else} \\
+\ \ o := \flip(0.5) + \pderef{1}
+\end{array}
+\end{equation}
+Does this program satisfy differential privacy for any value of $\epsilon > 0$? 
+\begin{itemize}
+\item If so, use Definition 2 from Lecture 16 to explain why. In particular, argue that the probabilities of any output $o$ obtained from neighboring memories (e.g., $\{0 \mapsto 0, 0 \mapsto 0\}$ and $\{0 \mapsto 0, 0 \mapsto 1\}$ would be neighboring as they differ only in one location) satisfy the inequality for some $\epsilon$.
+\item If not, give a counterexample pair of neighboring memories for which the bound in Equation 8 (Lecture 16) cannot hold for any $\epsilon > 0$, and explain how to modify the program to make it satisfy differential privacy for some $\epsilon$. You do not need to prove that it satisfies it for a particular $\epsilon$, but you should articulate how your change addresses any problems in the program above. 
+\item You may asume that the contents of \pderefop are always either 0 or 1.
+\end{itemize}
+
+\newpage
+
+\item \textbf{Extra credit (5 points).}
+This problem refers to the program listed in Question 2.
+For extra credit, given the following timings for each initial value of $C$ below where $L$ = 4, recover the value of $d$ that led to these observations. You should assume that each arithmetic operation, comparison, and assignment takes one unit of time.
+\begin{center}
+\begin{tabular}{cccc}
+\begin{tabular}{l|l}
+$C$ & \emph{runtime}
+\\ \hline
+0 & 19 \\
+1 & 19 \\
+2 & 31 \\
+3 & 58 
+\end{tabular}
+&
+\begin{tabular}{l|l}
+$C$ & \emph{runtime}
+\\ \hline
+4 & 22 \\
+5 & 76 \\
+6 & 40 \\
+7 & 46 
+\end{tabular}
+&
+\begin{tabular}{l|l}
+$C$ & \emph{runtime}
+\\ \hline
+8 & 31 \\
+9 & 64 \\
+10 & 55 \\
+11 & 94 
+\end{tabular}
+&
+\begin{tabular}{l|l}
+$C$ & \emph{runtime}
+\\ \hline
+12 & 46 \\
+13 & 118 \\
+14 & 76 \\
+15 & 145 
+\end{tabular}
+\end{tabular}
+\end{center}
+
+
+\end{enumerate}
+
+\end{document}

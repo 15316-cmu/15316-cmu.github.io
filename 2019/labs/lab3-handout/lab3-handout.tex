@@ -1,0 +1,243 @@
+\documentclass[11pt]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+% EDIT THESE TWO COMMANDS TO BE YOUR ANDREW ID AND NAME
+\newcommand*{\stulogin}{}
+\newcommand*{\stuname}{}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+\usepackage{algorithm2e}
+\usepackage{fancyheadings}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{fullpage-old}
+\usepackage{graphics}
+\usepackage{sudoku}
+\usepackage[colorlinks,linkcolor=blue,urlcolor=blue]{hyperref}
+\usepackage{url}
+\usepackage{framed}
+\usepackage[dvipsnames,usenames]{xcolor}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{tikz}
+\usepackage{xspace}
+\usepackage{soul}
+
+\usepackage{ragged2e}
+% \usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{listings}
+% \usepackage{syntax}
+% \usepackage{semantic}
+% \usepackage{mathpartir}
+\usepackage{stmaryrd}
+\usepackage{amsmath}
+\usepackage{xspace}
+\usepackage{adjustbox}
+\usepackage{xspace}
+\usepackage{algpseudocode}
+\usepackage{mathtools}
+\usepackage{array}
+\usepackage{rotating}
+\usepackage{dirtree}
+
+\usepackage[irlabel]{bugcatch}
+
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{backgray}{gray}{0.95}
+\lstdefinelanguage
+   [x86]{Assembler}     
+   [x86masm]{Assembler}    
+   {morekeywords={movl, addl, subl, cmpl}} 
+\lstdefinestyle{customc}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  language=C,
+  showstringspaces=false,
+  numbers=none,
+  % xleftmargin=1ex,
+  framexleftmargin=1ex,
+  numbers=left,
+  numbersep=5pt,
+  numberstyle=\tiny\color{mygray},
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\color{blue},
+  commentstyle=\itshape\color{purple!40!black},  
+  stringstyle=\color{orange},
+  morekeywords={as,principal,password,do,exit,return,create,change,set,append,to,local,foreach,in,replacewith,filtereach,with,if,then,else,true,false,equal,notequal,bool},
+  tabsize=2,
+  deletestring=[b]',
+  backgroundcolor=\color{gray!15},
+  frame=tb
+}
+\lstset{escapechar=^,style=customc}
+
+\usetikzlibrary{automata,shapes,positioning}
+
+\renewenvironment{shaded}{%
+  \def\FrameCommand{\fboxsep=\FrameSep \colorbox{shadecolor}}%
+  \MakeFramed{\advance\hsize-\width \FrameRestore\FrameRestore}}%
+ {\endMakeFramed}
+\definecolor{shadecolor}{gray}{0.95}
+
+% \newcommand{\ex}{\ensuremath{\mathbf{EX\ }}\xspace}
+% \newcommand{\eg}{\ensuremath{\mathbf{EG\ }}\xspace}
+% \newcommand{\ef}{\ensuremath{\mathbf{EF\ }}\xspace}
+% \newcommand{\ax}{\ensuremath{\mathbf{AX\ }}\xspace}
+% \newcommand{\ag}{\ensuremath{\mathbf{AG\ }}\xspace}
+% \newcommand{\af}{\ensuremath{\mathbf{AF\ }}\xspace}
+% \newcommand{\nextt}{\ensuremath{\mathbf{X\ }}\xspace}
+% \newcommand{\future}{\ensuremath{\mathbf{F\ }}\xspace}
+% \newcommand{\always}{\ensuremath{\mathbf{G\ }}\xspace}
+% \newcommand{\until}{\ensuremath{\mathbf{\ U\ }}\xspace}
+% \newcommand{\release}{\ensuremath{\mathbf{\ R\ }}\xspace}
+% \newcommand{\existpath}{\ensuremath{\mathbf{E\ }}\xspace}
+% \newcommand{\forallpath}{\ensuremath{\mathbf{A\ }}\xspace}
+
+% \newcommand{\imp}{\ensuremath{\mathsf{Imp}}\xspace}
+% \newcommand{\aexp}{\ensuremath{\mathsf{AExp}}\xspace}
+% \newcommand{\bexp}{\ensuremath{\mathsf{BExp}}\xspace}
+% \newcommand{\com}{\ensuremath{\mathsf{Com}}\xspace}
+% \newcommand{\var}{\ensuremath{\mathsf{Var}}\xspace}
+% \newcommand{\strue}{\ensuremath{\mathsf{true}}\xspace}
+% \newcommand{\sfalse}{\ensuremath{\mathsf{false}}\xspace}
+% \newcommand{\true}{\ensuremath{\mathit{true}}\xspace}
+% \newcommand{\false}{\ensuremath{\mathit{false}}\xspace}
+
+\newcommand*{\escape}[1]{\expandafter\string\csname #1\endcsname}
+
+\newcommand*{\assignmentnumb}{3}
+% ---------------------------------------------------------------------------
+
+\lhead[{\bfseries 15-316\quad Lab \assignmentnumb\ \ \ \stulogin}]{{\bfseries 15-316\quad Lab \assignmentnumb\ \ \ \stulogin}}
+\rhead[{\bfseries\thepage}]{{\bfseries\thepage}}
+\pagestyle{fancy}
+\parskip 1ex
+\parindent 0mm
+
+% -----------Danny's Macros-------------
+
+\newcommand{\problem}[1]{\section{#1}\vspace{-1em}}
+\newcounter{partnumber}
+\newenvironment{parts}{\begin{list}{
+      % \arabic{problemnumber}\alph{partnumber}:}{
+      (\alph{partnumber})}{
+      \usecounter{partnumber} \setlength{\rightmargin}{\leftmargin}}
+    \setlength{\itemsep}{.0 in}}{
+  \end{list} \vspace*{.0 in}}
+
+% ---------------------------------------
+
+\begin{document}
+
+\centerline{Instructor: Matt Fredrikson \hfill TA: Milijana Surbatovich} 
+Due date: Friday, December 6 11:59pm \\
+Total points: 100 \\[1.5em]
+\vspace{1.5ex}
+\centerline{\Large\bf Lab \assignmentnumb: Break It}
+\vspace{0.5ex}
+\centerline{\Large\bf \stuname}
+
+\begin{problem}{Introduction}
+
+In previous labs you have taken steps to ensure that the data supporting your server remains confidential and safe from unwanted interference, all while adding more complex functionality to the server's implementation. This has been a constructive effort, focusing on principles of secure development rather than adversarial considerations.
+
+In this lab, you will become the adversary for your own implementation. Your job is to find and exploit at least one flaw in your previous implementations that lead to real security violations. You are encouraged to undertake this task using whatever means possible, short of modifying your previous implementation to insert a bug. 
+% You should use tools and techniques discussed in class, as well as finding ones that we did not discuss that are helpful in identifying vulnerabilities.
+
+The vulnerability that you identify \emph{must be exploitable}. You will not receive credit for bugs that impact the correctness of the server in carrying out its specified task, or its availability. For example, no credit will be given for finding a bug that causes the server to crash without showing how an attacker can further leverage it to violate the security goals of the corresponding lab assignment. On the other hand, a memory safety bug that an attacker can use to overwrite the server's internal extendible hash data structure containing the current database state is a real vulnerability.
+
+You should consider vulnerabilities in any part of the previous labs as fair game -- including any parts that you did not write, such as code in \verb'tiny.c'. The exploit that you provide should violate either \emph{confidentiality} or \emph{integrity}. This applies both to data managed by the server, as well as the underlying platform that it runs on.
+\begin{itemize}
+\item Exploits targeting confidentiality should demonstrate that it is possible to use a flaw to exfiltrate data that is not made available by the intended functioning of the server. This could apply to data in the server's \verb'.db' files, as long as the acquisition of that data violates the information flow policy of Lab 2 (and the vulnerability is in Lab 2). Likewise, this could apply to data in a file elsewhere on the system, as a correct functioning server should not allow one to read data from arbitrary locations in the filesystem.
+\item Exploits targeting integrity should demonstrate the possibility of changing server state in a manner that is inconsistent with the server's intended functionality. For example, an integrity exploit might show that it is possible to erase rows in a \verb'.db' file without having called \verb'undef' in a script. Integrity exploits can affect other parts of the system as well, such as by showing that one can leverage a bug to delete files or kill processes other than the one running the server.
+\end{itemize}
+If you are uncertain that the exploit you have in mind addresses a real security issue, then please ask a \textbf{public} question on Piazza, so that others can learn from the answer.
+  
+  \paragraph{Learning goals.}
+    As you complete this lab, you will:
+    \begin{itemize}
+      \item Undertake a security analysis of your own code, using independent research that builds on the background and skills you have developed in this class.
+      \item Understand the distinction between bugs that matter for correctness and exploitable vulnerabilities by finding the latter.
+      \item Practice designing strategies for mitigating security issues in existing codebases.
+      \item (Optional) Gain experience using popular tools to aid in finding vulnerabilities.
+      \item Learn to write clear reports of your security analysis and findings so that others can reproduce your work.
+    \end{itemize}
+
+  \paragraph{Evaluation.}
+    This lab is worth 100 points, and grades will be assigned based on the reports that you turn in. You must find \textbf{at least one vulnerability}, successfully exploit it, and report on your findings. If you cannot find a vulnerability in your code, then you should hand in a report that details the steps you used in your search, summarizes your findings, and convincingly explains why vulnerabilities are unlikely to be found.
+
+    The overarching principle that you should use to guide your reporing is to \textbf{strive for reproducibility}. The course staff should be able to replicate your findings based on the report that you turn in.
+    \begin{description}
+      \item[Identify a vulnerability (20 points).] Your report should begin by identifying a vulnerability in one of your implementations. State which implementation the vulnerability exists in, where it is located, and any prerequisites that need to hold in order for the vulnerability to exist. 
+      Then detail the steps that you took to find it, including any tools that you used and how you made use of them. If you had to write code or make changes to the target implementation to find the vulnerability, then explain your code and/or the changes you made, and provide the code in your writeup.
+      \item[Explain the security issue (20 points).] After presenting the vulnerability and recounting your steps to find it, concisely explain why this vulnerability is relevant to security and is not just a correctness or availability bug. Clear and convincing explanations will receive full points.
+      \item[Explain how to exploit it (30 points).] Provide a proof-of-concept exploit that successfully exploits the vulnerability to violate the security of the target implementation. This section of the report should illustrate the security issue from the previous section in concrete terms, and give the course staff enough information to exploit the vulnerability. Your explanation should give detailed, step-by-step instructions that lead to a security violation, and provide any necessary code and setup instructions.
+      \item[Propose a fix (30 points).] The final section of your report should propose a fix for the vulnerability you found and exploited. Your fix should eliminate the possibility of successful exploitation, without interfering with the correct functioning of the implementation or introducing additional bugs or vulnerabilities. On the other hand, if aspects of the implementation were already buggy in ways that affect correctness, then your fix does not need to address those pre-existing bugs. Your fix may or may not use techniques that have been discussed in this course, and you are free to propose any approach as long as you can justify its efficacy. You do not need to implement the fix yourself, but your proposal should contain sufficient detail to allow us to implement it without doing unnecessary work.
+      \item[(Alternate) No vulnerability.] If you are unable to find a vulnerability, then you must provide a detailed account of your efforts that culminated in an unsuccessful search. Your report should convince the course staff that you exercised due diligence, and did not fail to consider any of the issues we have discussed in this course, leading to the conclusion that there are no readily-exploitable bugs in the implementations you were given. Note that we expect this to be quite rare, so if you believe you are headed towards handing such a report in, you may want to contact the course staff to make sure that you are not mistaken.
+      \item[(Extra credit) Additional vulnerabilities (15 points each, up to 2 more).] Did you get started, and realize that your implementation in fact has multiple security problems? Now is your chance to come clean, and for extra points you can hand in up to two additional reports. The structure and level of detail in the additional reports should match that of your first report to receive the full amount of extra credit.
+    \end{description}
+\end{problem}
+
+\paragraph{What to hand in.} Hand in each of your reports in a single PDF file for submission to Gradescope. \textbf{If you hand in extra credit reports, start each one on a new page with the first line containing the text \emph{Report \#N}}.
+
+The final deadline for this lab is \textbf{Friday, December 6}, and unfortunately, there will be \textbf{no exceptions} as this is the last day of classes for the semester. 
+
+\newpage
+\section{Helpful pointers and tools}
+\label{sect:help}
+
+Because you implemented the code that you will be exploiting, you probbably have some idea of where the interesting bugs might live, and how you might exploit them. Before attempting to use any tools or a sophisticated technique, try simple things manually first.
+
+We have covered a number of techniques throughout the semester that can help you accomplish the tasks in this lab. Tools like Pin can be directly applied to these and related tasks, as is documented in the following articles. Note that this is not a complete list, and you are encouraged to look through the related work sections as well as search other Internet sources for more.
+\begin{itemize}
+\item Adi Sosnovich, Orna Grumberg, Gabi Nakibly. \href{https://link.springer.com/chapter/10.1007/978-3-642-39799-8_51}{\emph{Finding Security Vulnerabilities in a Network Protocol Using Parameterized Systems}.}
+
+\item Jonathan Gallagher, Robin Gonzalez, Michael E. Locasto. \href{https://dl.acm.org/citation.cfm?id=2687151}{\emph{Verifying security patches}.}
+
+\item Rafal Wojtczuk. \href{https://events.ccc.de/congress/2005/fahrplan/attachments/552-Paper_AToolCapableOfAutomaticallyFindingIntegerOverflowsInWin32Binaries.pdf}{\emph{UQBTng: a tool capable of automatically finding integer overflows in Win32 binaries}}.
+
+\item Pasquale Malacaria, Michael Tautchning, Dino DiStefano. \href{https://link.springer.com/chapter/10.1007/978-3-319-47166-2_63}{\emph{Information Leakage Analysis of Complex C Code and Its application to OpenSSL}.}
+
+\item Dawson Engler, Madanlal Musuvathi. \href{https://link.springer.com/chapter/10.1007/978-3-540-24622-0_17}{\emph{Static Analysis versus Software Model Checking for Bug Finding}.}
+
+\item Gal Diskin. \href{https://media.blackhat.com/bh-us-11/Diskin/BH_US_11_Diskin_Binary_Instrumentation_Slides.pdf}{\emph{Binary Instrumentation for Security Professionals}.}
+
+\item Jonathan Salwan. \href{http://shell-storm.org/blog/Taint-analysis-and-pattern-matching-with-Pin/}{\emph{Taint analysis and pattern matching with Pin.}}
+
+\item Jonathan Salwan. \href{http://shell-storm.org/blog/In-Memory-fuzzing-with-Pin/}{\emph{In-Memory fuzzing with Pin.}}
+
+\item Jonathan Salwan. \href{http://shell-storm.org/blog/Binary-analysis-Concolic-execution-with-Pin-and-z3/}{\emph{Concolic execution with Pin and Z3}.}
+
+\item Jonathan Salwan. \href{http://shell-storm.org/blog/Stack-and-heap-overflow-detection-at-runtime-via-behavior-analysis-and-PIN/}{\emph{Stack and heap overflow detection at runtime via behavior analysis with Pin}.}
+\end{itemize}
+These references are meant to get you started researching vulnerability analysis techniques, and many only make use of techniques we have discussed in class. You may find some of them more directly pertinent to the task at hand than others, and your mileage will almost certainly vary, so you should avoid spending too much time reading all of them thoroughly. As you find additional references, please remember to share those that were especially helpful with the rest of the class on Piazza.
+
+You are also encouraged to explore tools outside of those that we covered in class. Below is an incomplete list of potentially useful tools to consider. Before attempting to use any of them, it is a good idea to do a bit of background reading to understand what the tool is capable of, how much effort is required to effectively use it, and what sorts of vulnerabilities it might uncover. It is best to have a game plan before using a tool, with a reasonable goal in mind of what you hope to accomplish. Finally, if you have already invested some time in a tool and have yet to see returns, consider moving on and trying something different rather than potentially wasting more time.
+\begin{itemize}
+
+\item \href{https://klee.github.io/}{Klee} is a symbolic execution engine for C and C++. This is a versatile tool that can be applied to finding vulnerabilities as well as other bugs. You might find it enlightening to read \href{https://web.stanford.edu/~engler/exe-ccs-06.pdf}{EXE: Automatically Generating Inputs of Death} before deciding whether to use this tool.
+
+\item \href{http://lcamtuf.coredump.cx/afl/}{American fuzzy lop} is a fully-automated security-oriented fuzzer. The main tool \verb'afl-fuzz' will not tell you whether a bug is exploitable, just whether it crashes the program. Consider installing the useful \href{https://github.com/rc0r/afl-utils}{afl-utils} suite of tools for additional functionality that may help you discover vulnerabilities more quickly.
+
+\item \href{http://fbinfer.com/}{Facebook Infer} is a static analysis tool that is particularly good at finding memory issues. Note that while it is not designed specifically for exploitable bugs, you may still find it useful.
+
+\item \href{https://www.dwheeler.com/flawfinder/}{Flawfinder} is a simple tool for finding potential security bugs in C/C++ programs.
+
+\item \href{https://cpachecker.sosy-lab.org/doc.php}{CPAchecker} is a static analysis platform for C and C++.
+
+\item \href{https://triton.quarkslab.com/}{Triton Dynamic Binary Analysis} framework. Built on top of Pin, provides a symbolic execution engine, taint analysis, and other useful APIs. Has Python bindings for rapid prototyping.
+
+\item Jonathan Salwan's \href{https://github.com/JonathanSalwan/PinTools}{Pin tool collection} has several useful tools for vulnerability-related tasks. You might consider adapting one of these to suit your needs.
+
+\item \href{https://www.debian.org/security/audit/examples/RATS}{RATS} is an automated scanner for finding potential security bugs in a number of languages.
+
+\item \href{https://github.com/MozillaSecurity/peach}{Peach} is a fuzzing framework maintained by Mozilla that is more configurable than American fuzzy lop. Compatible with Python.
+
+\item \href{http://www.splint.org/}{Splint} is a lightweight static analysis tool for C programs. It focuses particularly on security bugs, and is fairly easy to use.
+\end{itemize}
+As with helpful references, if you encounter a tool that is not listed here and obtained good results from it, please share with the rest of the class on Piazza.
+
+
+\end{document}

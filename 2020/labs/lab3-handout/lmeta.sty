@@ -1,0 +1,254 @@
+\ProvidesPackage{lmeta}
+\NeedsTeXFormat{LaTeX2e}
+%%
+%% Copyright (c) 2003-2015 Andre Platzer
+%%
+%% The logic package provides very useful tools for writing logical formulas.
+%% This (isolated) submodule provides lightweight macros for logical meta-language
+%%
+\RequirePackage{ifthen}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% optional parameters to this package
+%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Meta-Logical language
+%%
+\newif\if@mconnectivenatural
+\@mconnectivenaturalfalse
+\newif\if@mconnectivetext
+\@mconnectivetextfalse
+%% Whether to use verbose natural language meta propositional
+%% connectives (and,or,then), or more formal symbols (<comma>,\Rightarrow)
+%% or text-only
+\DeclareOption{mconnectiveformal}{\global\@mconnectivenaturalfalse}
+\DeclareOption{mconnectivenatural}{\global\@mconnectivenaturaltrue}
+\DeclareOption{mconnectivetext}{\global\@mconnectivenaturaltrue\global\@mconnectivetexttrue}
+
+\newif\if@mquantifierabbreviated
+%\@mquantifierabbreviatedfalse
+\@mquantifierabbreviatedtrue % Default changed to [shortmquant] on 2013/08/19
+\newif\if@mquantifierbold
+\@mquantifierboldfalse
+\newif\if@mquantifierbb
+\@mquantifierbbfalse
+\newif\if@mquantifierdot
+\@mquantifierdotfalse
+\newif\if@mquantifiercolor
+\@mquantifiercolorfalse
+\newif\if@mquantifiermixed
+\@mquantifiermixedfalse
+%% Whether to use abbreviated meta quantifiers
+\DeclareOption{longmquant}{\global\@mquantifierabbreviatedfalse}
+\DeclareOption{shortmquant}{\global\@mquantifierabbreviatedtrue}
+\DeclareOption{bbmquant}{\global\@mquantifierabbreviatedtrue\global\@mquantifierbbtrue}
+\DeclareOption{boldmquant}{\global\@mquantifierabbreviatedtrue\global\@mquantifierboldtrue
+}
+\DeclareOption{dotmquant}{\global\@mquantifierabbreviatedtrue\global\@mquantifierdottrue
+}
+\DeclareOption{colormquant}{\global\@mquantifiercolortrue}
+%% Whether to mix ordinary and meta quantification
+\DeclareOption{mixmquant}{\global\@mquantifierabbreviatedtrue\global\@mquantifiermixedtrue}
+
+\newif\if@mquantifiertype
+\@mquantifiertypetrue
+%% Whether to print the type over which meta quantifiers range as well
+\DeclareOption{mquantifiertype}{\global\@mquantifiertypetrue}
+\DeclareOption{nomquantifiertype}{\global\@mquantifiertypefalse}
+
+
+\DeclareOption*{\PackageError{lmeta}{Unknown option to logic subpackages `\CurrentOption'}}
+\ProcessOptions\relax
+
+\if@mquantifierbold
+\RequirePackage{amsbsy}%for \pbm bold math
+%\RequirePackage{bm}%for pbm bold math
+%Table 327 on page 113 of the Comprehensive LaTeX Symbol List
+\fi
+
+\if@mquantifierbb
+\RequirePackage{amsmath,amssymb}
+\RequirePackage{tikz}
+\fi
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% logical meta-language
+%%
+
+%%
+%% Propositional meta language
+%%
+\newcommand{\mtrue}{\ensuremath{\top}\xspace}
+\newcommand{\mfalse}{\ensuremath{\bot}\xspace}
+\if@mconnectivenatural
+    \newcommand{\mnot}[1][\textrm{not}]{~#1\,}
+    \newcommand{\mand}[1][\textrm{and}]{\,#1\,}
+    \newcommand{\mor}[1][\textit{or}]{\,#1\,}
+    %% \mimply[textual circumscription]
+    \newcommand{\mimply}[1][\textrm{then}]{\,#1\,}
+    \newcommand{\mnimply}[1][\textrm{then not}]{\,#1\,}
+    %% \mreverseImply[textual circumscription]
+    \newcommand{\mreverseImply}[1][\,\textrm{when}\,]{#1}
+    \newcommand{\mylpmi}[1][\textrm{if}]{\,#1\,}
+    \newcommand{\mbisubjunct}[1][\textrm{iff}]{\ #1\ }
+    \let\mnbisubjunct\nLeftrightarrow
+    %% define to be equivalent
+    \let\mdefbisubjunct\mbisubjunct
+    %% \mequiv[l] locally equivalent, \mequiv[g] globally equivalent
+    \newcommand{\mequiv}[1][]
+    {\,\textrm{iff}\,}
+\else
+    \newcommand{\mnot}[1][\textrm{not}]{~#1\,}
+    \newcommand{\mand}[1][,]{\,#1\,}
+    \newcommand{\mor}[1][\textit{or}]{\,#1\,}
+    %% \mimply[textual circumscription]
+    \newcommand{\mimply}[1][\Rightarrow]{\,#1\,}
+    \newcommand{\mnimply}[1][\not\Rightarrow]{\,#1\,}
+    %% \mreverseImply[textual circumscription]
+    \newcommand{\mreverseImply}[1][\Leftarrow]{\,#1\,}
+    \newcommand{\mylpmi}[1][\Leftarrow]{\,#1\,}
+    \newcommand{\mnylpmi}[1][\not\Leftarrow]{\,#1\,}
+    \newcommand{\mbisubjunct}[1][\iff]{#1}
+    \let\mnbisubjunct\nLeftrightarrow
+    %% define to be equivalent
+    \let\mdefbisubjunct\defequiv
+    %% \mequiv[l] locally equivalent, \mequiv[g] globally equivalent
+    \newcommand{\mequiv}[1][]
+    {\equiv}
+    %% \mnequiv[l] locally not equivalent, \mnequiv[g] globally not equivalent
+    \newcommand{\mnequiv}[1][]
+    {\not\equiv}
+\fi
+
+
+\if@mquantifiercolor
+\newcommand{\mquantifiercolor}[1]{\textcolor{blue}{#1}}
+\else
+\newcommand{\mquantifiercolor}[1]{#1}
+\fi
+\if@mquantifiermixed
+\newcommand{\mallquantifier}{\mquantifiercolor{\forall}}
+\newcommand{\mexistsquantifier}{\mquantifiercolor{\exists}}
+\newcommand{\mexistsuniquequantifier}{\mquantifiercolor{\exists\!!}}
+\newcommand{\mneexistsquantifie}{\mquantifiercolor{\not\exists}}
+\else
+  \if@mquantifierbb
+\newcommand{\mallquantifier}{\mquantifiercolor{\bbforall}}
+\newcommand{\mexistsquantifier}{\mquantifiercolor{\bbexists}}
+\newcommand{\mexistsuniquequantifier}{\mquantifiercolor{\bbexists\!!}}
+\newcommand{\mneexistsquantifie}{\mquantifiercolor{\not\exists}}
+  \else
+  \if@mquantifierbold
+    \if@mquantifierdot
+%\newcommand{\mallquantifier}{\mquantifiercolor{\mathop{\mathpalette\superimpose{{\pmb{\forall}}{\dot{}}}}}}
+%\newcommand{\mexistsquantifier}{\mquantifiercolor{\mathop{\mathpalette\superimpose{{\pmb{\exists}}{\cdot}}}}}
+%\newcommand{\mexistsuniquequantifier}{\mathop{\mathpalette\superimpose{{\pmb{\exists}}{\cdot}\! \pmb{!}}}}
+%\newcommand{\mneexistsquantifier}{\mathop{\mathpalette\superimpose{{\pmb{\not\exists}}{\cdot}}}}
+\newcommand{\mallquantifier}{\mquantifiercolor{\mathop{\mathpalette\superimpose{{\pmb{\forall}}{\raisebox{2.6pt}{$:$}}}}}}
+\newcommand{\mexistsquantifier}{\mquantifiercolor{\mathop{\mathpalette\superimpose{{\pmb{\exists}}{\raisebox{1.5pt}{$:$}}}}}}
+\newcommand{\mexistsuniquequantifier}{\mathop{\mathpalette\superimpose{{\pmb{\exists}}{\raisebox{1.5pt}{$:$}}\! \pmb{!}}}}
+\newcommand{\mneexistsquantifier}{\mathop{\mathpalette\superimpose{{\pmb{\not\exists}}{\raisebox{1.5pt}{$:$}}}}}
+    \else
+\newcommand{\mallquantifier}{\mquantifiercolor{\pmb{\forall}}}
+\newcommand{\mexistsquantifier}{\mquantifiercolor{\pmb{\exists}}}
+\newcommand{\mexistsuniquequantifier}{\pmb{\exists!}}
+\newcommand{\mneexistsquantifier}{\pmb{\not\exists}}
+    \fi
+  \else
+    \if@mquantifierdot
+\newcommand{\mallquantifier}{\mquantifiercolor{\mathop{\mathpalette\superimpose{{\forall}{\cdot}}}}}
+\newcommand{\mexistsquantifier}{\mquantifiercolor{\mathop{\mathpalette\superimpose{{\exists}{\cdot}}}}}
+\newcommand{\mexistsuniquequantifier}{\mquantifiercolor{\mathop{\mathpalette\superimpose{{\exists}{\cdot}\! !}}}}
+\newcommand{\mneexistsquantifier}{\mquantifiercolor{\mathop{\mathpalette\superimpose{{\not\exists}{\cdot}}}}}
+    \else
+    \newcommand{\mallquantifier}{\forall\hspace{-0.6em}\forall}
+    \newcommand{\mexistsquantifier}{\exists\hspace{-0.6em}\exists}
+    \newcommand{\mexistsuniquequantifier}{\exists\hspace{-0.6em}\exists !}
+\newcommand{\mneexistsquantifier}{\not\exists\hspace{-0.6em}\not\exists}
+    \fi
+  \fi
+\fi
+\fi
+
+%TODO Could try quantifiers overlayed with dots.
+
+\if@mquantifiertype
+\newcommand{\mquantifier}[4]
+           {#1%
+           {#2}%
+           {#3~\,}%
+           #4}
+\else
+\newcommand{\mquantifier}[4]
+           {#1%
+           #3{~\,}%
+           #4}
+\fi
+
+%%
+%% First-Order meta language
+%%
+%% \mforall[type]{x}
+\newcommand{\mforall}[2][]
+           {\ensuremath{%
+             \if@mquantifierabbreviated
+               \mquantifier{\mallquantifier}{#1}{#2}{}%
+             \else
+                 \,\text{for each\if@mquantifiertype\,#1 \else\fi}#2~
+             \fi
+           }
+         }
+%% reverse notation: textrbla \mforall{x}
+\newcommand{\mforallr}[2][]
+           {\ensuremath{%
+             \if@mquantifierabbreviated
+                 \mallquantifier%
+                 \if@mquantifiertype#1\else\fi#2
+             \else
+                 ~\text{for all\if@mquantifiertype\,#1 \else\fi}#2
+             \fi
+           }
+           }
+\newcommand{\mexists}[2][]
+           {\ensuremath{%
+             \if@mquantifierabbreviated
+               \mquantifier{\mexistsquantifier}{#1}{#2}{}
+             \else
+                 \,\text{there is\if@mquantifiertype\,#1 \else\fi}#2~
+             \fi
+           }
+         }
+%% reverse notation: textrbla \mforall{x}
+\newcommand{\mexistsr}[2][]
+           {\ensuremath{%
+             \if@mquantifierabbreviated
+                 \mexistsquantifier%
+                 \if@mquantifiertype #1 \else \fi #2
+             \else
+                 ~\text{for some\if@mquantifiertype\,#1 \else\fi}#2
+             \fi
+           }
+         }
+\newcommand{\mnexists}[2][]
+           {\ensuremath{%
+             \if@mquantifierabbreviated
+               \mquantifier{\mnexistsquantifier}{#1}{#2}{}%
+             \else
+                 \,\text{there is no\if@mquantifiertype\,#1 \else\fi} #2 ~\,
+             \fi
+           }
+         }
+
+\newcommand{\mexistsUnique}[2][]
+           {\ensuremath{%
+             \if@mquantifierabbreviated
+               \mquantifier{\mexistsuniquequantifier}{#1}{#2}{}%
+             \else
+                 \,\text{there is a unique \if@mquantifiertype#1\else\fi}\, #2 ~
+             \fi
+           }
+         }

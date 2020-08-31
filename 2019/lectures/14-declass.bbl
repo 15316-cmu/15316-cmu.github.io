@@ -1,0 +1,21 @@
+\begin{thebibliography}{SM04}
+
+\bibitem[SM04]{Sabelfeld04}
+A.~Sabelfeld and A.~Myers.
+\newblock A model for delimited information release.
+\newblock In {\em Proceedings of the International Symposium on Software
+  Security}, 2004.
+
+\bibitem[SS09]{Sabelfeld09}
+A.~Sabelfeld and D.~Sands.
+\newblock Declassification: Dimensions and principles.
+\newblock In {\em Proceedings of the 18th IEEE Computer Security Foundations
+  Symposium (CSF)}, 2009.
+
+\bibitem[VS00]{Volpano2000}
+D.~Volpano and G.~Smith.
+\newblock Verifying secrets and relative secrecy.
+\newblock In {\em Proceedings of the 27th ACM SIGPLAN-SIGACT symposium on
+  Principles of Programming Languages (POPL)}, 2000.
+
+\end{thebibliography}

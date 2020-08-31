@@ -1,0 +1,38 @@
+\newcommand{\etalchar}[1]{$^{#1}$}
+\begin{thebibliography}{BGM{\etalchar{+}}05}
+
+\bibitem[Bau03]{bauer:thesis}
+Lujo Bauer.
+\newblock {\em Access Control for the {W}eb via Proof-carrying Authorization}.
+\newblock PhD thesis, Princeton University, November 2003.
+\newblock URL: \url{http://www.ece.cmu.edu/~lbauer/papers/thesis.pdf}.
+
+\bibitem[BGM{\etalchar{+}}05]{Bauer2005}
+Lujo Bauer, Scott Garriss, Jonathan~M. McCune, Michael~K. Reiter, Jason Rouse,
+  and Peter Rutenbar.
+\newblock Device-enabled authorization in the {Grey}~{System}.
+\newblock In {\em Information Security}, 2005.
+
+\bibitem[Gar96]{Garfinkel1996}
+Simson Garfinkel.
+\newblock {\em PGP: Pretty Good Privacy}.
+\newblock O'Reilly \& Associates, Inc., Sebastopol, CA, USA, 1st edition, 1996.
+
+\bibitem[{IET}]{deltacrl}
+{IETF Network Working Group}.
+\newblock {RFC} 5280: Internet {X.509} {P}ublic {K}ey {I}nfrastructure {O}nline
+  {C}ertificate {S}tatus {P}rotocol -- {OCSP}.
+\newblock \url{https://tools.ietf.org/html/rfc5280}.
+
+\bibitem[{Int}]{ocsp}
+{Internet Engineering Task Force}.
+\newblock {RFC} 6960: Internet {X.509} {P}ublic {K}ey {I}nfrastructure
+  {C}ertificate and {C}ertificate {R}evocation {L}ist ({CRL}) profile.
+\newblock \url{https://tools.ietf.org/html/rfc6960}.
+
+\bibitem[KL14]{Katz2014}
+Jonathan Katz and Yehuda Lindell.
+\newblock {\em Introduction to Modern Cryptography, Second Edition}.
+\newblock Chapman \& Hall/CRC, 2nd edition, 2014.
+
+\end{thebibliography}

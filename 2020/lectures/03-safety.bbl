@@ -1,0 +1,58 @@
+\newcommand{\etalchar}[1]{$^{#1}$}
+\begin{thebibliography}{ABB{\etalchar{+}}16}
+
+\bibitem[ABB{\etalchar{+}}16]{KeYBook2016}
+Wolfgang Ahrendt, Bernhard Beckert, Richard Bubel, Reiner H{\"a}hnle, Peter~H.
+  Schmitt, and Matthias Ulbrich, editors.
+\newblock {\em Deductive Software Verification -- The {KeY} Book}, volume 10001
+  of {\em LNCS}.
+\newblock Springer, 2016.
+
+\bibitem[BP06]{DBLP:conf/cade/BeckertP06}
+Bernhard Beckert and Andr{\'e} Platzer.
+\newblock Dynamic logic with non-rigid functions: A basis for object-oriented
+  program verification.
+\newblock In {\em IJCAR}, pages 266--280, 2006.
+\newblock \href {https://doi.org/10.1007/11814771_23}
+  {\path{doi:10.1007/11814771_23}}.
+
+\bibitem[DRS{\etalchar{+}}93]{DBLP:conf/stacs/DrexlerRSSSW93}
+Rainer Drexler, Wolfgang Reif, Gerhard Schellhorn, Kurt Stenzel, Werner
+  Stephan, and Andreas Wolpers.
+\newblock The {KIV} system: A tool for formal program development.
+\newblock In {\em STACS}, pages 704--705, 1993.
+
+\bibitem[HKT00]{Harel_et_al_2000}
+David Harel, Dexter Kozen, and Jerzy Tiuryn.
+\newblock {\em Dynamic Logic}.
+\newblock MIT Press, 2000.
+
+\bibitem[Koz85]{DBLP:journals/jcss/Kozen85}
+Dexter Kozen.
+\newblock A probabilistic {PDL}.
+\newblock {\em J. Comput. Syst. Sci.}, 30(2):162--178, 1985.
+
+\bibitem[Pel87]{DBLP:journals/jacm/Peleg87}
+David Peleg.
+\newblock Concurrent dynamic logic.
+\newblock {\em J. ACM}, 34(2):450--479, 1987.
+
+\bibitem[Pla08]{DBLP:journals/jar/Platzer08}
+Andr{\'e} Platzer.
+\newblock Differential dynamic logic for hybrid systems.
+\newblock {\em J. Autom. Reas.}, 41(2):143--189, 2008.
+\newblock \href {https://doi.org/10.1007/s10817-008-9103-8}
+  {\path{doi:10.1007/s10817-008-9103-8}}.
+
+\bibitem[Pla17]{Platzer17}
+Andr{\'e} Platzer.
+\newblock {\em Logical Foundations of Cyber-Physical Systems}.
+\newblock Springer, Switzerland, 2017.
+\newblock URL: \url{http://www.springer.com/978-3-319-63587-3}.
+
+\bibitem[Pra76]{DBLP:conf/focs/Pratt76}
+Vaughan~R. Pratt.
+\newblock Semantical considerations on {Floyd-Hoare} logic.
+\newblock pages 109--121, 1976.
+
+\end{thebibliography}

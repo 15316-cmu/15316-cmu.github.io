@@ -1,0 +1,333 @@
+\ProvidesPackage{msymb}
+\NeedsTeXFormat{LaTeX2e}
+%%
+%% Copyright (c) 2003-2017 Andre Platzer
+%%
+%% This package provides mathematical symbols.
+%% The symbols in this package are lightweight, i.e., comparably generic and not necessarily tied to a specific semantics.
+
+\RequirePackage{amssymb}
+\RequirePackage{xspace}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% optional parameters to this package
+%%
+
+\newif\if@blackboardsets
+%\@blackboardsetsfalse
+\@blackboardsetstrue  % default changed on 2013/08/19
+%% Use blackboard notation for \reals,\naturals etc.
+\DeclareOption{bbsets}{\global\@blackboardsetstrue}
+%% Use bold notation for \reals,\naturals etc. propagated by Beutelspacher
+\DeclareOption{boldsets}{\global\@blackboardsetsfalse}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Relation Notation
+
+\newif\if@inlinerelation
+\@inlinerelationfalse  % default changed to setrelation on 2014/10/5
+\DeclareOption{setrelation}{\global\@inlinerelationfalse}
+\DeclareOption{inlinerelation}{\global\@inlinerelationtrue}
+
+\DeclareOption*{\PackageError{msymb}{Unknown option `\CurrentOption'}}
+\ProcessOptions\relax
+
+\RequirePackage{amsmath}
+
+%% alternative command for \(\) with a non-breakable box
+\providecommand{\m}[1]{\mbox{$#1$}}
+
+%%%%%%%%%%%%
+%
+% alternative command for \ensuremath macro but prevent line breaks
+
+\DeclareRobustCommand{\mensuremath}{%
+  \ifmmode
+    \expandafter\@firstofone
+  \else
+    \expandafter\@mensuredmath
+  \fi}
+\long\def\@mensuredmath#1{\m{\relax#1}}
+
+%%%%%%%%%%%%
+
+
+%% smaller version of \dots
+\newcommand{\sdots}{\mathinner{\ldotp\ldotp}}%
+%% smaller version of minus -
+\newcommand{\sminus}{{\scriptsize-}}%
+
+%%circled symbols \textcircled{$\star$} from amsmath
+
+%% Superimpose two symbols. The wider symbol must go first in the argument to \superimpose, which must consist of two braced objects.
+%% @see \rlap, \llap, \clap to print symbols with zero-width box
+%% @see \usepackage{mathtools} \mathrlap{\vee}\wedge
+%% @see ${\mathrel{\mathpalette\superimpose{{\vee}{\wedge}}}}$
+\newcommand*{\superimpose}[2]%
+{{\ooalign{$#1\@firstoftwo#2$\cr\hfil$#1\@secondoftwo#2$\hfil\cr}}}
+
+
+% math squeeze, squeeze symbols tighter together in math mode like {+} would
+\newcommand*{\msqueeze}[1]{{\setlength{\medmuskip}{0mu}#1}}
+\newcommand*{\msqueezee}[1]{{\setlength{\thinmuskip}{0mu}\setlength{\medmuskip}{0mu}\setlength{\thickmuskip}{0mu}#1}}
+%\medmuskip is used around binary operators (like \times) and \thickmuskip is used around binary relations (like =)
+
+%% misc funny brackets
+%% \[
+%% \lbanana a \rbanana \qquad
+%% \lenvelope a \renvelope \qquad
+%% \llense a \rlense \qquad
+%% \llensehat a \rlensehat \qquad
+%% \lelbow a \relbow \qquad
+%% \Langle a \Rangle \qquad
+%% \lbarbedwire a \rbarbedwire \qquad
+%% \llid a \rlid \qquad
+%% \lstrike a \rstrike \qquad
+%% \lsmooch a \rsmooch \qquad
+%% \]
+% (| 
+\newcommand{\lbanana}{\mathopen{\mathrel{(}\joinrel\mathrel{|}}}
+% |)
+\newcommand{\rbanana}{\mathclose{\mathrel{|}\joinrel\mathrel{)}}}
+% [|
+% @see also \usepackage{stmaryrd} \llbracket
+\newcommand{\lenvelope}{\mathopen{\mathrel{[}\joinrel\mathrel{[}}}
+% |]
+\newcommand{\renvelope}{\mathclose{\mathrel{]}\joinrel\mathrel{]}}}
+% [(
+%%\todo improve notation
+\newcommand{\llense}{\mathopen{\mathrel{[}\joinrel\mathrel{(}}}
+% )]
+\newcommand{\rlense}{\mathclose{\mathrel{)}\joinrel\mathrel{]}}}
+% [<
+%%\todo improve notation
+\newcommand{\llensehat}{\mathopen{\mathrel{[}\joinrel\mathrel{\langle}}}
+% >]
+\newcommand{\rlensehat}{\mathclose{\mathrel{\rangle}\joinrel\mathrel{]}}}
+% << as in stereotype
+\newcommand{\lelbow}{\mathopen{\ll}}
+% >>
+\newcommand{\relbow}{\mathclose{\gg}}
+% << bigger with \langle
+%%\todo improve notation
+\newcommand{\Langle}{\mathopen{\mathrel{\langle}\joinrel\mathrel{\langle}}}
+% >> bigger with \rangle
+\newcommand{\Rangle}{\mathclose{\mathrel{\rangle}\joinrel\mathrel{\rangle}}}
+% {| tight
+\newcommand{\lbarbedwire}{{\{}\!\!{|}}
+% |} tight
+\newcommand{\rbarbedwire}{{|}\!\!{\}}}
+% {| spacious
+\newcommand{\llid}{\mathopen{\mathrel{\{}\joinrel\mathrel{|}}}
+% |} spacious
+\newcommand{\rlid}{\mathclose{\mathrel{|}\joinrel\mathrel{\}}}}
+% <[
+\newcommand{\lstrike}{\mathopen{\mathrel{\langle}\joinrel\mathrel{[}}}
+% ]>
+\newcommand{\rstrike}{\mathclose{\mathrel{]}\joinrel\mathrel{\rangle}}}
+% <-<
+\newcommand{\lsmooch}{\mathopen{{<}\!\!\!\!{\prec}}}
+% >->
+\newcommand{\rsmooch}{\mathclose{{\succ}\!\!\!\!{>}}}
+
+
+
+% \lightning of \usepackage{wasysym} or \lightning of \usepackage{stmaryrd} or \usepackage{MnSymbol} or \usepackage{marvosym}
+\newcommand{\contradiction}{~\textrm{CONTRADICTION!}}
+
+%% base of natural logarithm resp. exponential
+%\newcommand{\emath}{e}
+% Springer books: 
+\newcommand{\emath}{\mathrm{e}}
+%% imaginary unit i
+% Springer books: \newcommand{\imag}{{\rm i}}
+% the real number \pi
+\newcommand{\pimath}{\pi}
+
+
+%% the invisible times operator
+\newcommand{\itimes}{}
+%% the scalar product times operator
+\newcommand{\stimes}{\mathbin{\boldsymbol{\cdot}}}%{\mathbin{\cdot}}%{\mathbin{\bullet}}%{\mathbin{\text{\Large$\cdot$}}}
+
+%% defined to be equal
+\def\eqdef{\mathrel{\mathop{:}}=}
+%% obsolete
+\def\defeq{~\mathrel{\mathop{:}}=~}%%{~\stackrel{def}{\mathrel{\mathop{:}}=}~}
+%% defined to be equivalent
+\def\defequiv{\mathrel{\mathop{:}}\Longleftrightarrow}
+
+%% function/relation composition operator
+\def\compose{\mathbin{\circ}}
+
+%% sub ideal, super ideal
+\let\subideal\vartriangleleft
+\let\superideal\vartriangleright
+
+\let\cupfold\bigcup
+\let\capfold\bigcap
+
+%% Also see stmaryrd package
+\RequirePackage{graphicx}
+\providecommand{\mapsfrom}{\mathrel{\reflectbox{$\mapsto$}}}
+\providecommand{\mapsdown}{\mathrel{\rotatebox[origin=c]{90}{$\mapsto$}}}
+\providecommand{\mapsup}{\mathrel{\rotatebox{-90}{$\mapsto$}}}
+
+
+%% definitorial equality
+\newcommand{\mdefeq}{\stackrel{\text{\upshape def}}{=}}
+%% definitorial equivalence
+\newcommand{\mdefequiv}{\stackrel{\text{\upshape def}}{\mequiv}}
+
+%% particular structures
+
+%% Sets
+
+\if@blackboardsets
+  \newcommand{\naturals}{\ensuremath{\mathbb{N}}\xspace}
+  %% the integer ring modulo #1 (Galois field if #1 prime power)
+  \newcommand{\integers}[1][]{\ensuremath{\mathbb{Z}_{#1}}\xspace}
+  \newcommand{\rationals}{\ensuremath{\mathbb{Q}}\xspace}
+  \newcommand{\reals}{\ensuremath{\mathbb{R}}\xspace}
+  \newcommand{\complex}{\ensuremath{\mathbb{C}}\xspace}
+  \newcommand{\bools}{\ensuremath{\mathbb{B}}\xspace}
+\else
+  \newcommand{\naturals}{\ensuremath{\mathbf{N}}\xspace}
+  %% the integer ring modulo #1 (Galois field if #1 prime power)
+  \newcommand{\integers}[1][]{\ensuremath{\mathbf{Z}_{#1}}\xspace}
+  \newcommand{\rationals}{\ensuremath{\mathbf{Q}}\xspace}
+  \newcommand{\reals}{\ensuremath{\mathbf{R}}\xspace}
+  \newcommand{\complex}{\ensuremath{\mathbf{C}}\xspace}
+  \newcommand{\bools}{\ensuremath{\mathbf{B}}\xspace}
+\fi
+%% non-negative reals
+\newcommand{\nnreals}{\ensuremath{\reals_{\geq0}}\xspace}
+%% positive reals
+\newcommand{\preals}{\ensuremath{\reals_{>0}}\xspace}
+%% negative reals
+\newcommand{\nreals}{\ensuremath{\reals_{<0}}\xspace}
+%% non-positive reals
+\newcommand{\npreals}{\ensuremath{\reals_{\leq0}}\xspace}
+%% algebraic numbers
+\newcommand{\algebraics}{\ensuremath{\bar{\rationals}}\xspace}
+
+%%
+
+% characteristic function / indicator function of the set #1
+\newcommand{\charf}[1]{I_{#1}}%{I_{#1}}%{\chi_{#1}}%{1_{#1}}
+
+%% mathematical language
+%% set selection
+\def\withsym{\mathrel{\mathop{:}}}
+\def\with{~\withsym~}
+%% the powerset of a set, i.e. the set of all subsets.
+\newcommand{\powerset}[1]{\wp(#1)}
+%% multiset or bag containing #1
+\newcommand{\bag}[1]{\{\kern-0.4em\{#1\}\kern-0.4em\}}
+%% the cardinality i.e. number of elements of a set
+\newcommand{\cardinality}[1]{|#1|}
+
+%% \related{R}{x}{y} says that the relation R holds between x and y (set notation)
+\newcommand{\relateds}[3]{(#2,#3)\in#1}
+%% \related{R}{x}{y} says that the relation R holds between x and y (inline notation)
+\newcommand{\relatedi}[3]{#2#1#3}
+\if@inlinerelation
+  \let\related\relatedi
+\else
+  \let\related\relateds
+\fi
+%% \unrelated{R}{x}{y} says that the relation R does not hold between x and y (set notation)
+\newcommand{\unrelated}[3]{(#2,#3)\not\in#1}
+
+%% Two groups/logics/whatever are isomorphic
+\newcommand{\isomorphic}{\equiv}
+
+% isomorphism \to
+\newcommand{\isoto}{\xrightarrow{\smash{\raisebox{-0.65ex}{\ensuremath{\scriptstyle\sim}}}}}
+   
+%% the absolute value of #1
+\newcommand*{\abs}[1]{\lvert#1\rvert}%{|#1|}
+
+% Gauss brackets for floor and ceiling
+\newcommand*{\floor}[1]{\lfloor#1\rfloor}
+\newcommand*{\ceil}[1]{\lceil#1\rceil}
+
+%% the placeholder for arbitrary arguments for composites
+%% @see lsyntax.sty#\margholder
+\newcommand{\argholder}{\cdot}
+%% argument place marker
+\let\argplace\argholder
+
+%% emphasize in math mode
+\providecommand*{\memph}[1]{\boldsymbol{#1}}
+
+%% convex hull
+\DeclareMathOperator{\convexhull}{Conv}
+%%NOTE: equivalent to \newcommand{\convexhull}{\operatorname{Conv}}
+
+%% inverse image / preimage of a function
+\newcommand*{\ipreimage}[1]{{#1}^{-1}}
+
+%% set complement
+\newcommand*{\scomplement}[1]{#1^\complement}%
+
+
+%% Laplace operator for partial differential equations
+\newcommand{\laplace}{\Delta}
+
+%%\superdiff{u} the Fr\'echet superdifferential of u
+\newcommand*{\superdiff}[1]{\mathord{D^+}#1}%
+%%\subdiff{u} the Fr\'echet subdifferential of u
+\newcommand*{\subdiff}[1]{\mathord{D^-}#1}%
+
+
+
+%\RequirePackage{amsmath,amssymb}
+%\RequirePackage{tikz}
+
+% bold-faced \exists like \mathbb{R}
+\providecommand{\bbexists}{{%
+  \mathop{%
+    \begin{tikzpicture}[overlay]
+      $\exists$;
+      \draw[line width=0.035em] (-0.2em,0.1ex) -- (-0.2em, 1.55ex);
+    \end{tikzpicture}%
+  }~%
+}}
+
+% bold-faced \forall like \mathbb{R}
+\providecommand{\bbforall}{{%
+  \mathop{%
+    \begin{tikzpicture}[overlay]
+      $\forall$;
+      \draw[line cap=round,line width=0.035em] (-0.25em,0.3ex) -- (-0.45em, 1.58ex);
+    \end{tikzpicture}%
+  }~%
+}}
+
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+% factorial
+\newcommand*{\factorial}[1]{#1!}
+
+% small minus
+\newcommand{\smminus}{\text{-}}
+
+% \llap and \rlap are sort of dual to \phantom and \hphantom and \vphantom leaving the ink but not consuming the space alias \cophantom https://www.tug.org/TUGboat/tb22-4/tb72perlS.pdf
+% For comparison, the existing overlap macros:
+% \def\llap#1{\hbox to 0pt{\hss#1}}
+% \def\rlap#1{\hbox to 0pt{#1\hss}}
+\def\clap#1{\hbox to 0pt{\hss#1\hss}}
+\def\mathllap{\mathpalette\mathllapinternal}
+\def\mathrlap{\mathpalette\mathrlapinternal}
+\def\mathclap{\mathpalette\mathclapinternal}
+\def\mathllapinternal#1#2{%
+           \llap{$\mathsurround=0pt#1{#2}$}}
+\def\mathrlapinternal#1#2{%
+           \rlap{$\mathsurround=0pt#1{#2}$}}
+\def\mathclapinternal#1#2{%
+           \clap{$\mathsurround=0pt#1{#2}$}}

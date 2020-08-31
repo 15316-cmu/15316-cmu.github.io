@@ -1,0 +1,32 @@
+\newcommand{\etalchar}[1]{$^{#1}$}
+\begin{thebibliography}{FXZ{\etalchar{+}}17}
+
+\bibitem[Ber04]{Bernstein04}
+Daniel~J. Bernstein.
+\newblock {Cache-timing attacks on AES}.
+\newblock \url{http://cr.yp.to/antiforgery/cachetiming-20050414.pdf}, 2004.
+
+\bibitem[FXZ{\etalchar{+}}17]{Ferraiuolo2017}
+Andrew Ferraiuolo, Rui Xu, Danfeng Zhang, Andrew~C. Myers, and G.~Edward Suh.
+\newblock Verification of a practical hardware security architecture through
+  static information flow analysis.
+\newblock In {\em Proceedings of the Twenty-Second International Conference on
+  Architectural Support for Programming Languages and Operating Systems
+  (ASPLOS)}, 2017.
+
+\bibitem[LSG{\etalchar{+}}18]{Lipp18}
+Moritz Lipp, Michael Schwarz, Daniel Gruss, Thomas Prescher, Werner Haas,
+  Stefan Mangard, Paul Kocher, Daniel Genkin, Yuval Yarom, and Mike Hamburg.
+\newblock Meltdown.
+\newblock {\em CoRR}, abs/1801.01207, 2018.
+
+\bibitem[YF14]{Yarom14}
+Yuval Yarom and Katrina Falkner.
+\newblock Flush+reload: A high resolution, low noise, l3 cache side-channel
+  attack.
+\newblock In {\em 23rd {USENIX} Security Symposium ({USENIX} Security 14)},
+  pages 719--732, San Diego, CA, 2014. {USENIX} Association.
+\newblock URL:
+  \url{https://www.usenix.org/conference/usenixsecurity14/technical-sessions/presentation/yarom}.
+
+\end{thebibliography}

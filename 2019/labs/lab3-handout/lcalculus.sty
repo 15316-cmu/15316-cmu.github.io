@@ -1,0 +1,1071 @@
+\ProvidesPackage{lcalculus}
+\NeedsTeXFormat{LaTeX2e}
+%%
+%% Copyright (c) 2003-2017 Andre Platzer
+%%
+%% The logic package provides very useful tools for writing logical formulas.
+%% This submodule provides calculus and inference macros.
+%%
+\RequirePackage{xkeyval}
+\RequirePackage{ifthen}
+\RequirePackage{amsmath,amssymb}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% optional parameters to this package
+%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Calculus
+%%
+
+%% the \lsequent antecedent and succedent separator
+%% which symbol to use for sequent turnstyle
+\newcommand*{\lseqinfers}[1][]{\infers[#1]}
+% use |- inference relation as sequent separator
+\DeclareOption{seqinfers}{\renewcommand*{\lseqinfers}[1][]{\infers[#1]}}
+% use -> arrow as sequent separator
+\DeclareOption{seqarrow}{\renewcommand*{\lseqinfers}[1][]{\mathbf{\limply}_{#1}}}
+% use --> arrow as sequent separator
+\DeclareOption{seqlongarrow}{\renewcommand*{\lseqinfers}[1][]{\mathbf{\longrightarrow}_{#1}}}
+% use => arrow as sequent separator
+\DeclareOption{seqArrow}{\renewcommand*{\lseqinfers}[1][]{\mathbf{\Rightarrow}_{#1}}}
+% use ==> arrow as sequent separator
+\DeclareOption{seqLongarrow}{\renewcommand*{\lseqinfers}[1][]{\mathbf{\Longrightarrow}_{#1}}}
+\newif\if@seqinsist
+\@seqinsisttrue
+% Insist on using the sequent operator, even for empty antecedent
+\DeclareOption{seqinsist}{\global\@seqinsisttrue}
+% Skip sequent operator for empty antecedents
+\DeclareOption{seqoptional}{\global\@seqinsistfalse}
+
+\newif\if@seqmarkglobal
+%NOTE default changed to false on 2017/01/12
+\@seqmarkglobalfalse
+% Mark global consequences \lsequent[g] specially
+\DeclareOption{seqmarkglobal}{\global\@seqmarkglobaltrue}
+% No special display for global consequences \lsequent[g]
+\DeclareOption{seqnoglobal}{\global\@seqmarkglobalfalse}
+
+
+\newif\if@sequentcontextabbreviated
+\@sequentcontextabbreviatedfalse
+\global\edef\defaultsequentcontext{}
+%% the usual standard context for sequents in actual deductions is local and void
+\edef\currentsequentcontext{}
+%% Whether to abbreviate context of sequent inference rules
+\DeclareOption{longseqcontext}{\global\edef\defaultsequentcontext{L}\global\edef\currentsequentcontext{L}\global\@sequentcontextabbreviatedfalse}
+\DeclareOption{abbrseqcontext}{\global\edef\defaultsequentcontext{l}\global\edef\currentsequentcontext{l}\global\@sequentcontextabbreviatedtrue}
+
+\newif\if@longcalculusstyle
+\@longcalculusstyletrue
+\newif\if@footnotecalculusstyle
+\@footnotecalculusstylefalse
+\newif\if@sidenotecalculusstyle
+\@sidenotecalculusstylefalse
+%% Whether to print calculus in condensed mode
+\DeclareOption{condensedcalculus}{\global\@longcalculusstylefalse}
+%% Whether to print calculus in condensed mode with footnotes for side conditions
+\DeclareOption{footnotecalculus}{\global\@longcalculusstylefalse\global\@footnotecalculusstyletrue}
+%% Whether to print calculus in condensed mode with sidenotes for side conditions
+\DeclareOption{sidenotecalculus}{\global\@longcalculusstylefalse\global\@footnotecalculusstylefalse\global\@sidenotecalculusstyletrue}
+%% Whether to print calculus in verbose detail mode
+\DeclareOption{verbosecalculus}{\global\@longcalculusstyletrue}
+
+\newif\if@calculus@autoindex
+\@calculus@autoindexfalse
+%% Experimental: Whether to autoindex labels
+\DeclareOption{autoindex}{\global\@calculus@autoindextrue}
+
+%% Whether to allow or disallow calculus rule renaming
+\newif\if@irlabelform
+\@irlabelformtrue
+%% allow renames XYZ in \irlabel{rulename|XYZ}
+\DeclareOption{irlabelform}{\global\@irlabelformtrue}
+%% ignore renames XYZ in \irlabel{rulename|XYZ}
+\DeclareOption{irlabelformignore}{\global\@irlabelformfalse}
+
+%% Whether to allow or disallow calculus rule renaming
+\newif\if@unistore
+\@unistorefalse
+%% stored inference rules are defining occurrences \cinferenceRuleStore
+%% Prereq: No need to distinguish \cinferenceRuleQuoteDef versus \cinferenceRuleQuote
+\DeclareOption{iranystore}{\global\@unistorefalse}
+%% manage unique defining occurrence for stored inference rules \cinferenceRuleStore
+%% Prereq: Need to use unique \cinferenceRuleQuoteDef for each \cinferenceRuleStore
+\DeclareOption{irunistore}{\global\@unistoretrue}
+
+\newif\if@logic@compatibility
+\@logic@compatibilityfalse
+% compatibility mode enables some obsolete features such as labels consuming space in sequentdeduction
+\DeclareOption{compatibility}{\global\@logic@compatibilitytrue}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Implementation options
+%%
+\newif\if@enablelogging
+\@enableloggingfalse
+%% Whether to abbreviate context of sequent inference
+\DeclareOption{nologging}{\global\@enableloggingfalse}
+\DeclareOption{logging}{\global\@enableloggingtrue}
+
+
+\DeclareOption*{\PackageError{lcalculus}{Unknown option to logic subpackages `\CurrentOption'}}
+\ProcessOptions\relax
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% implicit parameters to this package and dimensions for layout
+%%
+%% Defines how much to separate premises in \linfer and \linferenceRule
+\newcommand{\linferPremissSeparation}{\quad}
+%% Defines how much to separate conclusions in \linfer and \linferenceRule
+\newcommand{\linferConclusionSeparation}{\quad}
+%% Defines how much to separate antecedent and succedent of a \lsequent in \linfer and \linferenceRule
+\newcommand{\linferSequentSeparation}{~}%{\hspace{2\arraycolsep}}
+%% Defines how much to separate rule number and rule in \linferenceRule of a \begin{calculus}\end{calculus}
+\newcommand{\linferenceRuleNameSeparation}{\hspace{2\tabcolsep}}
+%% Defines the default form name of inference rules
+\newcommand*{\inferenceRuleName}[1]{R#1}
+%% Defines separator of multiple rule references in \irref{bla+blup}
+\newcommand{\linferenceRuleRefSeparation}{,}
+%% Defines the internal namespace prefix for rule labels
+\newcommand{\linferenceRuleLabelPrefix}{ir:}%
+%% Defines how to separate inference \irref{} rule numbers in \linfer and \linferenceRule
+\newcommand{\linferRefSeparation}{}
+%% Defines how  to separate \linferenceRule and \footnote for footnote calculus
+\newcommand{\linferenceRuleFootnoteSeparation}{~}
+%% Defines how  to separate \linferenceRule and side condition for sitenote calculus
+\newcommand{\linferenceRuleSidenoteSeparation}{\hfill}
+%% Defines notation for all side conditions #1
+\newcommand*{\irruleside}[1]{#1}
+%% Defines notation for [sidenote] style condition #1
+\newcommand*{\linferenceRuleSidenote}[1]{\linferenceRuleSidenoteSeparation\irruleside{(#1)}}
+
+%% vertical separation of \linferenceRules in a \begin{calculus}
+\newdimen\linferenceRulevskipamount
+\linferenceRulevskipamount=0.9em
+
+%% \irformat{content} formats content as a use of a rule name
+%\newcommand*{\irformat}[1]{\text{#1}}
+\let\irformat\text
+%% \irsequentdeductionformat{content} formats content as a use of a rule name within a \begin{sequentdeduction}\end{sequentdeduction}
+%\newcommand*{\irsequentdeductionformat}[1]{\text{#1}}
+\let\irsequentdeductionformat\text
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Initialisation
+%%
+\AtBeginDocument{
+  \newcounter{inferenceRuleCounter}
+  \setcounter{inferenceRuleCounter}{0}
+  \newcounter{HinferenceRuleCounter}  % duplicate counter for hyperref
+  \setcounter{HinferenceRuleCounter}{0}
+  \renewcommand{\theinferenceRuleCounter}{\arabic{inferenceRuleCounter}}
+  \renewcommand{\theHinferenceRuleCounter}{\arabic{inferenceRuleCounter}}
+  %%\renewcommand{\p@inferenceRuleCounter}{Ru}
+  \newcounter{HilbertRuleAppCounter}
+  \setcounter{HilbertRuleAppCounter}{0}
+  \newcounter{HHilbertRuleAppCounter} % duplicate counter for hyperref
+  \setcounter{HHilbertRuleAppCounter}{0}
+  \renewcommand{\theHilbertRuleAppCounter}{\arabic{HilbertRuleAppCounter}}
+  \renewcommand{\theHHilbertRuleAppCounter}{\arabic{HilbertRuleAppCounter}}
+}
+\if@enablelogging
+  \AtBeginDocument{
+    \makeatletter
+    \gdef\@irlogging{false}
+    \makeatother
+  }
+\else
+\fi
+
+
+%% marks end of variable parameter list in TeX
+\def\@gobbleend\vargend{}
+
+
+%% axiom key part
+\newcommand{\axkey}[1]{\textcolor{vblue}{#1}}
+%% axiom effect part
+\newcommand{\axeffect}[1]{\textcolor{vred}{#1}}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Inference relations
+%%
+
+%% \infers[L] is the syntactic inference relation of the logic L.
+\newcommand*{\infers}[1][]{\vdash_{#1}}
+\newcommand*{\noninfers}[1][]{\nvdash_{#1}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Inferences and Inference Rules
+%%
+
+%% the focus of an \lsequent within a \linferenceRule
+\newcommand*{\lsequentfocus}[1]{#1}
+
+%% the operator for closing a proof branch
+\newcommand{\lcloseop}{\ast}
+%% denotes closing of a proof branch
+\newcommand*{\lclose}[1][\lcloseop]{#1}
+%% denotes closing of a proof branch in antecedent
+\newcommand{\lclosea}[1][\lcloseop]{#1}%
+
+%% \linfer[ruleid]{premisa1&premisa2}{conclusio1&conclusio2}
+%% justified inference by rule ruleid
+%%    premisa1   premisa2  premisa3
+%%    -----------------------------
+%%      conclusio1   conclusio2
+\newcommand{\linfer}[3][]{%
+  \linferdo[#1]{#2}{#3}}
+\if@logic@compatibility
+%% implementation stub for \linfer that can be overwritten by \begin{sequentcalculusdeduction}
+\newcommand{\linferdo}[3][]{%
+  \ifthenelse{\equal{#1}{}}{}{{\scriptstyle{\irref{#1}}}}%
+  \cfrac{\linfer@do#2&\vargend}{\linfer@doconclusion#3&\vargend}}
+\else
+%% implementation stub for \linfer that can be overwritten by \begin{sequentcalculusdeduction}
+\newcommand{\linferdo}[3][]{%
+  \ifthenelse{\equal{#1}{}}{}{\mathllap{\scriptstyle{\irref{#1}}}}%
+  \cfrac{\linfer@do#2&\vargend}{\linfer@doconclusion#3&\vargend}}
+\fi
+
+%% @internal passing variable parameter numbers separated by &, terminated by &\vargend
+\def\linfer@do#1&{%
+  #1%
+  \@ifnextchar\vargend{\@gobbleend}{\linferPremissSeparation\linfer@do}}
+\def\linfer@doconclusion#1&{%
+  #1%
+  \@ifnextchar\vargend{\@gobbleend}{\linferConclusionSeparation\linfer@doconclusion}}
+
+
+%% alternative implementations for other modes of \begin{sequentdeduction}
+%% @internal passing variable parameter numbers separated by &, terminated by !\vargend
+\def\linfer@default@do#1!{%
+  #1%
+  \@ifnextchar\vargend{\@gobbleend}{\linferPremissSeparation\linfer@default@do}}
+%% alternative implementations for other modes of \begin{sequentdeduction}
+\def\linfer@array@do#1!{%
+  #1%
+  \@ifnextchar\vargend{\@gobbleend}{\linferPremissSeparation\linfer@array@do}}
+
+%% alternative implementations for other modes of \begin{sequentdeduction}, splitting into separate array columns
+\def\linfer@arraysplit@do#1!{%
+  \@ifnextchar\vargend% if only one premise
+  {#1\@gobbleend}%
+  % else more than one premise
+  {%%\multicolumn{2}{c}\bgroup%
+  \@twocolumnmogel
+  {%% aligned sequent array
+  \begin{array}[b]{@{}c@{\linferRefSeparation}r@{\linferSequentSeparation}l@{}}
+    & #1%
+  \end{array}}%
+  \linfer@arraysplit@dorest}}
+\def\linfer@arraysplit@dorest#1!{%
+  {\linferPremissSeparation%
+  %% aligned sequent array
+  \begin{array}[b]{@{}c@{\linferRefSeparation}r@{\linferSequentSeparation}l@{}}
+    & #1%
+  \end{array}}%
+  \@ifnextchar\vargend{\@gobbleend}{\linfer@arraysplit@dorest}}
+%% for some strange reason, this separate macro usage of & is necessary
+  \newcommand{\@twocolumnmogel}[1]{#1 & \linferPremissSeparation}%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcounter{beamerpausescolb}%
+\def\linfer@arraysplituncoverpar@do#1!{%
+  \@ifnextchar\vargend{\uncover<+->{#1}\@gobbleend}{%%\multicolumn{2}{c}\bgroup%
+  \@twocolumnmogeluncover
+  {%% aligned sequent array
+  \begin{array}[b]{@{}c@{\linferRefSeparation}r@{\linferSequentSeparation}l@{}}
+    & 
+    \setcounter{beamerpausescolb}{\value{beamerpauses}}%  remember beamerpauses at branching point for second column
+    \uncover<+->{#1}%
+  \end{array}}%
+  \linfer@arraysplituncoverpar@dorest}}
+\def\linfer@arraysplituncoverpar@dorest#1!{%
+  {\linferPremissSeparation%
+  %% aligned sequent array
+  \begin{array}[b]{@{}c@{\linferRefSeparation}r@{\linferSequentSeparation}l@{}}
+    &
+    \setcounter{beamerpauses}{\value{beamerpausescolb}}%  recall beamerpause from second column
+    \uncover<+->{#1}%
+  \end{array}}%
+  \@ifnextchar\vargend{\@gobbleend}{\linfer@arraysplituncoverpar@dorest}}
+%% \internal{for some strange reason, this makro usage of & is necessary}
+  \newcommand{\@twocolumnmogeluncover}[1]{#1 & \linferPremissSeparation}%
+
+  \def\linfer@arraysplituncoverseq@do#1!{%
+    \@ifnextchar\vargend{\uncover<+->{#1}\@gobbleend}{%%\multicolumn{2}{c}\bgroup%
+    \@twocolumnmogeluncover
+    {%% aligned sequent array
+    \begin{array}[b]{@{}c@{\linferRefSeparation}r@{\linferSequentSeparation}l@{}}
+      & 
+      \setcounter{beamerpausescolb}{\value{beamerpauses}}%  remember beamerpauses at branching point for second column
+      \uncover<+->{#1}%
+    \end{array}}%
+    \linfer@arraysplituncoverseq@dorest}}
+  \def\linfer@arraysplituncoverseq@dorest#1!{%
+    {\linferPremissSeparation%
+    %% aligned sequent array
+    \begin{array}[b]{@{}c@{\linferRefSeparation}r@{\linferSequentSeparation}l@{}}
+      &
+      \uncover<\value{beamerpausescolb}->{#1}%
+    \end{array}}%
+    \@ifnextchar\vargend{\@gobbleend}{\linfer@arraysplituncoverseq@dorest}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%
+%% Layouts proofs in different styles
+%% With the proof being based on \linfer, \lsequent \lclose etc
+%% Example:
+%% \begin{sequentdeduction}[#1]
+%%   \linfer[orl]
+%%   {\lsequent{A}{C} & \lsequent{B}{C}}
+%%   {\lsequent{A \lor B}{C}}
+%% \end{sequentdeduction}
+%% NOTE: Some styles such as array and +uncoer obtain improved rendering when formatting proofs right-associative. So the bottom-most proof rule outside as the first rule and then the second proof rule inside its left child:
+%% \begin{sequentdeduction}[#1]
+%%   \linfer[andl] % (bottom-most first rule)
+%%    {\linfer[notl] % (second rule)
+%%      {\linfer[id] % (top-most last rule)
+%%        {\lclose}
+%%        {\lsequent{A}{C, B}}
+%%      }%[id]
+%%      {\lsequent{A, \lnot B}{C}}
+%%    }%[notl]
+%%   %[andl]
+%%   {\lsequent{A \land \lnot B}{A}}
+%% \end{sequentdeduction}
+%% @param #1
+%%  array - for deductions in array form
+%%      CAVEAT: array style sometimes only works good for deductions with <=2 branches, yet
+%%      TRICK: currently have to use ! rather than & to separate branches in array style. Have to close with \lclose
+%%  Hilbert+array - for Hilbert deductions in array form (same as [array])
+%%  aligned - same as array except single column, i.e. not aligned at \lsequent turnstyle
+%%  resolution - resolution tree form
+%%  default - standard sequent style with ! as branch separator
+%%   - standard sequent style with & as branch separator (empty argument)
+%%  Hilbert - Hilbert-style sequential proofs
+%%  uncover - same as default except that beamer's \uncover<+-> is used for uncovering inference per inference
+%%  array+uncover - same as array combined with uncover and uncover branches sequentially (left first, then right branch)
+%%  array+uncover+par - same as array combined with uncover and uncover branches in parallel (both left and right branch)
+%%  default+uncover - same as default except that beamer's \uncover<+-> is used for uncovering inference per inference
+%%      CAVEAT: uncover requires proper nesting to work
+%% Note that \def\arraystretch{1.2} may be useful for increasing vertical spacing between lines
+%%      CAVEAT: \begin{sequentdeduction} may have difficulties when wrapped in \centerline
+\newenvironment{sequentdeduction}[1][]%
+{%
+    \noindent\ignorespaces%
+    \def\@sequentdeduction@style{#1}%
+    \let\irformat\irsequentdeductionformat
+    %%
+    \ifthenelse{\equal{#1}{array}\or\equal{#1}{array+uncover}\or\equal{#1}{array+uncover+par}\or\equal{#1}{Hilbert+array}}%
+    {%% array layout style
+      \displaymath%
+      \ifthenelse{\equal{#1}{array}\or\equal{#1}{Hilbert+array}}%
+      {\let\linfer@arraysplit@op@do\linfer@arraysplit@do}%
+      {\ifthenelse{\equal{#1}{array+uncover}}%
+        {\let\linfer@arraysplit@op@do\linfer@arraysplituncoverseq@do}%
+        {\ifthenelse{\equal{#1}{array+uncover+par}}%
+          {\let\linfer@arraysplit@op@do\linfer@arraysplituncoverpar@do}%
+          {\let\linfer@arraysplit@op@do\linfer@arraysplit@do}%
+        }%
+      }%
+      \renewcommand{\linferdo}[3][]%
+        {%%\xxx{\multicolumn{2}{c} does not work for some strange reason.} Hence: limitation branching at most by 2
+          \linfer@arraysplit@op@do##2!\vargend%
+          \\\cline{2-3}%
+          %todo \raisebox{\height}.... instead?
+          \ifthenelse{\equal{##1}{}}{}{\raisebox{1ex}{\ensuremath{\scriptstyle{\irref{##1}}}}}%
+          & ##3}%
+      \renewcommand*{\linferenceRule}[3][]{\ifthenelse{\equal{#1}{term}}
+        {##2 &\rightsquigarrow& ##3}
+        {\linfer@arraysplit@do##2!\vargend%
+        \\\cline{2-3}%
+        & ##3}%
+      }%
+      %\renewcommand{\ldecenter}[1]{\multicolumn{2}{c}{#1}}%
+      \renewcommand{\lclose}[1][\lcloseop]{&##1}%
+      \renewcommand{\lclosea}[1][\lcloseop]{##1&}%
+      \renewcommand{\lseqalign}[3][]{##2&##3}%
+      \if@seqinsist
+      \renewcommand{\lsequentimpl}[3][]{\lseqalign{##2}{\lseqinfers##3}}%
+      \else
+     \let\lsequentimpl\lsequentimpl@opt%
+      \fi%
+      %% aligned sequent array
+      \array[b]{@{}c@{\linferRefSeparation}r@{\linferSequentSeparation}l@{}}%
+        &%
+    }%
+    {\ifthenelse{\equal{#1}{aligned}}%
+    {%
+      \displaymath%
+      \renewcommand{\linferdo}[3][]%
+        {%
+          ##2%
+          \\\cline{2-2}%
+          %todo \raisebox{\height}.... instead?
+          \ifthenelse{\equal{##1}{}}{}{\raisebox{1ex}{\ensuremath{\scriptstyle{\irref{##1}}}}}%
+          & ##3}%
+      \renewcommand*{\linferenceRule}[3][]{\ifthenelse{\equal{#1}{term}}
+        {##2 &\rightsquigarrow& ##3}
+        {\linfer@arraysplit@do##2!\vargend%
+        \\\cline{2-3}%
+        & ##3}%
+      }%
+      %% aligned non-sequent array
+      \array[b]{@{}r@{\linferRefSeparation}l@{}}%
+        &%
+    }%
+    {\ifthenelse{\equal{#1}{Hilbert}}%
+    {\displaymath%
+      \setcounter{HilbertRuleAppCounter}{0}%
+      \renewcommand{\lclose}[1][\lcloseop]{##1}%
+      \renewcommand{\lclosea}[1][\lcloseop]{##1}%
+      \renewcommand{\linferdo}[3][]%
+      {%
+        \refstepcounter{HilbertRuleAppCounter}%
+        (\theHilbertRuleAppCounter)&
+        ##3
+        &
+        \ifthenelse{\equal{##1}{}}{}{\irref{##1}}%
+        %~\text{##2}
+        \text{\Hilbertlabel@do{##2}}
+        \\}%
+      \let\label\HilbertRuleAppLabel%
+      \array{@{}l@{\linferRefSeparation}ll@{}}%
+    }%
+    {\ifthenelse{\equal{#1}{resolution}}
+    {%% resolution tree style
+      \renewcommand{\linferdo}[3][]
+      {%\ifthenelse{\equal{#1}{}}{}{{\scriptstyle{\irref{##1}}}}
+          node {\ajinference@do##2&\vargend}
+      %\gdef\ajinference@loop{true}
+      }
+      %%\begin{tikzpicture}
+        node {root} [grow'=up]
+    }%
+{%
+      \ifthenelse{\equal{#1}{}\OR\equal{#1}{default}\OR\equal{#1}{uncover}\OR\equal{#1}{default+uncover}}%
+      {%%% standard sequent deduction style with & separation of branches
+       %% standard sequent deduction style with ! separation of branches
+       \ifthenelse{\equal{#1}{default}}
+       {\renewcommand{\linfer}[3][]{\ifthenelse{\equal{##1}{}}{}{\mathllap{\scriptstyle{\irref{##1}}}}\cfrac{\linfer@default@do##2!\vargend}{##3}}}{}
+       \ifthenelse{\equal{#1}{uncover}\OR\equal{#1}{default+uncover}}%
+       {\renewcommand{\linfer}[3][]{\ifthenelse{\equal{##1}{}}{}{\mathllap{\scriptstyle\uncover<.(1)->{\irref{##1}}}}\cfrac{\uncover<+->{\linfer@default@do##2!\vargend}}{##3}}}{}
+      \displaymath%
+      }%
+      {\PackageError{lcalculus}{Unsupported type of \protect\begin{sequentdeduction}\space: #1}{Choose one of the notation types supported in the package.}}%
+    }%
+    }%
+    }%
+  }%
+  %%
+}
+{%% end{sequentdeduction}
+\ifthenelse{\equal{\@sequentdeduction@style}{array}\or\equal{\@sequentdeduction@style}{array+uncover}\or\equal{\@sequentdeduction@style}{array+uncover+par}\or\equal{\@sequentdeduction@style}{Hilbert+array}}
+    {%% array layout style
+      \endarray%
+      \enddisplaymath%
+    }%
+    {\ifthenelse{\equal{\@sequentdeduction@style}{Hilbert}\or\equal{\@sequentdeduction@style}{aligned}}
+      {%% Hilbert style
+      \endarray%
+      \enddisplaymath%
+    }%
+    {\ifthenelse{\equal{\@sequentdeduction@style}{resolution}}
+      {%% resolution tree style
+        ;%
+      %%\end{tikzpicture}
+    }%
+    {%% standard sequent deduction styles
+      %NOTE: for some reason, using \enddisplaymath rather than \end{displaymath} saves that nasty additional space introduced otherwise
+      \enddisplaymath%
+    }%
+    }%
+  }%
+  \ignorespacesafterend%
+}%% sequentdeduction environment definition
+
+
+% optionally show a sequent arrow unless there is no antecedent
+\newcommand{\lsequentimpl@opt}[3][]{\lseqalign{#2}{\ifx\blank#2\else\lseqinfers\fi#3}}%
+
+
+  %% @internal passing variable parameter numbers separated by &, terminated by &\vargend
+  \def\ajinference@do#1&{%
+    %\gdef\ajinference@loop{false}
+    %\edef\@ttmpval{#1}
+    child {node {\ensuremath{#1}}}
+    %\ifthenelse{\equal{\ajinference@loop}{true}}{#1}{\Tr{#1}}
+    \@ifnextchar\vargend{\@gobbleend}{\ajinference@do}}
+   \def\@gobbleend\vargend{}
+%  %% @internal passing variable parameter numbers separated by &, terminated by &\vargend
+%  \def\ajinference@do#1&{%
+%    \Tr{#1}
+%    \@ifnextchar\vargend{\@gobbleend}{\ajinference@do}}
+%   \def\@gobbleend\vargend{}
+%% @todo for \begin{resolution}\linfer...\end{resolution} style
+%% proofs use something like 
+%%   \pstree[treemode=U,showbbox=false]{\Tr{$\exists X (F \lor G)$}}{
+%%    \pstree{\Tr{Bonk}}{\Tr{Doing}}
+%%    \Tr{Zonk}
+%%  }
+%% For auto resolution tree generation. Be aware that this requires
+%% proper separation of multiple premises by ``&'' or something.
+
+
+%% hide a term by weakening inference rule
+% needs \usepackage{xcolor}
+\@ifundefined{color}
+{\newcommand*{\weaken}[1]{{\color{gray}#1}}}
+{\newcommand*{\weaken}[1]{\textcolor{gray}{#1}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Inference Rule formulations
+%%
+
+%% \linferenceRule[type]{premise1&premise2}{conclusion}
+%% Possible values for type:
+%% [sequent]=inference rule for formulas, from premises conclude conclusion
+%% [formula]=same inference rule
+%% [tableaux]=same but with matrix formulation for tableaux
+%% [equiv]=equivalence rule (i.e., undirected, both sides are equivalent)
+%% [equivl]=equivalence rule long format
+%% [impl]=implication rule (i.e., directed, premise implies conclusion)
+%% [lpmi]=reverse implication rule (i.e., directed, conclusion implies premise)
+%% [impll]=implication rule long format
+%% [lpmil]=reverse implication rule long format
+%% [term]=term rewrite rule
+%% [eq]=(undirected) equational rewrite rule
+%% [leq]=inequational/subequational rewrite rule <= instead of =
+%% [sub]=inequational/subequational rewrite rule <= instead of =
+%% [entail]=entailment relation
+\newcommand*{\linferenceRule}[3][]{\ensuremath{
+  \ifthenelse{\equal{#1}{sequent}\OR\equal{#1}{formula}\OR\equal{#1}{}}
+  {\cfrac{\linfer@do#2&\vargend}{\linfer@doconclusion#3&\vargend}}
+  {\ifthenelse{\equal{#1}{equiv}}{#3\lbisubjunct#2}
+  {\ifthenelse{\equal{#1}{viuqe}}{#2\lbisubjunct#3}
+  {\ifthenelse{\equal{#1}{equivl}}{\begin{aligned}& #3\\[-2pt]&\lbisubjunct#2\end{aligned}\vspace{2pt}}
+  {\ifthenelse{\equal{#1}{equivl2}}{\begin{aligned}& #3\lbisubjunct\\[-2pt]&#2\end{aligned}\vspace{2pt}}
+  {\ifthenelse{\equal{#1}{impl}}{#2\limply#3}
+  {\ifthenelse{\equal{#1}{lpmi}}{#2\lylpmi#3}
+  {\ifthenelse{\equal{#1}{impll}}{\begin{aligned}& #2\\[-2pt]&\limply#3\end{aligned}\vspace{2pt}}
+  {\ifthenelse{\equal{#1}{lpmil}}{\begin{aligned}& #2\\[-2pt]&\lylpmi#3\end{aligned}\vspace{2pt}}
+    {\ifthenelse{\equal{#1}{term}}{\rewrite{#2}{#3}}
+      {\ifthenelse{\equal{#1}{eq}}{#3\,=\,#2}
+        {\ifthenelse{\equal{#1}{sub}\or\equal{#1}{leq}}{#3\,\leq\,#2}
+          {\ifthenelse{\equal{#1}{entail}}{#2\,\entails\,#3}
+          {\ifthenelse{\equal{#1}{tableaux}}
+            {\cfrac{\begin{matrix}#2\end{matrix}}{\begin{matrix}#3\end{matrix}}}
+            {\PackageError{lcalculus}{Unsupported type of \protect\linferenceRule\space: #1}{Choose one of the notation types supported in the package: sequent, equiv, viueq, equivl, equivl2, impl, lmpi, impll, lpmil, term, eq, sub, entail, tableaux}%
+            \cfrac{\linfer@do#2&\vargend}{\linfer@doconclusion#3&\vargend}}%
+  }}}}}}}}}}}}}%
+}}
+
+\newcommand*{\irrulename}[1]{\text{(#1)}}
+
+% \cinferenceRuleShow{label}{name}{rule}{sidecondition} defines how an inference rule is rendered
+    \newcommand*{\cinferenceRuleShow}[4]{\ignorespaces%
+      \ifthenelse{\equal{\@inferenceRule@showname}{false}}{}{\irrulename{#1}\linferenceRuleNameSeparation}%
+      \ifthenelse{\equal{\@inferenceRule@showlongname}{true}}{(#2)}{}%
+      \ensuremath{#3}%
+      \ifthenelse{\equal{#4}{}}{}{\quad \mbox{where}~\irruleside{#4}}%
+      \ignorespacesafterend%
+    }
+
+
+%%
+%% \lsequent[style]{antecedent}{succedent}
+%% where [style] is
+%%  [l] for local premise, i.e., silently suppress context (for use when no g is present in current rule)
+%%  [L] for insist on local premise, i.e., print context (for use when g is present in current rule)
+%%  [g] for global premise, i.e., no context
+%%  [G] for global premise, i.e., no context without extra notation
+%%  [s] for symmetric premise, i.e., can be applied left and right of sequent. Then, argument antecedent is ignored!
+%%  [e] for equivalence proofs, i.e. prove antecedent \lbisubjunct succedent
+\newcommand{\lsequent}[3][\currentsequentcontext]
+{\ifthenelse{\equal{#1}{l}\OR\equal{#1}{g}\OR\equal{#1}{G}\OR\equal{#1}{}\OR\equal{#1}{f}}%
+  {\lsequentimpl[#1]{#2}{#3}}%
+  {\ifthenelse{\equal{#1}{L}}%
+    {\lsequentimpl[#1]%
+      {\ifthenelse{\equal{#2}{}}{\Gamma}{\Gamma,\lsequentfocus{#2}}}%
+      {\ifthenelse{\equal{#3}{}}{\Delta}{\lsequentfocus{#3},\Delta}}%
+    }%
+    {\ifthenelse{\equal{#1}{s}}%
+      {#3}%
+      {\ifthenelse{\equal{#1}{e}}%
+        {\let\lseqinfers\lbisubjunct%
+          \lsequentimpl[#1]{#2}{#3}}%
+        {\PackageError{lcalculus}{Unknown mode option \lsequent `#1' on page \thepage \space}{}??}%
+      }%
+    }%
+  }%
+}
+%%@TODO Removing this would enable good defaults outside \begin{calculus} but messes up things like 06-truth.tex: the usual standard context for sequents in actual deductions is local and void
+\def\currentsequentcontext{}
+\if@seqinsist
+  \if@seqmarkglobal
+%% actually displays a sequent
+\newcommand{\lsequentimpl}[3][]
+{\ifthenelse{\equal{#1}{g}}%
+  {\underline{{#2}\lseqinfers{#3}}}%
+  {{#2}\lseqinfers{#3}}}
+  \else
+%no special display for \lsequent[g]
+\newcommand{\lsequentimpl}[3][]
+{{#2}\lseqinfers{#3}}
+  \fi
+\else
+  \if@seqmarkglobal
+\newcommand{\lsequentimpl}[3][]
+{\ifthenelse{\equal{#1}{g}}%
+  {\underline{{#2}\ifx\blank#2\else\lseqinfers\fi{#3}}}%
+  {{#2}\ifx\blank#2\else\lseqinfers\fi{#3}}}
+  \else
+%no special display for \lsequent[g]
+\newcommand{\lsequentimpl}[3][]
+{{#2}\ifx\blank#2\else\lseqinfers\fi{#3}}
+  \fi
+\fi
+
+%% actually displays a formula aligned like in sequent calculus
+\newcommand{\lseqalign}[3][]{#2#3}
+
+\newcommand{\termcontext}[1]{....#1....}
+
+%% Rewrite relation, rewrite #2 to #3 by #1.
+\newcommand{\rewrite}[3][]{\ifthenelse{\equal{#2}{}}{}{#2 ~} \rightsquigarrow_{#1} \ifthenelse{\equal{#3}{}}{}{~ #3}}
+%% Infinite rewrite relation, rewrite #2 to fixed-point #3.
+\newcommand{\rewriteFP}[3][]{\ifthenelse{\equal{#2}{}}{}{#2 ~} \rightsquigarrow_{#1}^{*} \ifthenelse{\equal{#3}{}}{}{~ #3}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Calculus
+%%
+%% defines the prefix used in place of \inferenceRuleName
+\define@key{inferenceRuleCalculus}{prefix}[]{\def\@inferenceRule@prefix{#1}}
+%% defines the suffix used in place of \inferenceRuleName
+\define@key{inferenceRuleCalculus}{suffix}[]{\def\@inferenceRule@suffix{#1}}
+%% whether to reset \inferenceRuleCounter
+\define@key{inferenceRuleCalculus}{reset}[true]{\def\@inferenceRule@reset{#1}}
+%% which default \lsequent[X] context X to use
+\define@key{inferenceRuleCalculus}{context}[\defaultsequentcontext]{\edef\currentsequentcontext{#1}}
+%% whether to show short \inferenceRuleName #1
+\define@key{inferenceRuleCalculus}{showname}[true]{\def\@inferenceRule@showname{#1}}
+%% whether to show long name of rule #2
+\define@key{inferenceRuleCalculus}{showlongname}[true]{\def\@inferenceRule@showlongname{#1}}
+\define@key{inferenceRuleCalculus}{autoindex}[true]{\ifthenelse{\equal{#1}{true}}
+  {\renewcommand{\@irlabel}[1]
+  {\protect\irlabel@do##1|\vargend\relax\protect\irlabel@index#1|\vargend\relax}}%
+  {\renewcommand{\@irlabel}[1]
+  {\protect\irlabel@do##1|\vargend\relax}}%
+}
+\define@key{inferenceRuleCalculus}{uncover}[true]{\renewcommand*{\linferenceRule}[3][]{\ensuremath{
+  \ifthenelse{\equal{##1}{term}}{\rewrite{##2}{\uncover<+->{##3}}}
+  {\ifthenelse{\equal{##1}{tableaux}}
+    {\cfrac{\begin{matrix}##2\end{matrix}}{\begin{matrix}\uncover<+->{##3}\end{matrix}}}
+  {\cfrac{\uncover<+->{\linfer@do##2&\vargend}}{\linfer@doconclusion##3&\vargend}}%
+  }%
+}}%
+\renewcommand{\cinferenceRulev}[4]{%
+      &\uncover<+->{##3}
+      \ifthenelse{\equal{##4}{}}{}{\\[\bigskipamount]&\uncover<+->{\irruleside{##4}}}
+      \\[\linferenceRulevskipamount]
+      }%
+}
+% highlight focus of sequents
+\define@key{inferenceRuleCalculus}{alert}[alert]{\renewcommand*{\lsequentfocus}[1]{\csname#1\endcsname{##1}}}
+
+%% defaults
+\if@longcalculusstyle
+\setkeys{inferenceRuleCalculus}{prefix,suffix,reset=false,showname=true,showlongname=true}%
+\else
+\setkeys{inferenceRuleCalculus}{prefix,suffix,reset=false,showname=true,showlongname=false}%
+\fi
+
+\if@longcalculusstyle
+    \newenvironment{calculus}[1][]{\upshape\begin{displaymath}
+     %% @internal mentioning #1 first leads to #1 taking precedence over later defaults
+    \setkeys{inferenceRuleCalculus}{#1,showname,showlongname=true}%
+    %\edef\currentsequentcontext{\defaultsequentcontext}%
+    \let\cinferenceRuleShow\cinferenceRulev%
+    \begin{array}{@{}l@{}}}{\end{array}\end{displaymath}\hfill\par}
+    
+    \newenvironment{calculuscollections}[2][]
+    {\ignorespaces}{\ignorespacesafterend}
+
+    %% Pretty-print a calculus rule collection to the screen
+    \newenvironment{calculuscollection}[1][\textwidth]
+    {\begin{center}\begin{fpbox}{#1}}
+    {\end{fpbox}\end{center}}
+    
+    % Framed parbox environment.  May contain verbatim mode.
+    \def\fpbox#1{\par
+      \def\@tempwidth{#1}
+      \setbox\@tempboxa\vbox\bgroup
+      %%\advance\hsize-2\fboxrule \advance\hsize-2
+      %%\fboxsep\textwidth\hsize 
+    }
+    \def\endfpbox{\egroup\framebox[\@tempwidth]{\box\@tempboxa}\par}
+    
+    \newcommand*{\cinferenceRulev}[4]{%
+      \textrm{(#1) ~ #2}
+      \\
+      \multicolumn{1}{c}{#3}
+      %%\begin{minipage}{4cm}\begin{center}#3\end{center}\end{minipage}
+      \ifthenelse{\equal{#4}{}}{}{\\\quad where \irruleside{#4}}
+      \vspace{\linferenceRulevskipamount}
+    }
+\else%!if@longcalculusstyle
+    \newenvironment{calculus}[1][]{\ignorespaces%
+      %% @internal mentioning #1 first leads to #1 taking precedence over later defaults
+      %TODO should put #1 last!
+     \setkeys{inferenceRuleCalculus}{#1,showname,showlongname=false}%
+     \ifthenelse{\equal{\@inferenceRule@prefix}{}}%
+     {}%
+     {\renewcommand*{\inferenceRuleName}[1]{\@inferenceRule@prefix##1\@inferenceRule@suffix}}%
+     \ifthenelse{\equal{\@inferenceRule@reset}{true}}%
+     {\setcounter{inferenceRuleCounter}{0}}%
+     {}%
+     %% we've reset so set to false again to avoid multiple resets in nested cases
+     \def\@inferenceRule@reset{false}%
+     \let\cinferenceRuleShow\cinferenceRulev%
+     \upshape\begin{tabular}[t]{@{}r@{\linferenceRuleNameSeparation}l@{}}%
+     %\edef\currentsequentcontext{\defaultsequentcontext}%
+    }
+    {\end{tabular}\ignorespacesafterend}
+    %% Pretty-print a calculus rule collection to the screen
+
+    \newenvironment{calculuscollection}[1][]
+    {\ignorespaces%
+     \setkeys{inferenceRuleCalculus}{#1}%
+     \ifthenelse{\equal{\@inferenceRule@prefix}{}}%
+     {}%
+     {\renewcommand*{\inferenceRuleName}[1]{\@inferenceRule@prefix##1\@inferenceRule@suffix}}%
+     \ifthenelse{\equal{\@inferenceRule@reset}{true}}%
+     {\setcounter{inferenceRuleCounter}{0}}%
+     {}%
+     %% we've reset so set to false again to avoid multiple resets in nested cases
+     \def\@inferenceRule@reset{false}%
+    }
+    {\ignorespacesafterend}
+
+    \if@footnotecalculusstyle
+    \newenvironment{calculuscollections}[2][]
+    {\ignorespaces\begin{minipage}{#2}
+      \setkeys{inferenceRuleCalculus}{#1}%
+      \renewcommand{\thempfootnote}{\arabic{mpfootnote}}%
+      \renewcommand{\thefootnote}{\thempfootnote}%
+    }{\end{minipage}\ignorespacesafterend}
+    \newcommand*{\cinferenceRulev}[4]{\ignorespaces%
+      \ifthenelse{\equal{\@inferenceRule@showname}{true}}{\irrulename{#1}}{}%
+      \ifthenelse{\equal{\@inferenceRule@showlongname}{true}}{(#2)}{}&%
+      \ensuremath{#3}%
+      \ifthenelse{\equal{#4}{}}{}%
+      {\linferenceRuleFootnoteSeparation%
+        \ifthenelse{\equal{#4}{ldito}}%
+          {\footnotemark[\value{mpfootnote}]}%
+          {\footnote{\irruleside{#4}}}%
+      }%
+      \\[\linferenceRulevskipamount]
+    }
+    %% \ldito reuses the exact same side condition that the last \cinferenceRule used.
+    \newcommand{\ldito}{ldito}%
+    \else%@footnotecalculusstyle
+    \if@sidenotecalculusstyle
+    \renewcommand*{\cinferenceRuleShow}[4]{%
+\ifthenelse{\equal{\@inferenceRule@showname}{true}}{\irrulename{#1}}{}%
+      \ifthenelse{\equal{\@inferenceRule@showlongname}{true}}{(#2)}{}~~%
+      \ensuremath{#3}%
+      \ifthenelse{\equal{#4}{}}{}{\let\linferenceRuleSidenoteSeparation\quad%
+      \linferenceRuleSidenote{#4}}%
+    }
+    \newenvironment{calculuscollections}[2][]
+    {\ignorespaces}{\ignorespacesafterend}
+    \newcommand*{\cinferenceRulev}[4]{%
+      \ifthenelse{\equal{\@inferenceRule@showname}{true}}{\irrulename{#1}}{}%
+      \ifthenelse{\equal{\@inferenceRule@showlongname}{true}}{(#2)}{}&%
+      \ensuremath{#3}%
+      \ifthenelse{\equal{#4}{}}{}{\linferenceRuleSidenote{#4}}%
+      \\[\linferenceRulevskipamount]
+    }
+    \else%@sidenotecalculusstyle
+    \newenvironment{calculuscollections}[2][]
+    {\ignorespaces}{\ignorespacesafterend}
+    \newcommand*{\cinferenceRulev}[4]{%
+      \ifthenelse{\equal{\@inferenceRule@showname}{true}}{\irrulename{#1}}{}%
+      \ifthenelse{\equal{\@inferenceRule@showlongname}{true}}{(#2)}{}&%
+      \ensuremath{#3}%
+      \ifthenelse{\equal{#4}{}}{}{\\[2\medskipamount]\multicolumn{2}{l}{\ensuremath{\quad \mbox{where}~#4}}}%
+      \\[\linferenceRulevskipamount]
+    }
+    \fi%@sidenotecalculusstyle
+    \fi%@footnotecalculusstyle
+\fi
+
+
+
+%% \cinferenceRule[label|display]{Name}{Rule}{Condition}
+%% typeset the Rule=\inferenceRule... of a calculus with nice formatting
+%% @note typesetting may look different within \begin{calculus} ... \end{calculus}
+%% Rule can be recalled later by \cinferenceRuleQuote{label}
+\newcommand*{\cinferenceRule}[4][]{%
+  \refstepcounter{inferenceRuleCounter}%
+  \ifx\blank#1  \cinferenceRuleShow{\inferenceRuleName{\theinferenceRuleCounter}}{#2}{#3}{#4}%
+  \else%
+  %% Labelling somehow does not work. because \cinferenceRule is not an environment? Hence, use \irlabel instead
+   %%\label{\linferenceRuleLabelPrefix#1}
+   \irlabel{#1}%
+   \expandafter\gdef\csname irnamestore\irlabelcurlabel\endcsname{#2}%
+   \expandafter\gdef\csname irrulestore\irlabelcurlabel\endcsname{#3}%
+   \expandafter\gdef\csname ircondstore\irlabelcurlabel\endcsname{#4}%
+   \cinferenceRuleShow{\irlabelcurform}{#2}{#3}{#4}%
+}
+
+%% \cinferenceRuleStore[label|display]{Name}{Rule}{Condition}
+%% store the Rule=\inferenceRule... of a calculus for later recall by \cinferenceRuleQuote{label} and \cinferenceRuleQuoteDef{label}
+\if@unistore
+\newcommand*{\cinferenceRuleStore}[4][]{%
+   \@irlabel{#1}%
+   \expandafter\xdef\csname irformstore\irlabelcurlabel\endcsname{\irlabelcurform}%
+   \expandafter\gdef\csname irnamestore\irlabelcurlabel\endcsname{#2}%
+   \expandafter\gdef\csname irrulestore\irlabelcurlabel\endcsname{#3}%
+   \expandafter\gdef\csname ircondstore\irlabelcurlabel\endcsname{#4}%
+}
+\else
+\newcommand*{\cinferenceRuleStore}[4][]{%
+   \irlabel{#1}%
+   \expandafter\gdef\csname irnamestore\irlabelcurlabel\endcsname{#2}%
+   \expandafter\gdef\csname irrulestore\irlabelcurlabel\endcsname{#3}%
+   \expandafter\gdef\csname ircondstore\irlabelcurlabel\endcsname{#4}%
+}
+\fi
+\let\dinferenceRuleStore\cinferenceRuleStore
+
+%% \cinferenceRuleQuote{label}
+%% Repeat the inference rule called label
+%% @note typesetting may look different within \begin{calculus} ... \end{calculus}
+\newcommand{\cinferenceRuleQuote}[1]{%
+  \cinferenceRuleShow{\irref{#1}}{\irname{#1}}{\irrule{#1}}{\ircond{#1}}%
+}
+\let\dinferenceRuleQuote\cinferenceRuleQuote
+
+%% \cinferenceRuleQuoteDef{label}
+%% Defining occurrence of repeating the inference rule called label
+%% same as \cinferenceRuleQuote{label} except that hyperref will point here just like for \cinferenceRule{}{}{}
+%% @note typesetting may look different within \begin{calculus} ... \end{calculus}
+\if@unistore
+\newcommand{\cinferenceRuleQuoteDef}[1]{%
+  \irlabel{#1|\csname irformstore#1\endcsname}%
+  \cinferenceRuleShow{\irref{#1}}{\irname{#1}}{\irrule{#1}}{\ircond{#1}}%
+}
+\else
+\let\cinferenceRuleQuoteDef\cinferenceRuleQuote
+\fi
+
+% derived rule version of \cinferenceRuleQuoteDef
+\let\dinferenceRuleQuoteDef\cinferenceRuleQuoteDef
+
+%% A derived inference rule
+\let\dinferenceRule\cinferenceRule
+
+%% make a label for an inference rule
+%% \irlabel{label} defines a label for an inference rule displayed as R1, R2, R3, and so on
+%% \irlabel{label|form} defines a label for an inference rule displayed as form
+%% CAVEAT: hyperref must already have been loaded, if loaded at all.
+\@ifpackageloaded{hyperref}
+{%% For hyperref compatibility
+  \newcommand*{\irlabel}[1]
+  {\@irlabel{#1}%
+   \if@filesw\immediate\write\@auxout
+   %% for hyperref the \newlabel format is
+   %% \newlabel{tex-label}{{numbering}{page}{Heading Text\relax }{hyperrefanchorreference}{}}
+   %% where the hyperrefanchorreference must match a \hypertarget
+   {\string\newlabel{\linferenceRuleLabelPrefix\irlabelcurlabel}{{\irlabelcurform}{\thepage}{\irlabelcurform}{\linferenceRuleLabelPrefix\irlabelcurlabel}{}}}\fi\hypertarget{\linferenceRuleLabelPrefix\irlabelcurlabel}{}}%
+  %
+  \newcommand*{\HilbertRuleAppLabel}[1]
+  {\if@filesw\immediate\write\@auxout
+   {\string\newlabel{#1}{{\theHilbertRuleAppCounter}{\thepage}{}{#1}{\theHilbertRuleAppCounter}}}\fi}
+%
+%\newlabel{def:dL-formula}{{2.4}{24}{Formulas\relax }{theorem.2.4}{}}
+%\newlabel{ir:notr}{{P1}{34}{1}{ir:notr}{}}
+%
+}
+{% without hyperref
+\@ifclassloaded{kluwer}
+{% without hyperref yet with special kluwer handling
+  \newcommand*{\irlabel}[1]
+  {\@irlabel{#1}%
+   \if@filesw\immediate\write\@auxout
+   {\string\newlabel{\thearticle \linferenceRuleLabelPrefix\irlabelcurlabel}{{\irlabelcurform}{\thepage}}}\fi}
+  %
+  \newcommand*{\HilbertRuleAppLabel}[1]
+  {\if@filesw\immediate\write\@auxout
+   {\string\newlabel{\thearticle #1}{{\theHilbertRuleAppCounter}{\thepage}}}\fi}
+}
+{% standard case without hypperref without kluwer
+  \newcommand*{\irlabel}[1]
+  {\@irlabel{#1}%
+   \if@filesw\immediate\write\@auxout
+   {\string\newlabel{\linferenceRuleLabelPrefix\irlabelcurlabel}{{\irlabelcurform}{\thepage}}}\fi}
+  %
+  \newcommand*{\HilbertRuleAppLabel}[1]
+  {\if@filesw\immediate\write\@auxout
+   {\string\newlabel{#1}{{\theHilbertRuleAppCounter}{\thepage}}}\fi}
+}
+}
+
+%\@irlabel{name} split into \irlabelcurlabel
+%\@irlabel{name|form} split into \irlabelcurlabel and \irlabelcurform
+\if@calculus@autoindex
+  \newcommand{\@irlabel}[1]
+  {\protect\irlabel@do#1|\vargend\relax\protect\irlabel@index#1|\vargend\relax}
+\else
+  \newcommand{\@irlabel}[1]
+  {\protect\irlabel@do#1|\vargend\relax}
+\fi
+
+%% invoking \irlabel@do#1|#2|\vargend defines \irlabelcurlabel as #1 and \irlabelcurform as #2
+%% invoking \irlabel@do#1|\vargend defines \irlabelcurlabel as #1 and \irlabelcurform as a default value
+\def\irlabel@do#1|{%
+  \def\irlabelcurlabel{#1}%
+  \def\irlabelcurform{\inferenceRuleName{\theinferenceRuleCounter}}% default form, may be overwritten by next argument
+  \@ifnextchar\vargend{\@gobbleend}{\irlabel@dosnd}}
+\def\irlabel@dosnd#1|{%
+  \if@irlabelform%
+  \def\irlabelcurform{#1}%
+  \else\fi%
+  \@ifnextchar\vargend{\@gobbleend}{\PackageError{lcalculus}{Illegal use of \irlabel `#1' on page \thepage \space}{}}}
+
+%% like \irlabel@do but performs autoindexing AFTER calling \irlabel@do
+\def\irlabel@index#1|{%
+    \@ifnextchar\vargend{\index{__@\irlabelcurform}\@gobbleend}{\irlabel@indexsnd}}
+\def\irlabel@indexsnd#1|{%
+  \index{__@#1}%
+  \@ifnextchar\vargend{\@gobbleend}{\PackageError{lcalculus}{Illegal use of \irlabel `#1' on page \thepage \space}{}}}
+
+
+\def\Hilbertlabel@do#1{#1}
+
+%\def\Hilbertlabel@do{
+%  \@ifnextchar:\Hilbertlabel@do@label{\@ifnextchar+\Hilbertlabel@do@using{}}%
+%}
+%\def\Hilbertlabel@do@label:#1+{
+%  label{#1}%
+%  \Hilbertlabel@do@using
+%  %\@ifnextchar+\Hilbertlabel@do@using\Hilbertlabel@do@end%
+%}
+%\def\Hilbertlabel@do@using+#1+{
+%  ref{#1}%
+%  %\@ifnextchar+\Hilbertlabel@do@using\Hilbertlabel@do@end%
+%}
+%\def\Hilbertlabel@do@end{
+%}
+
+%% \irref{bla}
+%% A reference to the inference rule of the given label
+%% \irref{and+imply+tag} a reference to three inference rules.
+\newcommand*{\irref}[1]{%
+  %\edef\tmp{\expandafter\csname irnewlabel#1\endcsname}%
+  %\ifthenelse{\equal{\tmp}{}}{WARN\PackageWarning{lcalculus}{Undefined irref #1}}{\tmp}%
+  %% The following emulates the effect of \ref{\linferenceRuleLabelPrefix#1}
+  %%\@ifundefined{irnewlabel#1}{
+  %%    {\bf ??}\PackageWarning{lcalculus}{irref `#1' on page \thepage \space undefined}
+  %%}{
+  %%    \csname irnewlabel#1\endcsname
+  %%}
+  \irformat{\irref@do#1+\vargend}%
+}
+%% @internal passing variable parameter numbers separated by +, terminated by +\vargend
+\def\irref@do#1+{%
+  \ref{\linferenceRuleLabelPrefix#1}%
+  \if@enablelogging
+    \ifthenelse{\equal{\@irlogging}{true}}%
+    {\immediate\write\@irlogoutfile{\string\ircite{#1}}}{}%
+  \else\fi
+  \@ifnextchar\vargend{\@gobbleend}{\linferenceRuleRefSeparation\irref@do}}
+
+
+%% The name of the inference rule of the given label
+\newcommand*{\irname}[1]{\@ifundefined{irnamestore#1}
+  {\textbf{??}\PackageWarning{lcalculus}{irref store `#1' on page \thepage \space undefined}}
+  {\ensuremath{\textrm{\csname irnamestore#1\endcsname}}}%
+}
+%% The rule of the inference rule of the given label
+\newcommand{\irrule}[1]{\@ifundefined{irrulestore#1}
+  {\textbf{??}\PackageWarning{lcalculus}{irref store `#1' on page \thepage \space undefined}}
+  {\csname irrulestore#1\endcsname}%
+}
+%% The condition of the inference rule of the given label
+\newcommand{\ircond}[1]{\csname ircondstore#1\endcsname}
+%% A reference to the inference rule of the given label either as name
+%% or number.
+\newcommand{\ircite}[1]{{\it \irname{#1}} (\irref{#1})}
+
+%%
+%% Tools for logging usage of inference rules
+%%
+\if@enablelogging
+  %% Start logging all occurrences of \irref{x} to file #1
+  \newcommand*{\irlogstart}[1][\jobname.irlog]{%
+    \immediate\openout\@irlogoutfile=#1
+    \gdef\@irlogging{true}%
+  }
+  %% Stop logging any occurrences of \irref{x}
+  \newcommand{\irlogstop}{%
+    \gdef\@irlogging{false}%
+    \immediate\closeout\@irlogoutfile%
+  }
+\else
+\fi
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% deprecated names
+%%
+
+%%%%%%%%%%%%
+%%
+%% begin @deprecated
+%%
+%% a sequent in an inference rule that can be applied both in antecedent and in succedent
+\newcommand{\symsequent}[1]{#1}
+    \newcommand{\antecontexti}[1]{\ifthenelse{\equal{#1}{}}{\Gamma}{\Gamma,#1}}
+    \newcommand{\succcontexti}[1]{\ifthenelse{\equal{#1}{}}{\Delta}{#1,\Delta}}
+    \newcommand{\antesqi}{\Gamma}
+    \newcommand{\succsqi}{\Delta}
+    \newcommand{\ctxsepi}{,}
+\if@sequentcontextabbreviated
+    \newcommand{\antecontext}[1]{#1}
+    \newcommand{\succcontext}[1]{#1}
+    \newcommand{\antesq}{}
+    \newcommand{\succsq}{}
+    \newcommand{\ctxsep}{}
+\else
+    \newcommand{\antecontext}[1]{\antecontexti{#1}}
+    \newcommand{\succcontext}[1]{\succcontexti{#1}}
+    \newcommand{\antesq}{\antesqi}
+    \newcommand{\succsq}{\succsqi}
+    \newcommand{\ctxsep}{\ctxsepi}
+\fi
+%%
+%% end @deprecated
+%%
+%%%%%%%%%%%%
+

@@ -1,0 +1,179 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath,amssymb,fullpage,graphicx}
+\let\hat\widehat
+\let\tilde\widetilde
+
+\usepackage{xcolor}
+\usepackage{stmaryrd}
+\usepackage{mathpartir}
+
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{mathabx}
+%\usepackage{lsyntax}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newenvironment{proof}{\textbf{ Proof.}}{$\Box$}
+
+\newcommand{\answer}[1]{\text{{\it #1}}}
+\newcommand{\solution}[1]{\textbf{Solution:} #1}
+%\newcommand{\solution}[1]{}
+
+\usepackage[irlabel]{bugcatch}
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+%%%% new version of enumerate with less spacing
+\newenvironment{enum}{
+\begin{enumerate}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{enumerate}}
+
+\parskip 10pt
+\parindent 0pt
+\pagenumbering{gobble}
+\newcommand{\note}[1]{\ \\{\small\color{red}\emph{#1}}\\}
+
+\lstset{%
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries\color{green!60!black},
+  commentstyle=\itshape\color{purple!60!black},
+  stringstyle=\color{orange}
+}
+
+\newcommand{\pand}[2]{\keywordfont{and}(#1, #2)}
+\newcommand{\por}[2]{\keywordfont{or}(#1, #2)}
+\newcommand{\pin}{\keywordfont{pin}\xspace}
+\newcommand{\guess}{\keywordfont{guess}\xspace}
+\newcommand{\match}{\keywordfont{match}\xspace}
+\newcommand{\gt}{\keywordfont{gt}\xspace}
+\newcommand{\ecm}{\keywordfont{ecm}\xspace}
+\newcommand{\prefix}{\keywordfont{pref}\xspace}
+\newcommand{\poly}{\ensuremath{\mathbf{poly}}\xspace}
+
+\newcommand{\aff}[2]{\ensuremath{#1~\keywordfont{aff}~#2}}
+\newcommand{\ownsr}{\ensuremath{\keywordfont{owns}}}
+\newcommand{\isfac}{\ensuremath{\keywordfont{isFaculty}}}
+\newcommand{\studof}{\ensuremath{\keywordfont{studentOf}}}
+\newcommand{\canopen}{\ensuremath{\keywordfont{canOpen}}}
+\newcommand{\matt}{\ensuremath{\keywordfont{mfredrik}}\xspace}
+\newcommand{\tli}{\ensuremath{\keywordfont{tli2}}\xspace}
+\newcommand{\ben}{\ensuremath{\keywordfont{bcook}}\xspace}
+\newcommand{\admin}{\ensuremath{\keywordfont{admin}}\xspace}
+\newcommand{\office}{\ensuremath{\keywordfont{cic2126}}\xspace}
+
+\lstdefinestyle{customc}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  language=C,
+  showstringspaces=false,
+  numbers=none,
+  % xleftmargin=1ex,
+  framexleftmargin=1ex,
+  % numbersep=5pt,
+  % numberstyle=\tiny\color{mygray},
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\color{blue},
+  commentstyle=\itshape\color{purple!40!black},  
+  stringstyle=\color{orange},
+  morekeywords={output,assume,observe,input,bool,then,fun,match,in,val,list,type,of,string,unit,let,bytes,mov,imul,add,sar,shr,function,forall,nat,requires,ensures,method,returns,assert,new,array,modifies,reads,old,predicate,lemma,seq,calc,nan,var,exists,invariant,decreases,datatype,declassify,uint8},
+  tabsize=2,
+  deletestring=[b]',
+  backgroundcolor=\color{gray!15},
+  frame=tb
+}
+\lstset{escapechar=@,style=customc}
+
+\begin{document}
+
+\begin{center}
+\textbf{ Assignment 5: Web Security and Authentication Logic\\15-316 Software Foundations of Security and Privacy}\\
+\end{center}
+Due: \textbf{ 11:59pm}, Tuesday 11/20/19 \\
+Total Points: 50
+
+\vspace{-5mm}
+
+\begin{enumerate}
+\item \textbf{Spot the vulnerabilities (15 points).} Consider the PHP script below, which consults a back-end SQL database to perform password authentication of users. List the vulnerabilities present in this code, explaining what type each vulnerability is and how it can be exploited. Finally, briefly state what method you would use to prevent them. \emph{Note: you should be able to complete this problem from the brief introduction to PHP and examples from the lecture notes. However, if you are uncertain of something, consult the PHP manual at \href{http://php.net/manual/en/langref.php}{http://php.net/manual/en/langref.php}.}
+
+\begin{lstlisting}[language=PHP]
+<!DOCTYPE html>
+<html>
+  <body>
+    <div class = "container form-signin">
+       <?php
+          if(!empty($_GET['uname']) && !empty($_GET['passwd'])) {
+            $uname = $_POST['uname'];
+            $passwd = $_POST['passwd'];
+            $sql = "SELECT id FROM admin WHERE user = '$uname' and pass = '$passwd'";
+            $result = mysqli_query($db,$sql);
+            $count = mysqli_num_rows($result);            
+            // If result matched $uname and $passwd, row count must be 1
+            if($count == 1) {
+              echo 'Login successful. Welcome, ' . $uname . '!';
+            } else {
+              echo 'Invalid password for user ' . $uname . '.';
+              echo '<a href="' . $_GET['login_src'] . '">Click here</a> to try again.'
+            }
+          }
+       ?>
+    </div> <!-- /container -->
+   </body>
+</html>
+\end{lstlisting}
+\ \\[1em]
+
+\newpage
+
+\item \textbf{It sounded like a good idea at the time (10 points).} JavaScript Object Notation (JSON) is a human-readable format that is commonly used within web applications to transport data between client and server. In a nutshell, a JSON datum is simply a textual representation of a Javascript object, using the same notation as the Javascript language for object literals. So for example, a JSON object that represents the name and age of a person might read as follows.
+\begin{lstlisting}[language=Java]
+{
+  "name": "John Smith",
+  "age": 26,
+}
+\end{lstlisting}
+JSON objects are typically retrieved using the \href{https://en.wikipedia.org/wiki/XMLHttpRequest}{\keywordfont{XMLHttpRequest}} method.
+\emph{Note: for more information on JSON in general, refer to the \href{https://en.wikipedia.org/wiki/JSON}{Wikipedia page}}.
+
+Because \verb'XMLHttpRequest' is subject to the same-origin policy, developers have looked for ways to circumvent this to return JSON from remote domains. One approach utilizes the fact that \verb'<script>' tags are not subject to SOP, so it is allowed to do the following.
+\begin{lstlisting}[language=HTML]
+<script src="http://otherdomain.com/getuser.php?name=John">
+\end{lstlisting}
+If the server hosting \verb'otherdomain.com' returns a script containing the JSON-encoded data, then the page with the \verb'<script>' tag will be able to read it. Suppose that the JSON contains sensitive information, but that the developer of \verb'otherdomain.com' anticipated this and will only respond to users who present a valid session cookie obtained after logging in. Explain how a site hosted  at \verb'malicious.com' could still learn this sensitive information, and what sort of attack they would need to mount.
+
+\newpage
+
+\item \textbf{$A$ speaks for $B$ (25 points).} Professors tend to have full schedules, which is why the CS department assigns them assistants to help with administrative work. Suppose that \matt wishes to \emph{delegate} his authority to claim students using $\studof(x,\matt)$ to his assistant \ben, so that statements of the form $\says{\ben}{\studof(x,\matt)}$ are treated the same as statements of the form $\says{\matt}{\studof(x,\matt)}$.
+
+\begin{itemize}
+\item \textbf{Part 1 (5 points).} Write an authorization logic policy formula $Q_d$ that accomplishes this.
+\item \textbf{Part 2 (10 points).} Use your policy from Part 1, in addition to the formula wherein \ben says that \tli is a student of \matt, i.e. $Q_b \equiv \says{\ben}{\studof(\tli,\matt)}$, to prove the judgement below.
+\[
+\lsequent{Q_d,Q_b}{\says{\matt}{\studof(\tli,\matt)}}
+\]
+\item \textbf{Part 3 (10 points).} Use your policy from Part 1, $Q_b$ from Part 2, and $P_1,P_2,Q_1$ from the running example in Lecture 20 to prove the judgement below.
+\[
+\lsequent{Q_d,Q_b,P_1,P_2,Q_1}{\says{\admin}{\canopen(\tli,\office)}}
+\]
+\end{itemize}
+
+\end{enumerate}
+
+\end{document}

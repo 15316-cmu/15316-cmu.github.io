@@ -1,0 +1,9 @@
+This is BibTeX, Version 0.99dThe top-level auxiliary file: 21-pki.aux
+The style file: alphaurl.bst
+Illegal, another \bibstyle command---line 212 of file 21-pki.aux
+ : \bibstyle
+ :          {plain}
+I'm skipping whatever remains of this command
+Database file #1: bibliography.bib
+Warning--can't use both author and editor fields in Garfinkel1996
+(There was 1 error message)

@@ -1,0 +1,22 @@
+\begin{thebibliography}{SAB10}
+
+\bibitem[GM84]{Goguen1984}
+J.~A. Goguen and J.~Meseguer.
+\newblock Unwinding and inference control.
+\newblock In {\em Proceedings of the 1984 IEEE Symposium on Security and
+  Privacy (Oakland)}, 1984.
+
+\bibitem[SAB10]{Schwartz2010}
+Edward~J. Schwartz, Thanassis Avgerinos, and David Brumley.
+\newblock All you ever wanted to know about dynamic taint analysis and forward
+  symbolic execution (but might have been afraid to ask).
+\newblock In {\em Proceedings of the 2010 IEEE Symposium on Security and
+  Privacy (Oakland)}, 2010.
+
+\bibitem[TA05]{Terauchi2005}
+Tachio Terauchi and Alex Aiken.
+\newblock Secure information flow as a safety problem.
+\newblock In {\em Proceedings of the 12th International Conference on Static
+  Analysis (SAS)}, 2005.
+
+\end{thebibliography}

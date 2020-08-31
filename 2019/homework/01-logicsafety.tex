@@ -1,0 +1,144 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath,amssymb,fullpage,graphicx}
+\let\hat\widehat
+\let\tilde\widetilde
+
+\usepackage{xcolor}
+\usepackage{stmaryrd}
+\usepackage{mathpartir}
+
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{mathabx}
+%\usepackage{lsyntax}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newenvironment{proof}{\textbf{ Proof.}}{$\Box$}
+
+\newcommand{\answer}[1]{\text{{\it #1}}}
+\newcommand{\solution}[1]{\textbf{Solution:} #1}
+%\newcommand{\solution}[1]{}
+
+\usepackage[irlabel]{bugcatch}
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+%%%% new version of enumerate with less spacing
+\newenvironment{enum}{
+\begin{enumerate}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{enumerate}}
+
+\parskip 10pt
+\parindent 0pt
+\pagenumbering{gobble}
+\newcommand{\note}[1]{\ \\{\small\color{red}\emph{#1}}\\}
+
+\lstset{%
+  basicstyle=\ttfamily,
+  keywordstyle=\bfseries\color{green!60!black},
+  commentstyle=\itshape\color{purple!60!black},
+  stringstyle=\color{orange}
+}
+
+\begin{document}
+
+\begin{center}
+\textbf{ Assignment 1: Logically Safe\\15-316 Software Foundations of Security and Privacy}\\
+\end{center}
+Due: \textbf{ 11:59pm}, Thursday 9/13/19 \\
+Total Points: 50
+
+\vspace{-5mm}
+
+\begin{enumerate}
+\item \textbf{Proof practice (10 points).} Conduct a proof in the propositional sequent calculus that the following formula is valid. Be sure to say which proof rules apply at each step, and only apply proof rules without making undocumented simplifications along the way. If your proof tree grows wider than the page, you may find it helpful to break into sub-trees, but please clearly label them so that we know where they should go!
+\[
+((F \limply G) \land (H \limply I) \land (\lnot G \lor \lnot I)) \limply (\lnot F \lor \lnot H)
+\]
+
+% \textbf{Solution.}
+
+% Write your solution here
+%
+
+% \newpage
+
+\item \textbf{Propositional soundness (10 points).} Use the semantics of $\lnot$ to prove that the \irref{notr} rule is sound by showing that the validity of the premises imply the validity of the conclusion.
+\[
+\cinferenceRule[notr|$\lnot$\rightrule]{$\lnot$ right}
+{\linferenceRule[sequent]
+  {\lsequent[L]{\asfml}{}}
+  {\lsequent[L]{}{\lnot \asfml}}
+}{}%
+\]
+
+% \textbf{Solution.}
+
+% Write your solution here
+%
+
+% \newpage
+
+\item \textbf{Missing assumptions (10 points)}
+Find a non-trivial (i.e., not $\lfalse$) assumption $\mathbf{\Gamma}$ sufficient to complete the following proof, and complete it.
+\[
+\lsequent{\mathbf{\Gamma}}{\dbox{x := 7*x+1; \pwhile{x \ge 19}{\{x := x - 19\}}}{x = 3}} 
+\]
+Note that it may help to first try completing the proof, and see how far you can get. Your partial proof may guide you directly to the correct assumption, but try to reduce your effort by finding a condition that causes the loop to execute as few times as possible.
+
+% \textbf{Solution.}
+
+% Write your solution here
+%
+
+% \newpage
+
+\item \textbf{Conditional assignments (10 points)}
+When rummaging through the syntax manual of other imperative programming language and comparing them to the while language considered in class, a clever student found that we totally neglected his favorite feature of conditional assignments.
+Indeed, the conditional assignment \(x := Q \,?\, e1 \,:\, e2\) that assigns term $e1$ to variable $x$ if formula $Q$ is true and otherwise assigns term $e2$ to $x$ is missing.
+Your job is to define a semantics \(\lenvelope x := Q \,?\, e1 \,:\, e2 \renvelope\) for the conditional assignment \(x := Q \,?\, e1 \,:\, e2\) as the set of all pairs of initial and final states of running \(x := Q \,?\, e1 \,:\, e2\).
+After having done so, your next task is to design a sound axiom for it:
+\[
+\cinferenceRule[iteassignb|$\dibox{:=?{:}}$]{}
+{\linferenceRule[equiv]
+  {\dots}
+  {\dbox{x := Q \,?\, e1 \,:\, e2}{p(x)}}
+}{}
+\]
+
+% \textbf{Solution.}
+
+% Write your solution here
+%
+
+% \newpage
+
+\item \textbf{Now prove it! (10 points).} Use the semantics from part 4 to prove that your axiom is sound, i.e., that it is a valid formula of dynamic logic.
+
+% \textbf{Solution.}
+
+% Write your solution here
+%
+
+% \newpage
+
+\end{enumerate}
+
+\end{document}
