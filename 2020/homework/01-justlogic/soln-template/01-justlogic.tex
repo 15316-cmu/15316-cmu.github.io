@@ -1,0 +1,140 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath,amssymb,fullpage,graphicx}
+\let\hat\widehat
+\let\tilde\widetilde
+
+\usepackage{xcolor}
+\usepackage{stmaryrd}
+\usepackage{mathpartir}
+
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{mathabx}
+%\usepackage{lsyntax}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newenvironment{proof}{\textbf{ Proof.}}{$\Box$}
+
+\newcommand{\answer}[1]{\text{{\it #1}}}
+\newcommand{\solution}[1]{\textbf{Solution:} #1}
+%\newcommand{\solution}[1]{}
+
+\usepackage[irlabel]{bugcatch}
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+%%%% new version of enumerate with less spacing
+\newenvironment{enum}{
+\begin{enumerate}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{enumerate}}
+
+\parskip 10pt
+\parindent 0pt
+\pagenumbering{gobble}
+\newcommand{\note}[1]{\ \\{\small\color{red}\emph{#1}}\\}
+
+\lstset{%
+  basicstyle=\ttfamily,
+  keywordstyle=\bfseries\color{green!60!black},
+  commentstyle=\itshape\color{purple!60!black},
+  stringstyle=\color{orange}
+}
+
+\begin{document}
+
+\begin{center}
+\textbf{ Assignment 1: Just Logic\\15-316 Software Foundations of Security and Privacy}\\
+\end{center}
+Due: \textbf{ 11:59pm}, Wednesday 9/9/20 \\
+Total Points: 50
+
+\vspace{-5mm}
+
+\begin{enumerate}
+\item \textbf{Proof practice (10 points).} Conduct a proof in the propositional sequent calculus that the following formula is valid. Be sure to say which proof rules apply at each step, and only apply proof rules without making undocumented simplifications along the way. If your proof tree grows wider than the page, you may find it helpful to break into sub-trees, but please clearly label them so that we know where they should go!
+\[
+((F \limply G) \land (F \limply H)) \limply (F \limply (G \land H))
+\]
+
+\textbf{Solution.}
+
+% Write your solution here
+%
+
+\newpage
+
+\item \textbf{Propositional soundness (15 points).} Use the semantics of $\limply$ to prove that the \irref{implyl} rule is sound by showing that the validity of the premises imply the validity of the conclusion.
+\[
+\cinferenceRule[implyl|$\limply$\leftrule]{$\limply$ right}
+{\linferenceRule[sequent]
+  {\lsequent[L]{}{\asfml}
+  &\lsequent[L]{\bsfml}{}}
+  {\lsequent[L]{\asfml \limply \bsfml}{}}
+}{}%
+\]
+
+\textbf{Solution.}
+
+% Write your solution here
+%
+
+\newpage
+
+\item \textbf{Free Proof (10 points)}
+
+Show that the following rule is unsound by using it to construct a proof of false. For example, your proof might end with the sequent $\lsequent[L]{}{\asfml\land\lnot\asfml}$ at the bottom of the tree.
+
+\[
+\cinferenceRule[flip|$\lnot\star$]{flip rule}
+{\linferenceRule[sequent]
+  {\lsequent[L]{}{\lnot\asfml}}
+  {\lsequent[L]{}{\asfml}}
+}{}
+\]
+
+\textbf{Solution.}
+
+% Write your solution here
+%
+
+\newpage
+
+\item \textbf{Questionable Rules (15 points)}
+Would using the following rule instead of $\irref{andr}$ jeopardize the soundness of a proof? If so, give an example that uses it to prove false like in Question 3. If not, then prove that it is sound, either using a sequent calculus deduction that ends with the premises of this rule, or an argument based on the semantics of propositional logic (like in Question 2). Then discuss any advantages or disadvantages of using the rule.
+
+\[
+\cinferenceRule[mandr|$\star$\rightrule]{$\star$ right}
+{\linferenceRule[sequent]
+  {\lsequent[L]{}{\asfml}
+  &\lsequent[L]{\asfml}{\bsfml}}
+  {\lsequent[L]{}{\asfml \land \bsfml}}
+}{}%
+\]
+
+\textbf{Solution.}
+
+% Write your solution here
+%
+
+\newpage
+
+\end{enumerate}
+
+\end{document}
