@@ -557,6 +557,11 @@ Recall from \rref{def:sequent} that the meaning of the sequent \(\lsequent{\Gamm
   \cinferenceRuleQuote{implyr}
   \cinferenceRuleQuote{notr}
   \cinferenceRuleQuote{id}
+  \cinferenceRule[botl|$\bot$\leftrule]{vacuous axiom}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent[L]{\bot}{}}
+}{}%
 \end{calculus}
 \quad
 \begin{calculus}
@@ -565,6 +570,11 @@ Recall from \rref{def:sequent} that the meaning of the sequent \(\lsequent{\Gamm
   \cinferenceRuleQuote{implyl}
   \cinferenceRuleQuote{notl}
   \cinferenceRuleQuote{cut}
+  \cinferenceRule[topr|$\top$\rightrule]{vacuous axiom}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent[L]{}{\top}}
+}{}%
 \end{calculus}
 \caption{Sequent calculus proof rules for propositional logic}
 \label{fig:propositional-logic}
@@ -609,6 +619,7 @@ Now that all proof rules of propositional logic are sound it is easy to see that
 Because this is so important and we want to practice the important proof principle of induction, we will show this explicitly.
 
 \begin{theorem}[Soundness of propositional logic]
+\label{thm:soundness-all}
   The sequent calculus of propositional logic is sound, i.e.\ it only proves valid formulas.
   That is, if \(\lsequent{}{\asfml}\) has a proof in the propositional sequent calculus, then $\asfml$ is valid, i.e.\ \(\entails \asfml\).
 \end{theorem}
@@ -644,6 +655,49 @@ Its conclusion is valid, because assumption $\asfml$ in the antecedent trivially
   \qedhere
 \end{enumerate}
 \end{proof}
+
+\subsection{Soundness by derivation}
+
+The approach that we just learned for proving that an inference rule is sound can be used widely to introduce new rules into our system of deduction.
+If we are careful about our semantic arguments, and ultimately successful in proving that the rule is sound, then we can safely use it along with the existing rules to make sound deductions; this is exactly what Theorem~\ref{thm:soundness-all} tells us.
+However, there is another way to show that an inference rule is sound, by using the rules that we already know to be sound in a formal sequent calculus proof. We will refer to rules that we can prove in this way as \emph{derived rules}, and in many cases, their proofs give a more concise illustration of the logical principles at work.
+
+To show how this works, we will construct a rule that captures one sense of DeMorgan's law, which you may already be familiar with.
+\[
+\cinferenceRule[demo|demo]{demo}
+{\linferenceRule[sequent]
+  {\lsequent[L]{}{\lnot\asfml}
+  &\lsequent[L]{}{\lnot\bsfml}}
+  {\lsequent[L]{}{\lnot(\asfml \lor \bsfml)}}
+}{}%
+\]
+To prove that this is sound by derivation, we set out to prove the sequent $\lsequent[L]{}{\lnot(\asfml \lor \bsfml)}$. However, this sequent is not valid, so we will not be able to close out all branches of the proof by reducting to \irref{id}.
+Rather, we will stop when we have closed out all branches \emph{except for} two that containin the sequents $\lsequent[L]{}{\lnot\asfml}$ and $\lsequent[L]{}{\lnot\bsfml}$.
+A little bit of thought should convince you that this is perfectly fine, because if we intend to use this rule in a proof, that is exactly what we would need to be able to prove if we applied DeMorgan's!
+\begin{sequentdeduction}[array]
+\linfer[notr] {
+  \linfer[orl] {
+    \linfer[notl] {
+      \lsequent[L]{}{\lnot\bsfml}
+    } {
+      \lsequent[L]{\bsfml}{}
+    }
+    !\linfer[notl] {
+      \lsequent[L]{}{\lnot\asfml}
+    } {
+      \lsequent[L]{\asfml}{}
+    }
+  } {
+    \lsequent[L]{\asfml \lor \bsfml}{}
+  }
+} {
+  \lsequent[L]{}{\lnot(\asfml \lor \bsfml)}
+}
+\end{sequentdeduction}
+To reiterate, we do not need to take this proof any further, because the two unclosed branches contain exactly the premises of the \irref{demo} rule that we set out to prove.
+Because we already know that \irref{notl}, \irref{orl}, and \irref{notr} are sound, and that combining them in arbitrary order on any set of formulas is also sound, we can conclude that the rule \irref{demo} must indeed be sound: the validity of its premises imply the validity of its conclusion.
+
+\subsection{Completeness}
 
 Soundness is one thing, and most crucial for any correct reasoning.
 But since propositional logic is so simple, it enjoys other pleasant properties.
