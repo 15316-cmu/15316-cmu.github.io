@@ -1,0 +1,29 @@
+\newcommand{\etalchar}[1]{$^{#1}$}
+\begin{thebibliography}{LCM{\etalchar{+}}05}
+
+\bibitem[Ayc03]{Aycock2003}
+John Aycock.
+\newblock A brief history of just-in-time.
+\newblock {\em ACM Computing Surveys}, 35(2):97--113, June 2003.
+
+\bibitem[LCM{\etalchar{+}}05]{Luk2005}
+Chi-Keung Luk, Robert Cohn, Robert Muth, Harish Patil, Artur Klauser, Geoff
+  Lowney, Steven Wallace, Vijay~Janapa Reddi, and Kim Hazelwood.
+\newblock Pin: Building customized program analysis tools with dynamic
+  instrumentation.
+\newblock In {\em Proceedings of the 2005 ACM SIGPLAN Conference on Programming
+  Language Design and Implementation (PLDI)}, 2005.
+
+\bibitem[Sch00]{Schneider2000}
+Fred~B. Schneider.
+\newblock Enforceable security policies.
+\newblock {\em ACM Transactions on Information Systems Secur.}, 3(1):30--50,
+  February 2000.
+
+\bibitem[Sha07]{Hovav07}
+Hovav Shacham.
+\newblock The geometry of innocent flesh on the bone: Return-into-libc without
+  function calls (on the {x86}).
+\newblock In {\em Proceedings of CCS 2007}, October 2007.
+
+\end{thebibliography}
