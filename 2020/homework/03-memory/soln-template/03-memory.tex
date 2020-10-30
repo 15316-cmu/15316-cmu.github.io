@@ -1,0 +1,210 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath,amssymb,fullpage,graphicx}
+\let\hat\widehat
+\let\tilde\widetilde
+
+\usepackage{xcolor}
+\usepackage{stmaryrd}
+\usepackage{mathpartir}
+
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{mathabx}
+%\usepackage{lsyntax}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newenvironment{proof}{\textbf{ Proof.}}{$\Box$}
+
+\newcommand{\answer}[1]{\text{{\it #1}}}
+\newcommand{\solution}[1]{\textbf{Solution:} #1}
+%\newcommand{\solution}[1]{}
+
+\usepackage[irlabel]{bugcatch}
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+%%%% new version of enumerate with less spacing
+\newenvironment{enum}{
+\begin{enumerate}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{enumerate}}
+
+\parskip 10pt
+\parindent 0pt
+\pagenumbering{gobble}
+\newcommand{\note}[1]{\ \\{\small\color{red}\emph{#1}}\\}
+
+\lstset{%
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries\color{green!60!black},
+  commentstyle=\itshape\color{purple!60!black},
+  stringstyle=\color{orange}
+}
+
+\newcommand{\pand}[2]{\keywordfont{and}(#1, #2)}
+\newcommand{\por}[2]{\keywordfont{or}(#1, #2)}
+
+\begin{document}
+
+\begin{center}
+\textbf{ Assignment 3: The Memory Sandbox \\15-316 Software Foundations of Security and Privacy}\\
+\end{center}
+Total Points: 50
+
+\vspace{-5mm}
+
+\begin{enumerate}
+\item \textbf{Practice makes perfect (10 points).} Use the read-over-write axioms to prove the validity of the following using a sequent calculus deduction:
+\[
+\lsequent{0 \le k < U, j \ne k, i = j}{\memupd{\memupd{\pderefop}{i}{e}}{j}{f}(k)=g \limply \pderefop(k)=g}
+\]
+
+\textbf{Solution.}
+
+% Write your solution here
+
+
+\newpage
+
+\item \textbf{Unfinished business (10 points).} In lecture 7, we discussed two cases of the structural induction used to prove the security of SFI. Complete the inductive case for \texttt{while} commands. That is, assuming that Equation~\ref{eq:sfi-integrity} is valid for $\asprg$ whenever $0 \le s_l \le  (x \bitand s_h) \bitor s_l \le b_h < \maxmem$:
+\begin{equation}
+\label{eq:sfi-integrity}
+\forall i . \lnot(s_l \le i \le s_h)  \land \pderef{i}=v_i \limply \dbox{\asprg}{\pderef{i}=v_i}
+\end{equation}
+Prove that it is also valid for $\pif{\ivr}{\asprg}{\bsprg}$.
+
+\textbf{Solution.}
+
+% Write your solution here
+
+
+\newpage
+
+\item \textbf{Leaky sandbox (30 points).}
+Consider the following language, which resembles a simplified assembly language.
+
+\begin{center}
+\begin{tabular}{ll}
+$\pand{x}{y}$ & Take the bitwise-and of variables $x$ and $y$, store the result in $x$ \\
+$\por{x}{y}$ & Take the bitwise-or of variables $x$ and $y$, store the result in $x$ \\
+$x := c$ & Copy a constant $c$ into variable $x$ \\
+$x := y$ & Copy the value stored in $y$ to $x$ \\
+$x := \pderef{y}$ & Read the memory at address stored in variable $y$, save result in $x$ \\
+$\pderef{x} := y$ & Store the value in $y$ at the address pointed to by $x$ \\
+$\pifjump{\ivr}{x}$ & If $\ivr$ is true in the current state, jump to the instruction pointed to by $x$
+\end{tabular}
+\end{center}
+
+Programs in this language are sequences of instructions indexed on integers $0$ to $n$, and we refer to the instruction at index $i$ of program $\alpha$ with the notation $\alpha_i$. Note that there are no expressions other than constants and variables in this language. Instead, results of operations are stored in variables, and can be moved into memory when necessary. Think of variables as acting like registers, so to implement the computation $w := (x \bitand y) \bitor z$ from our language in lecture we would write the program:
+\[
+\begin{array}{ll}
+\keywordfont{1}: & \pand{x}{y} \\
+\keywordfont{2}: & \por{x}{z} \\
+\keywordfont{3}: & w := x
+\end{array}
+\]
+It is \emph{not} possible to write $w := \por{\pand{x}{y}}{z}$ because neither $\por{\pand{x}{y}}{z}$ or $\pand{x}{y}$ is a variable, and updates to variables can only be written with other variables, constants, or memory reads on the right hand side.
+
+Note that just as you should assume that any memory reads outside the bounds of $[0, U)$ will result in an aborted trace, you should assume that any attempt to $\mathtt{jump}$ to an address outside the bounds of $[0, N)$, where $N$ is the number of instructions in $\alpha$, will also abort the trace.
+\\[1em]
+
+\textbf{Part 1 (15 points).} We want to implement a sandboxing policy for this language using software fault isolation. So the proposal is to replace all memory read and write operations as follows. Assume that $s_l = \keywordfont{0x15316000}$ and $s_h = \keywordfont{0x15316fff}$, so the memory sandbox is contained in the range of addresses $\keywordfont{0x15316000} - \keywordfont{0x15316fff}$.
+\begin{center}
+\begin{tabular}{lcl}
+$
+\begin{array}{l}
+x := \pderef{y}
+\end{array}
+$
+&
+\ \ \ \ becomes\ \ \ \ 
+&
+$
+\begin{array}{l}
+\pand{y}{\keywordfont{0x15316fff}} \\
+\por{y}{\keywordfont{0x15316000}} \\
+x := \pderef{y}
+\end{array}
+$
+\end{tabular}
+
+\begin{tabular}{lcl}
+$
+\begin{array}{l}
+\pderef{x} := y
+\end{array}
+$
+&
+\ \ \ \ becomes\ \ \ \ 
+&
+$
+\begin{array}{l}
+\pand{x}{\keywordfont{0x15316fff}} \\
+\por{x}{\keywordfont{0x15316000}} \\
+\pderef{x} := y
+\end{array}
+$
+\end{tabular}
+\end{center}
+Additionally, we want to prevent jumps from leaving a code sandbox restricted to the range of instruction addresses $\keywordfont{0x00000a00} - \keywordfont{0x00000aff}$. So each indirect jump is rewritten as follows.
+\begin{center}
+\begin{tabular}{lcl}
+$
+\begin{array}{l}
+\pifjump{\ivr}{x}
+\end{array}
+$
+&
+\ \ \ \ becomes\ \ \ \ 
+&
+$
+\begin{array}{l}
+\pand{x}{\keywordfont{0x00000aff}} \\
+\por{x}{\keywordfont{0x00000a00}} \\
+\pifjump{\ivr}{x}
+\end{array}
+$
+\end{tabular}
+\end{center}
+Any untrusted code is rewritten using these rules prior to being executed.
+Unfortunately, we didn't have time to prove that this implementation of SFI is secure. 
+
+\newpage
+
+\textbf{Explain why this instrumentation is vulnerable to memory reads and writes outside the memory sandbox, and provide an example program in the language that exploits  violates the policy.}
+For full credit, be sure to explain in words how your example results in a violation of the sandbox policy.
+
+\textbf{Solution.}
+
+% Write your solution here
+
+
+\newpage
+
+\textbf{Part 2 (15 points).} \textbf{Propose an alternative implementation in this language for the policy in Part 1 that is secure.} You may assume that the untrusted code is not allowed to modify some variables that you select, but be sure to clearly state this and any other assumptions that your solution requires.
+
+\textbf{Solution.}
+
+% Write your solution here
+
+
+
+\end{enumerate}
+
+\end{document}

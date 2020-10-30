@@ -63,7 +63,7 @@
 \begin{document}
 
 \begin{center}
-\textbf{ Assignment 2: Safe in the Sandbox\\15-316 Software Foundations of Security and Privacy}\\
+\textbf{ Assignment 2: Semantically Safe\\15-316 Software Foundations of Security and Privacy}\\
 \end{center}
 Due: \textbf{ 11:59pm}, Sunday 9/29/18 \\
 Total Points: 50
@@ -71,175 +71,92 @@ Total Points: 50
 \vspace{-5mm}
 
 \begin{enumerate}
-\item \textbf{Unfinished business (10 points).} In lecture 7, we discussed two cases of the structural induction used to prove the security of SFI. Complete the inductive case for \texttt{while} commands. That is, assuming that Equation~\ref{eq:sfi-integrity} is valid for $\asprg$ whenever $0 \le s_l \le  (x \bitand s_h) \bitor s_l \le b_h < \maxmem$:
-\begin{equation}
-\label{eq:sfi-integrity}
-\forall i . \lnot(s_l \le i \le s_h)  \land \pderef{i}=v_i \limply \dbox{\asprg}{\pderef{i}=v_i}
-\end{equation}
-Prove that it is also valid for $\pwhile{\ivr}{\asprg}$.
+\item \textbf{Safe superdiversity (10 points).} The so-called ``monoculture problem'' of software security refers to the fact that when a large set of users runs bytecode-identical versions of the same application, then any vulnerability affecting that application will have dramatic impact as it applies to the whole population. In response to this, engineers looked for ways to diversify software by distributing different versions of the same application, each with a unique bytecode representation. 
 
-\textbf{Solution.}
+One example of this is a technique called ``superdiversification'', proposed by researchers from Nokia and Microsoft in 2008. The technique is applied by a compiler when generating an executable, and performs a brute-force search of all short instruction sequences to look for semantically-equivalent machine code implementations for desired functions. 
 
-% Write your solution here
+It's probably not wise to dopt this crazy-sounding technique without convincing evidence that the implementations it produces are in fact equivalent to the original code you wrote. If this were not the case, your application might end up with arbitrary behaviors, potentially leading to even more vulnerabilities than would otherwise be present. Luckily, you are familiar with dynamic logic, and are able to rigorously prove that such implementations are correct.
 
-
-\newpage
-
-\item \textbf{Bad Rules (10 points).}
-Proof rules have to be sound, i.e., if all premises are valid then the conclusion must be as well.
-Show that the following proof rule is unsound by giving a counterexample, i.e. an instance of
-the proof rule for which \textbf{all premises are valid but the conclusion is not valid}.
-For full credit, you must provide an explanation in words as to why your counterexample demonstrates unsoundness.
-
-\cinferenceRule[badcomp]{unsound composition}
-{\linferenceRule[sequent] {
-  \lsequent{\Gamma}{\dbox{\asprg}{\busfml}}
-  &\lsequent{\Gamma,\busfml}{\dbox{\bsprg}{\ausfml}}
-  } {
-    \lsequent{\Gamma}{\dbox{\asprg;\bsprg}{\ausfml}}
-  }
-}{}
-
-\textbf{Solution.}
-
-% Write your solution here
-
-
-\newpage
-
-\item \textbf{Leaky sandbox (20 points).}
-Consider the following language, which resembles a simplified assembly language.
-
-\begin{center}
-\begin{tabular}{ll}
-$\pand{x}{y}$ & Take the bitwise-and of variables $x$ and $y$, store the result in $x$ \\
-$\por{x}{y}$ & Take the bitwise-or of variables $x$ and $y$, store the result in $x$ \\
-$x := y$ & Copy the value stored in $y$ to $x$ \\
-$x := \pderef{y}$ & Read the memory at address stored in variable $y$, save result in $x$ \\
-$\pderef{x} := y$ & Store the value in $y$ at the address pointed to by $x$ \\
-$\pifjump{\ivr}{x}$ & If $\ivr$ is true in the current state, jump to the instruction pointed to by $x$
-\end{tabular}
-\end{center}
-
-Programs in this language are sequences of instructions indexed on integers $0$ to $n$, and we refer to the instruction at index $i$ of program $\Pi$ with the notation $\Pi_i$. Note that there are no expressions in this program. Results of operations are stored in variables, and can be moved into memory when necessary. Think of variables as acting like registers, so to implement the computation $w := (x \bitand y) \bitor z$ from our language in lecture we would write the program:
+Prove that the following code negates $y$ and stores it in $x$. In other words, write a specification by giving a precondition $A$ and postcondition $B$ that captures this functionality, and then use the axioms of dynamic logic to show that the following formula is valid.
 \[
-\begin{array}{ll}
-\keywordfont{1}: & \pand{x}{y} \\
-\keywordfont{2}: & \por{x}{z} \\
-\keywordfont{3}: & w := x
-\end{array}
+\pumod{x}{x-y};\pumod{y}{y+x};\pumod{x}{x-y}
 \]
-It is \emph{not} possible to write $w := \por{\pand{x}{y}}{z}$ because neither $\por{\pand{x}{y}}{z}$ or $\pand{x}{y}$ is a variable, and updates to variables can only be written with other variables on the right hand side.
-\\[1em]
-
-\textbf{Part 1 (10 points).} We want to implement a sandboxing policy for this language using software fault isolation. So the proposal is to replace all memory read and write operations as follows. Assume that $s_l = \keywordfont{0x15316000}$ and $s_h = \keywordfont{0x15316fff}$, so the memory sandbox is contained in the range of addresses $\keywordfont{0x15316000} - \keywordfont{0x15316fff}$.
-\begin{center}
-\begin{tabular}{lcl}
-$
-\begin{array}{l}
-x := \pderef{y}
-\end{array}
-$
-&
-\ \ \ \ becomes\ \ \ \ 
-&
-$
-\begin{array}{l}
-\pand{y}{\keywordfont{0x15316fff}} \\
-\por{y}{\keywordfont{0x15316000}} \\
-x := \pderef{y}
-\end{array}
-$
-\end{tabular}
-
-\begin{tabular}{lcl}
-$
-\begin{array}{l}
-\pderef{x} := y
-\end{array}
-$
-&
-\ \ \ \ becomes\ \ \ \ 
-&
-$
-\begin{array}{l}
-\pand{x}{\keywordfont{0x15316fff}} \\
-\por{x}{\keywordfont{0x15316000}} \\
-\pderef{x} := y
-\end{array}
-$
-\end{tabular}
-\end{center}
-Additionally, we want to prevent indirect jumps from leaving a code sandbox restricted to the range of instruction addresses $\keywordfont{0x00000a00} - \keywordfont{0x00000aff}$. So each indirect jump is rewritten as follows.
-\begin{center}
-\begin{tabular}{lcl}
-$
-\begin{array}{l}
-\pifjump{\ivr}{x}
-\end{array}
-$
-&
-\ \ \ \ becomes\ \ \ \ 
-&
-$
-\begin{array}{l}
-\pand{x}{\keywordfont{0x00000aff}} \\
-\por{x}{\keywordfont{0x00000a00}} \\
-\pifjump{\ivr}{x}
-\end{array}
-$
-\end{tabular}
-\end{center}
-Any untrusted code is rewritten using these rules prior to being executed.
-Unfortunately, we were on a tight deadline and didn't have time to prove that this implementation of SFI is secure. 
-
-\newpage
-
-\textbf{Explain why this instrumentation is vulnerable to memory reads and writes outside the memory sandbox, and provide an example program in the language that exploits  violates the policy.}
 
 \textbf{Solution.}
 
 % Write your solution here
 
-
 \newpage
 
-\textbf{Part 2 (10 points).} \textbf{Propose an alternative implementation in this language for the policy in Part 1 that is secure.} You may assume that the untrusted code is not allowed to modify some variables that you select, but be sure to state any assumptions about what invariants must hold of those variables for your implementation to be secure.
+\item \textbf{Once and for all (10 pionts).} Having completed the previous exercise, there is an obvious problem when it comes to using this approach in practice. Even if we have a tool to do the proofs for us, it's going to be too much work to write down a brand new specification for the safety of each and every transformation that the system decides to use. Your goal in this problem is to write a single specification, as a dynamic logic formula, that covers all of our concerns for superdiversity.
+\begin{itemize}
+\item You should assume that the original code fragment is represented by $\alpha$, and the super-diversified replacement by $\beta$.
+\item You may assume that the only variables that both $\alpha$ and $\beta$ use are $x$ and $y$.
+\item Your specification should capture the fact that $\alpha$ and $\beta$ must be equivalent in terms of their input-output behavior with respect to $x$ and $y$. In other words, if they are executed in states that agree on the values of $x$ and $y$, then when they terminate, they will agree on (potentially new) values of $x$ and $y$.
+\item If it helps you answer the question, you may assume that $\alpha$ and $\beta$ always terminate. If your answer requires this assumption, then you must state it and explain why.
+\item Likewise, if it helps, you may assume that $\alpha$ and $\beta$ are programs in the language discussed in lecture. If your answer \emph{does not} use this assumption, then be sure to say so and explain!
+\end{itemize}
+In addition to providing a dynamic logic formula that meets these requirements, determine whether this formula corresponds to a safety property. If so, explain why by identifying the finite prefixes according to Definition 11 in the ``Semantics, Safety, \& Dynamic Logic'' lecture notes. If not, provide a concise explanation why.
 
 \textbf{Solution.}
 
 % Write your solution here
 
+\newpage
+
+\item \textbf{Nondeterministically Satisfied (20 points).} 
+
+Now that we know how to reason about programs using logic, perhaps there are interesting ways to use logic directly in a program to make life easier.
+One example would be the ``assign such that'' statement, which would let us update a variable to take some nondeterministically-chosen value \emph{such that} it satisfies a given condition.
+An example of this might look like the following, where $x$ is assigned some arbitrary value between 0 and 15,316:
+\[
+x~\texttt{:=?}~0 \le x \land x \le 15316
+\]
+Aside from being useful for writing provably-correct code, this construct could maybe even help us generate good random passwords that satisfy those annoying character class requirements...
+
+\begin{enumerate}
+\item Define the a formal semantics for this command.
+That is, define the following set of traces assuming that $p(x)$ is a formula with a free occurrence of the variable $x$:
+\[
+\llbracket x~\texttt{:=?}~p(x)\rrbracket = 
+\{
+(\omega,\nu) : \ldots
+\}
+\]
+
+\item Then, give an axiom that enables compositional reasoning about programs that make use of the command.
+\[
+\dbox{x~\texttt{:=?}~p(x)}q(x) \lbisubjunct \ldots
+\]
+The right-hand side that you fill in for this axiom should contain no box or diamond modalities.
+
+\item
+Finally, be sure to relate the axiom to your semantics by proving that it is sound.
+\end{enumerate}
 
 \newpage
 
-\item \textbf{\textit{Jailbreak (10 points).}} The \texttt{chroot} system call changes the effective filesystem root for the process that calls it. The main purpose of the call is to create a filesystem sandbox before executing an untrusted piece of code, so that after the code is loaded and run it should not be able to reference files outside of the designated directory tree. For example, if a process has as its current working directory \verb'/new_root', then after calling \verb'chroot("/new_root")' the following program will fail: \verb'open("../etc/passwd")'. This would be like opening \verb'/../etc/passwd', which fails because \verb'/' is the root of the entire filesystem and there is no such directory as \verb'/..'
+\item \textbf{On second thought... (10 points).}
+Sometimes adding new features to a language can be more trouble than they're worth.
+In the lecture notes, we somewhat casually concluded that the following two contracts for a given program were equivalent.
+\begin{align*}
+\dbox{\alpha}{A} &\land \dbox{\alpha}{B} \\
+\dbox{\alpha}{(A &\land B)}
+\end{align*}
+For the language we've discussed in lecture the same holds for disjunction, so:
+\[
+\vDash \dbox{\alpha}{A} \lor \dbox{\alpha}{B} \lbisubjunct
+\dbox{\alpha}{(A \lor B)}
+\]
+Now that $\alpha$ might contain an ``assign such-that'' command, is this still the case?
+\begin{itemize}
+\item If so, then prove that
+$
+\vDash \dbox{x~\texttt{:=?}~p(x)}{(A \lor B)} \lbisubjunct \dbox{x~\texttt{:=?}~p(x)}{A} \lor \dbox{x~\texttt{:=?}~p(x)}{B}
+$.
 
-But calling \verb'chroot("/new_root")' does \emph{not} change the process' current working directory to \verb'/new_root'. So if the current working directory is \verb'/tmp', then \texttt{chroot('/new\_root'); open('../etc/passwd', O\_RDONLY)} will succeed because the filesystem does not traverse the sandbox directory \verb'/new_root' to open \verb'../etc/passwd' from \verb'/tmp'. This is called ``breaking the \texttt{chroot} jail'', and is a common pitfall with implementations of this type of sandbox.
-
-For this reason, it is crucial that programs calling \texttt{chroot} also call \verb'chdir("/")' immediately afterwards, before calling \verb'open' on any filename and before calling \verb'chroot' \textbf{again}. 
-
-\textbf{Provide a security automaton that captures this policy exactly}. For full credit, your solution should clearly state which states are initial, what the transition symbols are, and how they correspond to the requirements on system call identifiers and arguments as described in the previous paragraph.
-
-\textbf{Solution.}
-
-% Write your solution here
-
-
-\newpage
-
-\item \textbf{\textit{(Extra Credit)} Tough conditions (5 points).} As discussed in lecture, bounded model checking and symbolic execution can be used to find inputs that drive a program down a particular path. It does this by generating the corresponding path condition, and checking it for satisfiability. If the path condition is satisfiable, then it generates a \emph{model}, or satisfying assignment to the variables. When this assignment is used as the input to the program, it will necessarily end up taking the path used to derive the condition.
-
-However, this is all contingent on being able to first determine the satisfiability of the path condition and then subsequently generating a satisfying assignment. The decision procedures used to do this are subject to the same laws of computability as any other algorithm, and so there is no guarantee that they will be able to provide answers for every path condition. 
-
-Write a short program for which it is unlikely that a decision procedure will be able to produce satisfying assignments to drive execution down at least one path. Your program is allowed to call outside functions, e.g. $\keywordfont{Fib}(n)$ to return the $n$th Fibonacci number, but be sure to describe precisely what any such external function computes, and why it is unlikely that a decision procedure will be able to solve the resulting path conditions.
-
-\textbf{Solution.}
-
-% Write your solution here
-
-
-\newpage
+\item If not, then give an example of a program $\alpha$ that makes use of ``assign such-that'', and a postcondition $A \lor B$ such that $\dbox{\alpha}{(A \lor B)}$ is not equivalent to $\dbox{\alpha}{A} \lor \dbox{\alpha}{B}$.
+\end{itemize}
 
 \end{enumerate}
 

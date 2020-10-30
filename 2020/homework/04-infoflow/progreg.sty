@@ -1,0 +1,200 @@
+\ProvidesPackage{progreg}
+%%
+%% Copyright (c) 2004-2016 Andre Platzer
+%%
+%% This package provides the tools for writing regular programs as occurring in modalities of dynamic logic.
+
+\RequirePackage{xkeyval}
+\RequirePackage{xkvltxp}
+\RequirePackage{amsmath,amssymb}
+\RequirePackage{ifthen}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% optional parameters to this package
+%%
+
+%% update notation
+\newif\if@progreg@updateassign
+\@progreg@updateassigntrue
+%% triangle notation for updates
+\DeclareOptionX{updatealtnotation}{\global\@progreg@updateassignfalse}
+%% := notation for updates
+\DeclareOptionX{updateassign}{\global\@progreg@updateassigntrue}
+
+%% which notation to use for parallel operator \land within \pupdate
+\newcommand{\@prepareupdate}{}
+\DeclareOptionX{updatepar}[\land]
+{\ifx\land#1\else\renewcommand{\@prepareupdate}{\let\land{#1}}\fi}
+
+%% which notation to use for parallel operator \land within \pevolve
+\newcommand{\@prepareevolve}{}
+\DeclareOptionX{evolvepar}[\land]
+%{\ifx\land#1\else\renewcommand{\@prepareevolve}{\let\land{#1}}\fi}
+{}
+
+
+\newcommand*{\ptest}[1]{\ensuremath{?#1}} % Default changed to [pretest] on 2013/08/19
+%% test operator uses prefix notation ?p
+\DeclareOptionX{pretest}{\renewcommand*{\ptest}[1]{\ensuremath{?##1}}}   %\mathord{?}
+%% test operator uses postfix notation p?
+\DeclareOptionX{posttest}{\renewcommand*{\ptest}[1]{\ensuremath{##1?}}}
+%% test operator uses no or silent notation p
+\DeclareOptionX{notest}{\renewcommand*{\ptest}[1]{\ensuremath{##1}}}
+
+\newif\if@progreg@commandblocks
+%\@progreg@commandblockstrue
+\@progreg@commandblocksfalse % Default changed to [nocommandblocks] on 2013/08/19
+%% command blocks are not used automatically, e.g. if (a) b;
+\DeclareOptionX{nocommandblocks}{\global\@progreg@commandblocksfalse}
+%% all command blocks use brackets, e.g. if (a) {b}
+\DeclareOptionX{commandblocks}{\global\@progreg@commandblockstrue}
+
+\def\@progreg@commandend{}%
+% [commandnone] uses no command ending
+\DeclareOptionX{commandnone}{}
+% [commandDijkstra] uses Dijkstra-style ending if ... fi and while ... elihw
+\DeclareOptionX{commandDijkstra}{\global\def\@progreg@commandend{\,fi}}
+
+
+\newcommand*{\keywordfont}[1]{\texttt{\upshape #1}}
+\DeclareOptionX{keywordfont}[texttt]{\renewcommand*{\keywordfont}[1]{\csname#1\endcsname{##1}}}
+
+\DeclareOptionX*{\PackageWarning{progreg}{Unknown option `\CurrentOption'}}
+\ProcessOptionsX\relax
+
+
+
+%%
+%% Programs
+%%
+
+%% (simultaneous) update program statement
+%% \update{\umod{x1}{a1},...,\umod{xn}{an}}
+\newcommand*{\pupdate}[1]
+%%%%{\ensuremath{\{\@prepareupdate#1\}}}
+{\ensuremath{\@prepareupdate#1}}
+\if@progreg@updateassign
+    \newcommand*{\pumod}[2]
+    %{#1\!\!\coloneqq\!\!#2}
+    {#1\hspace{-0.09em}\mathrel{{:}{=}}\hspace{-0.09em}#2}
+\else
+    \newcommand*{\upmod}[2]
+    %%{#1\hspace{-0.05em}\curvearrowright\hspace{-0.07em}#2}
+    {#1{\vartriangleleft}#2}
+    %% \leftharpoonup \triangleleft \smalltriangleleft (mathabx) \precdot
+    %% \leftarrowtriangle (stmaryrd)
+\fi
+\let\umod\pumod
+
+\newcommand*{\pupdatevar}[1]
+{\ensuremath{\mathcal{#1}}}
+
+%% differential assignment
+%% \Dupdate{\Dumod{\D{x}}{a}}
+\let\Dupdate\pupdate
+\let\Dumod\pumod
+%% differential update assignment [#1:=#2]#3
+\newcommand{\Dusubst}[3]{\dbox{#1{:=}#2}{#3}}%{\dbox{\umod{#1}{#2}}{#3}}
+%{\subst[#3]{#1}{#2}}
+
+%% continuous evolution along differential equation #1
+%% differential Dynamic Logic (Language)
+\newcommand*{\pevolve}[1]{\ensuremath{{\@prepareevolve#1}}}
+
+% differential game
+\newcommand*{\pdiffgame}[3]{{#1}{\ifthenelse{\equal{#2}{}}{}{{}\&^{\hspace{-3pt}d}#2}\ifthenelse{\equal{#3}{}}{}{\&}#3}}
+
+
+%% conditional continuation test operator [Harel_]
+%%\newcommand{\ptest}[1] %defined in options
+
+%% nondeterministic choice operator [Harel_]
+\newcommand*{\pchoice}[2]{\ensuremath{{#1}\cup{#2}}}
+%% nondeterministic repetition operator [Harel_]
+%% \prepeat[\leq n]{\alpha} repeat \alpha at most n times
+\newcommand*{\prepeat}[2][*]{\ensuremath{{#2}^{#1}}}
+
+%% non-deterministic random assignment to #1
+\newcommand*{\prandom}[1]{\pupdate{\umod{#1}{\ast}}}%%\dice
+
+%% non-deterministic random differential equation for #1.
+%% Equivalent to differential-algebraic constraint \pevolve{\lexists{d}{\D{#1}=d}}.
+\newcommand*{\Drandom}[1]{\D{#1}=\ast}%%\dice
+
+
+\if@progreg@commandblocks
+  %% \oif[format]{cond}{thenstmt}{elsestmt}
+  \newcommand{\pif}[3]{\ensuremath{\keywordfont{if}(#1)\,\{#2\}\keywordfont{else}\{#3\}\keywordfont{\@progreg@commandend}}}
+  \newcommand{\pifabbr}[3]{\ensuremath{\keywordfont{if}\ifthenelse{\equal{#1}{}}{}{(#1)}\ifthenelse{\equal{#2}{}}{}{\,\{#2\}}\ifthenelse{\equal{#3}{}}{}{\keywordfont{else}\{#3\}}\keywordfont{\@progreg@commandend}}}
+  \newcommand{\pwhile}[2]{\ensuremath{\keywordfont{while}(#1)\,\{#2\}}}
+  \newcommand{\prepeatuntil}[2]{\ensuremath{\keywordfont{repeat}\, #1\,\keywordfont{until}\,#2}}
+  \newcommand{\plgroup}{}
+  \newcommand{\prgroup}{}
+  \newcommand{\pgroup}[1]{#1}
+  \newcommand{\pifs}[2]{\ensuremath{\keywordfont{if}(#1)\,\{#2\}\keywordfont{\@progreg@commandend}}}
+\else%!\if@progreg@commandblocks
+  \newcommand{\pif}[3]{\ensuremath{\keywordfont{if}(#1)\,#2\,\keywordfont{else}\,#3\keywordfont{\@progreg@commandend}}}
+  \newcommand{\pifabbr}[3]{\ensuremath{\keywordfont{if}\ifthenelse{\equal{#1}{}}{}{(#1)}\ifthenelse{\equal{#2}{}}{}{\,#2}\ifthenelse{\equal{#3}{}}{}{\,\keywordfont{else}\,#3}\keywordfont{\@progreg@commandend}}}
+  \newcommand{\pwhile}[2]{\ensuremath{\keywordfont{while}(#1)\,#2}}
+  \newcommand{\prepeatuntil}[2]{\ensuremath{\keywordfont{repeat}\, #1\,\keywordfont{until}\,#2}}
+  \newcommand{\plgroup}{\{}
+  \newcommand{\prgroup}{\}}
+  \newcommand{\pgroup}[1]{\{#1\}}
+  % program if in programs
+  \newcommand{\pifs}[2]{\ensuremath{\keywordfont{if}(#1)\,#2\keywordfont{\@progreg@commandend}}}
+\fi
+% internal if on terms
+\newcommand{\piif}[3]{\ensuremath{\keywordfont{if}\,#1\,\keywordfont{then}\,#2\,\keywordfont{else}\,#3\,\keywordfont{fi}}}
+%% single-sided internal if on terms
+\newcommand{\piifs}[2]{\ensuremath{\keywordfont{if}\,#1\,\keywordfont{then}\,#2\,\keywordfont{fi}}}
+
+\newcommand*{\pnew}[1]{\ensuremath{\keywordfont{new}\ifthenelse{\equal{#1}{}}{}{\,{#1}}}}
+
+
+\newcommand*{\pparallel}[2]{\ensuremath{{#1}\Vert{#2}}}
+
+%% dual program for games
+\newcommand*{\pdual}[1]{#1^d}
+
+%% demonic choice (for games)
+\newcommand*{\dchoice}[2]{#1\cap#2}%{\ensuremath{{#1}\cap{#2}}}
+%% demonic repetition (for games)
+\newcommand*{\drepeat}[1]{#1^\times}
+%% demonic test / challenge
+\newcommand{\dtest}[1]{\pdual{\ptest{#1}}}
+%% demonic evolution
+\newcommand*{\devolve}[1]{\ensuremath{\pdual{\@prepareevolve#1}}}
+\newcommand*{\devolvein}[2]{\ensuremath{\pdual{\pevolvein{#1}{#2}}}}
+%TODO Could change \D to do x` instead of x' but that's very subtle
+
+%%
+%% derived
+%%
+\newcommand{\pskip}{\ensuremath{\keywordfont{skip}}}
+\newcommand{\pabort}{\ensuremath{\keywordfont{abort}}}
+
+
+%%
+%% Extensions
+%%
+\newcommand*{\preverse}[1]{\ensuremath{{#1}^{-}}}
+\newcommand*{\plen}[1]{\ensuremath{\keywordfont{len}({#1})}}
+\newcommand*{\arrupd}[3]{\ensuremath{{#1}\{{#2}\mapsto{#3}\}}}
+
+%%
+%% Stochastic Hybrid Programs
+%%
+
+\newcommand{\pplus}{\,\mathrel{\oplus}\,}
+
+%%
+%% Typing for hybrid programs
+%%
+
+% \pphysics{plant} tags plant as being of physics type
+\newcommand{\pphysics}[1]{\textcolor{vblue}{#1}}
+
+% \pcontrol{ctrl} tags ctrl as being of controller type
+\newcommand{\pcontrol}[1]{\textcolor{vred}{#1}}
+

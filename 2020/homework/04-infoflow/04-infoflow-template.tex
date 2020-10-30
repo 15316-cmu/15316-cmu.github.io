@@ -1,0 +1,200 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath,amssymb,fullpage,graphicx}
+\let\hat\widehat
+\let\tilde\widetilde
+
+\usepackage{xcolor}
+\usepackage{stmaryrd}
+\usepackage{mathpartir}
+
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{mathabx}
+%\usepackage{lsyntax}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newenvironment{proof}{\textbf{ Proof.}}{$\Box$}
+
+\newcommand{\answer}[1]{\text{{\it #1}}}
+\newcommand{\solution}[1]{\textbf{Solution:} #1}
+%\newcommand{\solution}[1]{}
+
+\usepackage[irlabel]{bugcatch}
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+%%%% new version of enumerate with less spacing
+\newenvironment{enum}{
+\begin{enumerate}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{enumerate}}
+
+\parskip 10pt
+\parindent 0pt
+\pagenumbering{gobble}
+\newcommand{\note}[1]{\ \\{\small\color{red}\emph{#1}}\\}
+
+\lstset{%
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries\color{green!60!black},
+  commentstyle=\itshape\color{purple!60!black},
+  stringstyle=\color{orange}
+}
+
+\newcommand{\pand}[2]{\keywordfont{and}(#1, #2)}
+\newcommand{\por}[2]{\keywordfont{or}(#1, #2)}
+
+\begin{document}
+
+\begin{center}
+\textbf{ Assignment 4: The Highs and Lows of Information Flow\\15-316 Software Foundations of Security and Privacy}\\
+\end{center}
+Total Points: 50
+
+\vspace{-5mm}
+
+\begin{enumerate}
+
+\item \textbf{Flow through abort (15 points).}
+
+The definition of non-interference described in lecture (Eq.~\ref{eq:noninterference}) does not account for aborted executions.
+\begin{equation}
+\label{eq:noninterference}
+\forall \omega_1,\omega_2 . \omega_1 \approx_{\Gamma,\lowsec} \omega_2 \land 
+\langle \omega_1, \asprg\rangle \bigstep \omega_1' \land 
+\langle \omega_2, \asprg\rangle \bigstep \omega_2'
+\limply
+\omega_1' \approx_{\Gamma,\lowsec} \omega_2'
+\end{equation}
+In particular, consider the following program under the policy $\Gamma = (x : \hisec)$:
+\begin{lstlisting}[escapechar=\#]
+assert(x > 0)
+\end{lstlisting}
+If our threat model allows an attacker to detect whether a trace of this program aborts, then the attacker can learn information about the value of $x$ by observing whether the final state is $\Lambda$ or not.
+
+\paragraph{Part 1 (10 points).}
+First, provide a big-step semantics for the $\mathtt{assert}(Q)$ command; your semantics should match the trace semantics for $\mathtt{assert}$ given in prior lectures, in the sense that:
+\[
+\langle \omega, \mathtt{assert}(Q)\rangle \Downarrow \nu
+~\text{if and only if}~
+(\omega, \nu) \in \llbracket\mathtt{assert}(Q)\rrbracket
+\]
+Then, explain how to modify the definition of $\approx_{\Gamma,\lowsec}$ and Equation~(\ref{eq:noninterference}) to arrive at ``failure-sensitive non-interference'', which characterizes programs that do not leak information about \hisec variables either through the \lowsec variables in initial and final states, or whether the final state is $\Lambda$ or not.
+
+%%
+%% Write your solution here
+%%
+
+\clearpage
+
+\paragraph{Part 2 (10 points).}
+Design a typing rule for $\mathtt{assert}(Q)$ commands, and prove its soundness.
+In other words, prove that if $\lsequent{\Gamma}{\mathtt{assert}(Q)}$, then $\mathtt{assert}(Q)$ satisfies your definition of failure-sensitive non-interference under $\Gamma$.
+Then, discuss whether any of the typing rules discussed in lecture and the notes need to be changed to enforce failure-sensitive non-interference, and how the soundness argument for the entire system (including your new rule) would need to be changed.
+
+%%
+%% Write your solution here
+%%
+
+\clearpage
+
+\item \textbf{Leveraging interference (10 points).} 
+
+Consider the following program, under the type context $\Gamma = (a : \hisec, b : \lowsec, c : \lowsec)$.
+\begin{lstlisting}[escapechar=\#]
+      if(a < 0) {
+        if(b < a) c := 0
+        else c := 1
+      } else {
+        if(a < b) c := 0
+        else c := 1
+      }
+\end{lstlisting}
+Describe a procedure that leverages the fact that this program does not satisfy non-interference under $\Gamma$ to learn the value of the $\hisec$-typed variable. You can make use of the following assumptions.
+\begin{itemize}
+\item Assume that an attacker can control the values of $\lowsec$-typed variables prior to executing the program, and observe their value afterwards. They can neither control nor observe $\hisec$ variables at any point.
+\item $-N \le a \le N$ for some constant $N$. State whether your procedure requires that the attacker know $N$ in order to run it.
+\item Finally, the attacker can run the program with different $\lowsec$ inputs any number of times, and the $\hisec$ input will remain the same.
+\end{itemize}
+How many times does the attacker need to run the program using your procedure to learn $a$? 
+
+%%
+%% Write your solution here
+%%
+
+\clearpage
+
+\item \textbf{Flow types (20 points).} 
+
+Consider the following program.
+\begin{lstlisting}[escapechar=\#]
+      if(a = b) {
+        d := c #$\times$# e;
+        e := 0
+      } else {
+        c := 0;
+        d := d + 1
+      }
+      b := c #$\times$# e
+\end{lstlisting}
+\paragraph{Part 1 (10 points).}
+List the information flow constraints required for this program to typecheck under a policy $\Gamma$, assuming that $\hisec \sqsubseteq \Gamma(a)$ (i.e., this must be one of your constraints).
+For example, if we were to list out the constraints for the program $\mathtt{x := y; z := x}$, they would be:
+\[
+\Gamma(y) \sqsubseteq \Gamma(x), \Gamma(\mathtt{pc}) \sqsubseteq \Gamma(x), \Gamma(x) \sqsubseteq \Gamma(z), \Gamma(\mathtt{pc}) \sqsubseteq \Gamma(z)
+\]
+Note that to make the notation less burdensome, it would be fine and perfectly understandable to write the following instead:
+\[
+y \sqsubseteq x, \mathtt{pc} \sqsubseteq x, x \sqsubseteq z, \mathtt{pc} \sqsubseteq z
+\]
+In other words, $y$ must flow to $x$, $x$ must flow to $z$, and $\mathtt{pc}$ must flow to both $x$ and $z$.
+These constraints follow because the rule for typechecking $\mathtt{x := y}$ requires that $\Gamma(y) \sqcup \Gamma(\mathtt{pc}) \sqsubseteq \Gamma(x)$, and the rule for type-checking $\mathtt{z := x}$ requires that $\Gamma(x) \sqcup \Gamma(\mathtt{pc}) \sqsubseteq \Gamma(z)$.
+
+Then, identify a \emph{minimal} policy $\Gamma^{*}$ under which this program $\alpha$ typechecks, and which satisfies the constraints you provided above.
+Here, minimal means that for any policy $\Gamma$ that satisfies the constraints where $\lsequent{\Gamma}{\alpha}$, and any variable $x$, $\Gamma^{*}(x) \sqsubseteq \Gamma(x)$.
+
+%%
+%% Write your solution here
+%%
+
+\newpage
+
+\paragraph{Part 2 (10 points).}
+The policy that you wrote for Part 1, being a minimal policy that satisfies the constraints implied by $\hisec \sqsubseteq \Gamma(a)$, is the \emph{most permissive} policy which ensures that the contenta of $a$ remain confidential under enforcement by typechecking.
+However, because the type system discussed in lecture is sound but not complete, it may err on the side of requiring that more variables be typed \hisec than are truly necessary for noninterference to hold.
+
+Show that the minimal policy you provided in Part 1 is conservative by identifying at least one variable which is typed \hisec, but cannot be influenced by $a$.
+Then, use self-composition to construct a dynamic logic formula whose validity implies that this program satisfies noninterference under a policy $\Gamma'$, which is identical to your $\Gamma^{*}$ except that the identified variable is labeled \lowsec instead of \hisec.
+Your formula may use $\alpha$ to refer to the program listed at the beginning of this problem, and $\alpha'$ to refer to its ``primed'' version where each variable $x$ is replaced with $x'$.
+
+%%
+%% Write your solution here
+%%
+
+\clearpage
+
+\paragraph{Extra credit (5 points).}
+
+Rewrite the program given at the beginning of this problem so that it can be typechecked by a policy $\Gamma$ that assigns $\Gamma(a) = \hisec$ and $\Gamma(\cdot) = \lowsec$, where $\cdot$ is the variable that you identified in Part 2.
+The re-written program should be semantically equivalent to the original.
+For credit, you must use the typing rules to show that $\lsequent{\Gamma}{\alpha'}$, where $\alpha'$ is your re-written solution.
+
+\end{enumerate}
+
+\end{document}
