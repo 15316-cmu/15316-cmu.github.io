@@ -95,7 +95,8 @@ schedule = [
 		"topic": "No lecture",
 		"pdf": "",
 		"tex": "",
-		"comments": "Fall break"
+		"comments": "Fall break",
+		"color": "success"
 	},
 	{
 		"date": "10/19",
