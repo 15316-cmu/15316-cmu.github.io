@@ -2,15 +2,15 @@ schedule = [
 	{
 		"date": "8/31",
 		"topic": "Introduction",
-		"pdf": "lectures/01-intro/01-intro.pdf",
+		"pdf": "01-intro/01-intro.pdf",
 		"tex": "",
 		"comments": ""
 	},
 	{
 		"date": "9/2",
 		"topic": "Propositional logic &amp; proof",
-		"pdf": "lectures/02-prop.pdf",
-		"tex": "lecture/02-prop.tex",
+		"pdf": "02-prop.pdf",
+		"tex": "02-prop.tex",
 		"comments": ""
 	},
 	{
