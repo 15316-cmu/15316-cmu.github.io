@@ -1,0 +1,725 @@
+\documentclass[11pt,twoside]{scrartcl}
+%\documentclass[11pt,twoside]{article}
+
+%opening
+\newcommand{\lecid}{15-316}
+\newcommand{\leccourse}{Software Foundations of Security and Privacy}
+\newcommand{\lecdate}{} %e.g. {October 21, 2013}
+\newcommand{\lecnum}{2}
+\newcommand{\lectitle}{Propositional Logic and Proofs\footnote{Based on lecture notes written by Andr\'e Plazter}}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecurl}{https://15316-cmu.github.io/index}
+
+\usepackage{lecnotes}
+
+
+\usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+\newcommand{\I}{\interpretation[const=I]}
+
+\newcommand{\bebecomes}{\mathrel{::=}}
+\newcommand{\alternative}{~|~}
+\newcommand{\asfml}{F}
+\newcommand{\bsfml}{G}
+\newcommand{\cusfml}{C}
+\def\leftrule{L}%
+\def\rightrule{R}%
+
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+
+Our foremost goal in this course is to prove that software systems obey security and privacy policies. We will cover numerous different types of policies, but in general we can think of a policy as a statement about what a program is allowed (or in some cases, not allowed) to do. If we want to actually prove things about policies, then we need to write them down precisely and in a way that allows us to use mathematical reasoning. Propositional logic is a formal system that allows us to do this for a certain types of simple policies. 
+
+For our purposes, propositional logic is a language for expressing statements (i.e., formulas) in terms of things that are either true or false (i.e., propositions) and a set of rules, called \emph{semantics}, for determining the truth value of a formula from the truth values of its propositions. In future lectures, we will build on propositional logic to support richer and more interesting types of policies.
+
+In this lecture, we will study propositional logic and a deductive system called the \emph{sequent calculus} for proving the validity of propositional logic formulas. 
+We will use the sequent calculus throughout the semester as we discuss more complex and interesting ways of proving that code is safe and secure.
+We will also study important properties of the propositional sequent calculus, namely its \emph{soundness} and \emph{completeness}. A deductive system is sound if it can only be used to prove true things. Likewise, a deductive system is complete if any true statement can be proved using the system. Throughout the semester, we will get into the habit of asking these sorts of questions about the systems we study, as they have important practical ramifications for our ultimate goal of making software secure.
+
+\section{A stroll down memory lane: contracts}
+
+Thinking back to \href{http://www.cs.cmu.edu/~15122/}{15-122 Principles of Imperative Computation}, recall that contracts serve a valuable role in understanding programs. In 15-122, you made good use of contracts to specify the assumptions that functions are allowed to make of their inputs, as well as their intended behavior in terms of output values. Moreover, you learned how to reason about the behavior of imperative code by writing informal proofs about contracts, and were able to rely on dynamic checks to ensure that they weren't violated when running your code. In short, you learned that contracts are useful for making sure that your code runs correctly.
+
+You might be surprised to learn that contracts are tremendously useful for establishing security as well. The Ironclad Apps~\cite{Hawblitzel2014} and Ironfleet~\cite{Hawblitzel2015} projects out of Microsoft Research leveraged contracts and automated verification tools to build networked applications and distributed systems with provable information flow, memory safety, data privacy, and other security properties. However, we'll refresh ourselves on contracts using a much smaller example that doesn't have much to do with security. This should be more familiar, and will serve to illustrate the main ideas that motivate our study of propositional logic.
+
+Consider the following C0 code, which multiplies two numbers using only addition, multiplication by 2, and division by 2.
+
+\begin{lstlisting}[basicstyle=\small,style=customjava]
+int BinaryMult(int a, int b)
+//@requires b >= 0;
+//@ensures  \result = a*b
+{
+  int x=a;
+  int y=b;
+  int z=0;
+  while (y > 0)
+  //@loop_invariant 0 <= y && z + x * y = a * b;
+  {
+    if (y%2 == 1) {
+      z = z + x;
+    }
+    x = 2*x;
+    y = y/2;
+  }
+  return z;
+}
+\end{lstlisting}
+
+This algorithm uses contracts, which is a good thing because it may not be totally obvious that this procedure does what is claimed.
+Are they all correct?
+Are they easy to follow?
+Is it enough to assume that \verb'b >= 0' holds at the beginning of the function to ensure the postcondition?
+Does the postcondition follow easily from the loop invariant?
+
+This is all quite exciting, but we don't yet have the tools necessary to answer these questions.
+The purpose of today's lecture is not actually to get us back into specifying or checking contracts of programs. Instead we'll focus on the conditions in the contract and try to understand exactly what they mean, and how we can reason about them.
+Our reading in the 15-122 course was that the C0 contracts \texttt{@requires}, \texttt{@ensures}, \texttt{@loop\_invariant} and \texttt{@assert} just expect ordinary C0 expressions of type \verb'bool' that are being evaluated and need to come back with value \verb'true' to successfully pass.
+But what exactly does the expression \verb'\result' mean in the \texttt{@ensures} postcondition?
+What if the C0 expression in a contract calls a function that has the side effect of changing a data structure?
+What exactly is the meaning of the \verb'&&' operator itself?
+Does it perform short-circuit evaluation?
+What if an expression crashes or doesn't terminate during contract evaluation?
+
+These are quite a number of subtle questions for something that we thought we had already mastered as well as the contracts from Principles of Imperative Computation.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Propositional Logic}
+
+Maybe we should first take a step back and give the expressions within a contract a more careful look to see how they can best be understood. We'll start with propositional logic, which will allow us to understand the basic logical connectives used in contracts.
+Once we have a better understanding of these fundamentals, we will return to the interesting questions raised in the example from before.
+
+\subsection{Syntax}
+
+The objects that we will study in propositional logic are called formulas, and are composed of the following elements.
+\begin{description}
+  \item[\textit{Atomic Propositions}.] The basic building blocks are propositions, which you can view as variables that take Boolean (i.e., true/false) values. Some might find it helpful to think of propositions as statements such as ``The memory at address \verb'0x00105f0' holds the value 10'', which are either true or false. However, we won't bother interpreting the meaning of such associations for now, and we'll just denote atomic propositions with lowercase letters and treat them as abstract statements that could be either true or false.
+  \item[\textit{Connectives}.] Propositional formulas may contain the connectives $\lnot, \land, \lor, \limply, \lbisubjunct$, which are used to construct formulas from propositions and other formulas.
+\end{description}
+
+We define the ways in which propositions, connectives, and formulas can be syntactically combined by writing a grammar as shown in Figure~\ref{def:proplog-grammer}.
+
+\begin{definition}[Syntax of propositional logic]
+\label{def:proplog-grammer}
+  The formulas $F,G$ of propositional logic are defined by the following grammar (where $p$ is an atomic proposition):
+  \[
+  F \bebecomes \bot \alternative \top \alternative p \alternative \lnot F \alternative F\land G \alternative F\lor G \alternative F\limply G \alternative F \lbisubjunct G
+  \]
+\end{definition}
+In Definition~\ref{def:proplog-grammer}, $\bot$ and $\top$ stand for the constants false and true, respectively. 
+The way to read such a grammar is as follows:
+\begin{itemize} 
+  \item The Boolean constants $\bot$ and $\top$ are formulas.
+  \item An atomic proposition (usually denoted $p,q,r$) is a formula.
+  \item If $F$ is a formula, then its negation $\lnot F$ is also a formula.
+  \item If $F$ and $G$ are formulas, then the conjunction $F\land G$, the disjunction $F\lor G$, the implication $F \limply G$, and the bisubjunction $F\lbisubjunct G$ are also formulas.
+\end{itemize}
+Parentheses are also allowed as needed to make precedence explicit. For example, this is a propositional formula:
+\begin{equation}
+(p \limply q) \lbisubjunct (\lnot p \lor q)
+\label{eq:ex1}
+\end{equation}
+We'll use the following precedence on operators, from highest to lowest: $\lnot, \land, \lor, \limply, \lbisubjunct$. We will also assume that $\limply$ and $\lbisubjunct$ associate to the right, so the following:
+\begin{equation}
+t \land p \limply q \limply r \limply s
+\end{equation}
+is equivalent to:
+\begin{equation}
+(t \land p) \limply (q \limply (r \limply s))
+\end{equation}
+Parentheses are cumbersome, so we'll avoid using them whenever possible.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Semantics}
+
+Writing down logical formulas that fit to the syntax of propositional logic is one thing, but not particularly useful unless we also know whether the formulas true.
+We cannot generally know whether the atomic propositions in a propositional logical formula are true or false, because they are just called $p,q,r$, which does not tell us much about their intention.
+But we can define some structure to help us out.
+Let's fix a function $\iget[const]{\I}$, called the \emph{interpretation}, that tells us the truth-value for each atomic proposition.
+So \(\iget[const]{\I}(p)=\mtrue\) iff atomic proposition $p$ is interpreted as true in interpretation $\iget[const]{\I}$.
+For example, we could fix the following interpretation for formula \rref{eq:ex1}:
+\begin{equation}
+\iget[const]{\I} = \{q\}
+\label{eq:int1}
+\end{equation}
+By this notation, we mean the interpretation that satisfies \(\iget[const]{\I}(q)=\mtrue\) and interprets all other atomic propositions (i.e., just $p$ in this case) as $\mfalse$.
+
+Having fixed an interpretation $\iget[const]{\I}$ for the atomic proposition, we can now easily evaluate all propositional formulas to see whether they are true or false in that interpretation $\iget[const]{\I}$ of atomic propositions, because the logical operators $\land,\lor,\lnot,\limply,\lbisubjunct$ always have exactly the same meaning.
+
+\begin{definition}[Semantics of propositional logic] \label{def:propositional-semantics}
+The propositional formula $F$ is true in interpretation $\iget[const]{\I}$, written \(\imodels{\I}{F}\), as inductively defined by distinguishing the shape of formula $F$:
+\begin{enumerate}
+\item \(\inonmodels{\I}{\mfalse}\), i.e., \mfalse is true in no interpretations
+\item \(\imodels{\I}{\mtrue}\), i.e., \mtrue is true in all interpretations
+\item \(\imodels{\I}{p}\) iff \(\iget[const]{\I}(p)=\mtrue\) for atomic propositions $p$
+\item \(\imodels{\I}{F\land G}\) iff \(\imodels{\I}{F}\) and \(\imodels{\I}{G}\).
+\item \(\imodels{\I}{F\lor G}\) iff \(\imodels{\I}{F}\) or \(\imodels{\I}{G}\).
+\item \(\imodels{\I}{\lnot F}\) iff \(\inonmodels{\I}{F}\), i.e. it is not the case that \(\imodels{\I}{F}\).
+\item \(\imodels{\I}{F\limply G}\) iff \(\inonmodels{\I}{F}\) or \(\imodels{\I}{G}\).
+\item \(\imodels{\I}{F\lbisubjunct G}\) iff both are true or both false, i.e., it is either the case that both \(\imodels{\I}{F}\) and \(\imodels{\I}{G}\) or it is the case that \(\inonmodels{\I}{F}\) and \(\inonmodels{\I}{G}\).
+\end{enumerate}
+\end{definition}
+
+With this definition, it is easy to establish that formula \rref{eq:ex1} is true in interpretation \rref{eq:int1}:
+\[
+\imodels{\I}{(p \limply q) \lbisubjunct (\lnot p \lor q)}
+\]
+For example, the evaluation of the right-hand side formula before the implication $\limply$ proceeds as follows:
+\[
+\imodels{\I}{p \limply q}
+~\text{because}~ \inonmodels{\I}{p}
+~\text{because}~ \iget[const]{\I}(p)=\mfalse
+\]
+Now we can ask more interesting questions about formula \rref{eq:ex1} and others, like:
+is formula \rref{eq:ex1} only true in this particular interpretation, or what happens with other interpretations of $p, q$ that assign different Boolean values?
+
+The most exciting formulas are those that are true no matter what the interpretation of the atomic propositions is.
+Such a formula is called \emph{valid} because it expresses a true property regardless of the specific interpretation of the atomic propositions. We will also talk about \emph{satisfiable} formulas, which are those for which there is at least one interpretation that makes the formula true.
+
+\begin{definition}[Validity \& Satisfiability]
+  A formula $F$ is called \dfn{valid} iff it is true in all interpretations, i.e. \(\imodels{\I}{F}\) for all interpretations $\iget[const]{\I}$.
+  Because any interpretation makes valid formulas true, we also write \(\entails F\) iff formula $F$ is valid.
+  A formula $F$ is called \dfn{satisfiable} iff there is an interpretation $\iget[const]{\I}$ in which it is true, i.e. \(\imodels{\I}{F}\).
+  Otherwise it is called \dfn{unsatisfiable}.
+\end{definition}
+
+You may wonder what exactly the relationship between satisfiability and validity is. Most obviously, if $F$ is valid then it is also satisfiable; likewise, if $F$ is unsatisfiable then it is certainly not valid. But there is more to this connection. 
+Suppose that $F$ is valid, so for any interpretation $\imodels{\I}{F}$. By the semantics of negation, $\inonmodels{\I}{\lnot F}$, so it must be the case that $\lnot F$ is unsatisfiable. Conversely, suppose that $\lnot F$ is unsatisfiable. Then for any interpretation $I$, $\inonmodels{\I}{\lnot F}$, and by the semantics of negation $\imodels{\I}{F}$. So $F$ is valid whenever $\lnot F$ is unsatisfiable. 
+
+In this sense, satisfiability and validity are duals of eachother, and a statement about the validity (resp. satisfiability) of a formula is also one about the satisfiability (resp. validity) of its negation. To make this explicit, we can summarize by saying \emph{$F$ is valid if and only if $\lnot F$ is unsatisfiable}.
+
+It is not difficult to imagine how we might decide whether a propositional formula is valid; we simply try \emph{all} interpretations of the atomic propositions, using the semantics to decide whether the formula is true. 
+Let's tabulate our results for Eq.~\ref{eq:ex1} by writing down each combination of truth-values for all atomic propositions and evaluating all subformulas of \rref{eq:ex1} according to their semantics.
+
+\[\begin{array}{c|c||c|c|c|c}
+p & q & p \limply q & \lnot p & \lnot p \lor q & \rref{eq:ex1}
+    \\\hline
+    \mtrue & \mtrue & \mtrue & \mfalse & \mtrue & \mtrue \\
+    \mtrue & \mfalse & \mfalse & \mfalse & \mfalse & \mtrue \\
+    \mfalse & \mtrue & \mtrue & \mtrue & \mtrue & \mtrue \\
+    \mfalse & \mfalse & \mtrue & \mtrue & \mtrue & \mtrue
+\end{array}\]
+Indeed, the truth-value of the formula \rref{eq:ex1} is $\mtrue$ in all interpretations, thus, \rref{eq:ex1} is valid:
+\[
+\entails (p \limply q) \lbisubjunct (\lnot p \lor q)
+\]
+The only downside is all this busywork to evaluate all interpretations, which is exponential in the number of atomic propositions and incredibly boring on top of that.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Proofs for Propositional Logic}
+
+Brute-force evaluating a formula in all possible interpretations is certainly one way of establishing that a propositional logical formula is valid, but it always requires exponential effort and is quite uninsightful, because it does not even attempt to provide a comprehensible reason for the validity of the formula.
+The only way to check that a truth table is constructed correctly for a formula is to check that it enumerates all cases of interpretations and all its computations of truth-values are according to the semantics and that, indeed, $\mtrue$ is the outcome in all cases.
+Possible but incredibly dull.
+Besides, this finite enumeration principle cannot work for the more interesting and expressive logics that we will use to describe security properties in subsequent lectures.
+
+The semantics considered one operator at a time.
+Let's try to make the same thing happen for proofs as well.
+What about a proof of a conjunction \(F \land G\)?
+A proof of a conjunction \(F \land G\) should consist of a proof of the left conjunct $F$ together with a proof of the right conjunct $G$, because both proofs together prove the conjunction \(F \land G\).
+So stapling a proof of $F$ together with a proof of $G$ will give us a proof of \(F \land G\).
+That was easy enough.
+
+But what does a proof of an implication \(F \limply G\) consist of?
+It certainly isn't a proof of $F$ together with a proof of $G$ anymore.
+A proof of $G$ would constitute a proof of \(F \limply G\), but such a proof is missing out on an important power.
+It would have been allowed to assume $F$, because the formula \(F \limply G\) only says that $F$ implies $G$, so that $G$ is true in case $F$ is.
+If $F$ isn't true, then the implication \(F \limply G\) doesn't say anything about whether $G$ is true or not.
+Consequently, an unconditional proof of $G$ certainly does establish \(F \limply G\), but is a bit much to ask for.
+The proof of \(F \limply G\) should, instead, consist of a proof of $G$ that is allowed to assume $F$.
+This requires the capability to manage assumptions in a proof, which, retrospectively, should not actually come as a surprise.
+
+For managing assumptions in a structured way, we will follow in the footsteps of Gerhard Gentzen \cite{Gentzen35I}, who introduced sequent calculus for the study of logic.
+But it turns out that sequent calculi are also immensely useful not just for understanding logical reasoning, but also for organizing and conducting proofs without risking to lose track of assumptions.
+
+\subsection{Simple Sequents}
+% no \Delta yet
+{\renewcommand{\lsequent}[3][]{\ifthenelse{\equal{#1}{L}}{\Gamma\ifthenelse{\equal{#2}{}}{}{,#2} \lseqinfers #3}
+{#2 \lseqinfers #3}}%
+The first kind of \emph{sequent} that we will consider is of the form:
+\[
+\lsequent{\Gamma}{F}
+\]
+The available assumptions are given as a list of formulas $\Gamma$ as \emph{antecedent} and with the formula we want to prove from them as F, the \emph{succedent}.
+The symbol $\lseqinfers$ is called \emph{sequent turnstile} and separates the available assumptions from what we try to prove from them.
+
+
+There are some sequents where we are obviously done with a proof.
+For example when literally the same formula $F$ is  in the antecedent and the succedent, because $F$ easily follows when assuming $F$.
+So the sequent \(\lsequent{\Gamma,F}{F}\) has a trivial proof.
+We will later capture this thought with a proof rule \irref{id}, but first consider proofs for the operators we've already seen.
+
+Coming back to conjunctions, proving a conjunction \(\asfml\land\bsfml\) requires proving $\asfml$ and proving $\bsfml$.
+This fact does not change when working from a list of assumptions $\Gamma$.
+\[
+\cinferenceRule[andr|$\land$\rightrule]{$\land$ right}
+{\linferenceRule[sequent]
+  {\lsequent[L]{}{\asfml}
+    & \lsequent[L]{}{\bsfml}}
+  {\lsequent[L]{}{\asfml \land \bsfml}}
+}{}%
+\]
+This proof rule \irref{andr} expresses that all it takes to prove the \dfn{conclusion} \m{\lsequent[L]{}{\asfml \land \bsfml}} below the rule bar is to prove all the \dfn[premise]{premises} \m{\lsequent[L]{}{\asfml}} and \m{\lsequent[L]{}{\bsfml}} above the rule bar.
+In the proof of the left premise \m{\lsequent[L]{}{\asfml}}, the same assumptions $\Gamma$ will still be available that were available in the conclusion \m{\lsequent[L]{}{\asfml \land \bsfml}}.
+And likewise for the right premise.
+%Likewise, the same succedent $\Delta$ is still available in both premises, because a proof of $\Delta$ from the assumptions $\Gamma$ in either premise would also prove $\Delta$ from the assumptions $\Gamma$ in the conclusion.
+
+Proving an implication \(\asfml \limply \bsfml\), with which we had difficulties before, now simply allows us to add the assumption $\asfml$ to the antecedent with the list of all available assumptions and continue a proof of $\bsfml$ from this augmented list of assumptions:
+\[
+\cinferenceRule[implyr|$\limply$\rightrule]{$\limply$ right}
+{\linferenceRule[sequent]
+  {\lsequent[L]{\asfml}{\bsfml}}
+  {\lsequent[L]{}{\asfml \limply \bsfml}}
+}{}%
+\]
+Reading the rule \irref{implyr} from bottom to top means that a proof of an implication $\asfml\limply\bsfml$ from a list of assumptions $\Gamma$ %with a list of alternatives $\Delta$ 
+requires us to prove $\bsfml$ from the assumptions $\Gamma$ together with $\asfml$. %and still with the same list of alternatives $\Delta$.
+
+Proving a disjunction \(\asfml \lor \bsfml\) is more subtle.
+How do we prove a disjunction?
+We could prove a disjunction \(\asfml \lor \bsfml\) by proving the left disjunct $\asfml$:
+\[
+\cinferenceRule[orr1|$\lor$\rightrule$_1$]{$\lor$ right first}
+{\linferenceRule[sequent]
+  {\lsequent[L]{}{\asfml}}
+  {\lsequent[L]{}{\asfml \lor \bsfml}}
+}{}%
+\]
+That works. But then what if the disjunction \(\asfml \lor \bsfml\) is true because the right disjunct $\bsfml$ is true?
+Well, we could adopt yet another proof rule for disjunction that shows the right disjunct instead:
+\[
+\cinferenceRule[orr2|$\lor$\rightrule$_2$]{$\lor$ right second}
+{\linferenceRule[sequent]
+  {\lsequent[L]{}{\bsfml}}
+  {\lsequent[L]{}{\asfml \lor \bsfml}}
+}{}%
+\]
+This would give us a pair of proof rules \irref{orr1} and \irref{orr2} to prove disjunctions.
+But we will have to choose at the time of proving the disjunction \(\asfml \lor \bsfml\) whether we prove it by proving its left disjunct $\asfml$ with rule \irref{orr1} or whether we prove it by proving its right disjunct $\bsfml$ with rule \irref{orr2}.
+That requires a lot of attention when proving disjunctions.
+Worse yet: will we always be able to tell which disjunct we will be able to prove?
+
+In many cases, we will be able to predict which disjunct will suffice for proof if we think ahead very carefully.
+But that is already not particularly helpful and convenient.
+Worse yet, there are cases where, for principle reasons, we will be unable to predict which disjunct of a disjunction we will prove!
+Suppose we are trying to prove the formula \(p \lor \lnot p\), which is certainly valid, because it will evaluate to $\mtrue$ whether or not the atomic proposition $p$ is interpreted to be $\mtrue$.
+But when trying to prove the law of excluded middle \(p \lor \lnot p\), neither rule \irref{orr1} nor rule \irref{orr2} will succeed because the whole point of the law of excluded middle is that it will evaluate to $\mtrue$ whether $p$ is $\mtrue$ or $\mfalse$ (so $\lnot p$ is $\mtrue$), but we cannot generally say ahead of time which side will be $\mtrue$.
+}
+
+Instead, what we are going to do is to keep our options open.
+We will record in the sequent the fact that formulas $\asfml$ as well as $\bsfml$ were both available as formulas for us to prove when proving the disjunction \(\asfml \lor \bsfml\) by keeping both as a list on the right-hand side of the sequent turnstile $\lseqinfers$.
+Of course, we might have already gathered other options that we could prove, so the disjunction proof rule is:
+\[
+\cinferenceRule[orr|$\lor$\rightrule]{$\lor$ right}
+{\linferenceRule[sequent]
+  {\lsequent[L]{}{\asfml, \bsfml}}
+  {\lsequent[L]{}{\asfml \lor \bsfml}}
+}{}%
+\]
+Proving a disjunction \(\asfml \lor \bsfml\) from a list of assumptions $\Gamma$ with a list of alternatives $\Delta$ works by splitting the disjunction into its two options $\asfml$ and $\bsfml$ and continuing with a proof of the alternatives \(\asfml,\bsfml,\Delta\) from the assumptions $\Gamma$.
+
+\subsection{Sequent Calculus}
+To manifest this, let's properly define what a sequent \(\lsequent{\Gamma}{\Delta}\) is and what it means.
+
+\begin{definition}[Sequent] \label{def:sequent}
+A \dfn{sequent} \(\lsequent{\Gamma}{\Delta}\) organizes the reasoning into a list $\Gamma$ of formulas available as assumptions, called \dfn{antecedent}, and a list $\Delta$ called \dfn{succedent}.
+The semantics of sequent \(\lsequent{\Gamma}{\Delta}\) is the same as that of the formula
+\[
+\left(\landfold_{F\in\Gamma} F\right) \limply \left(\lorfold_{G\in\Delta} G\right)
+\]
+\end{definition}
+In particular, proving a sequent \(\lsequent{\Gamma}{\Delta}\) requires proving that the disjunction of all succedent formulas $\Delta$ is implied by the conjunction of all antecedent formulas $\Gamma$.
+For proving a sequent \(\lsequent{\Gamma}{\Delta}\), we can, thus, assume all formulas in $\Gamma$ and need to show one of the formulas in $\Delta$, or at least show their disjunction.
+
+This list $\Delta$ of alternatives to prove is simply preserved in the proof rules we saw so far:
+
+\begin{calculus}
+  \cinferenceRuleQuote{andr}
+  \cinferenceRuleQuote{implyr}
+  \cinferenceRuleQuote{orr}
+\end{calculus}
+
+For example in rule \irref{andr}, the same succedent $\Delta$ is still available in both premises, because a proof of $\Delta$ from the assumptions $\Gamma$ in either premise would also prove $\Delta$ from the assumptions $\Gamma$ in the conclusion.
+
+How do we prove a bisubjunction $P \lbisubjunct Q$? Going back to the semanatics, we see that bisubjunction is really like two implications $P \limply Q$, $Q \limply P$ joined with a conjunction. This gives us the rule \irref{equivr}.
+
+\begin{calculus}
+\cinferenceRule[equivr|$\lbisubjunct$\rightrule]{$\lbisubjunct$ right}
+{\linferenceRule[sequent]
+  {
+    \lsequent[L]{}{\asfml \limply \bsfml}
+    &\lsequent[L]{}{\bsfml \limply \asfml}
+  }
+  {\lsequent[L]{}{\asfml \lbisubjunct \bsfml}}
+}{}%
+\end{calculus}
+
+Finally, we can prove a negation $\lnot \asfml$ by assuming the converse $\asfml$ and going for a contradiction.
+In fact, since we may have already gathered a number of other alternatives $\Delta$ to prove, all we need to do to prove $\lnot \asfml$ from a list of assumptions $\Gamma$ with a list of alternatives $\Delta$ is to prove the remaining alternatives $\Delta$ from assuming $\Gamma$ as well as the opposite $\asfml$:
+
+\[
+\cinferenceRule[notr|$\lnot$\rightrule]{$\lnot$ right}
+{\linferenceRule[sequent]
+  {\lsequent[L]{\asfml}{}}
+  {\lsequent[L]{}{\lnot \asfml}}
+}{}%
+\]
+
+Does this list of rules handle all operators?
+There's one rule per operator, which is a good thing.
+The catch is that there's really only one rule per operator so far.
+If the operators occur on the right, so in the succedent, then the respective proof rules tell us what to do.
+But the implication proof rule \irref{implyr} is good about pushing assumptions into the antecedent.
+What if it pushes a conjunction \(\asfml \land \bsfml\) into the antecedent?
+Is there a proof rule to handle what happens then?
+
+Not yet. But there should be a rule for handling the case where there's a conjunction \(\asfml \land \bsfml\) among the list of assumptions in the antecedent.
+In fact, for every logical operator, there should be a right proof rule handling the case where it is the top-level operator on the right in the succedent as well as a left proof rule handling when it appears on the left in the antecedent.
+
+\subsection{Left Rules}
+When we find a conjunction \(\asfml \land \bsfml\) among the list of assumptions in the antecedent, then we can safely split it into two separate assumptions $\asfml$ as well as $\bsfml$:
+\[
+\cinferenceRule[andl|$\land$\leftrule]{$\land$ left}
+{\linferenceRule[sequent]
+  {\lsequent[L]{\asfml , \bsfml}{}}
+  {\lsequent[L]{\asfml \land \bsfml}{}}
+}{}%
+\]
+Proving a sequent that has a conjunction \(\asfml \land \bsfml\) among its assumptions in the antecedent is the same as proving it with two separate assumptions $\asfml$ as well as $\bsfml$ instead.
+
+What happens when we have a disjunction \(\asfml \lor \bsfml\) among our assumptions in the antecedent?
+In that case we have no way of knowing whether $\asfml$ or whether $\bsfml$ is true. All we know is that either of them is.
+But we still succeed with a proof if we manage to show the sequent both when assuming $\asfml$ as well as when, instead, assuming $\bsfml$, because while either are possible, the assumption \(\asfml \lor \bsfml\) implies that one of those cases has to apply.
+
+\[
+\cinferenceRule[orl|$\lor$\leftrule]{$\lor$ left}
+{\linferenceRule[sequent]
+  {\lsequent[L]{\asfml}{}
+    & \lsequent[L]{\bsfml}{}}
+  {\lsequent[L]{\asfml \lor \bsfml}{}}
+}{}%
+\]
+
+When an implication \(\asfml\limply\bsfml\) is among the assumptions in the antecedent, then we can make use of that assumption by showing its respective assumption $\asfml$ and can then assume $\bsfml$ instead.
+If we can assume \(\asfml\limply\bsfml\) and show $\asfml$ then we can assume $\bsfml$:
+\[
+\cinferenceRule[implyl|$\limply$\leftrule]{$\limply$ left}
+{\linferenceRule[sequent]
+  {\lsequent[L]{}{\asfml}
+    & \lsequent[L]{\bsfml}{}}
+  {\lsequent[L]{\asfml \limply \bsfml}{}}
+}{}%
+\]
+Wait a moment. The left premise does not actually show $\asfml$ from the assumptions $\Gamma$, because it only shows the succedent $\asfml,\Delta$ which is interpreted disjunctively.
+So it is possible that the left premise does not show $\asfml$ but merely $\Delta$.
+But in that case, the conclusion is justified as well, because it also has the antecedent $\Delta$ as the list of alternatives to show.
+
+We leave the left rule for the operator $\lbisubjunct$ as an exercise, so the only remaining case is to handle a negation $\lnot\asfml$ among the assumptions in the antecedent.
+If we assume $\lnot\asfml$ then it is also sufficient if we can show the opposite $\asfml$ (recall the semantics of sequents):
+\[
+\cinferenceRule[notl|$\lnot$\leftrule]{$\lnot$ left}
+{\linferenceRule[sequent]
+  {\lsequent[L]{}{\asfml}}
+  {\lsequent[L]{\lnot \asfml}{}}
+}{}%
+\]
+To understand, we can first pretend there would be no succedent $\Delta$.
+What happens if there is no succedent? Then the empty disjunction that it means is equivalent to the formula $\mfalse$ that is never true in any interpretation.
+In that special case, rule \irref{notl} says that for proving a contradiction $\mfalse$ from assumptions $\Delta$ and $\lnot\asfml$, it is sufficient to prove the opposite $\asfml$ from the remaining assumptions $\Gamma$.
+
+
+\subsection{Closing and Forking}
+
+The above proof rules excel at splitting operators off of propositional logical formulas.
+But they never actually prove anything on their own except simplifying all formulas until only atomic propositions are left.
+What is missing is the observation that a sequent can be proved easily when the same formula $\asfml$ is in the antecedent and succedent with the identity proof rule called \irref{id}:
+\[
+\cinferenceRule[id|id]{identity}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent[L]{\asfml}{\asfml}}
+}{}%
+\]
+Whenever we find the same formula $\asfml$ in the antecedent and succedent, we can use rule \irref{id} to prove that sequent without any further questions (no premise, i.e. no more remaining subgoals).
+
+Another insightful proof rule is the cut proof rule, which enables us to first prove an arbitrary formula $\cusfml$ on the left premise and then assume $\cusfml$ on the right premise.
+\[
+\cinferenceRule[cut|cut]{cut}
+{\linferenceRule[sequent]
+  {\lsequent[L]{}{\cusfml}
+  &\lsequent[L]{\cusfml}{}}
+  {\lsequent[L]{}{}}
+}{}%
+\]
+Think of $\cusfml$ as a lemma that is proved in the left premise and then assumed to hold in the right premise.
+The twist is again that the left premise does not necessarily prove $\cusfml$ but might also settle for proving another alternative in the remaining succedent $\Delta$, but that also establishes the succedent $\Delta$ of the conclusion.
+The primary purpose of the \irref{cut} rule is for ingenious theoretical studies of reasoning \cite{Gentzen35I} as well as to find clever shortcuts in practical proofs by first proving a lemma $\cusfml$ that subsequently helps multiple times in the remaining proof.
+It plays a crucial role in constructive logics, too.
+
+All these sequent calculus proof rules are \dfn{sound}, that is, if all their premises are valid, then their conclusion is valid.
+Especially if there are no premises any more because we were able to use the identity proof rule \irref{id} on all premises, then the conclusion is valid, which is what we were hoping to achieve with a proof.
+
+
+\subsection{Conducting Sequent Calculus Proofs}
+
+As an example, let's prove formula \rref{eq:ex1}.
+Sequent calculus proofs are conducted in a bit of a funny way by starting with the conjecture at the bottom
+\[
+{\lsequent{} {(p \limply q) \lbisubjunct (\lnot p \lor q)}}
+\]
+and then working our way upwards by applying proof rules to the remaining sequents.
+The reason why we work like that is that in (sound!) sequent calculus proof rules validity of all premises implies validity of the conclusion.
+So if we start with our conjecture at the bottom and work our way upwards, then if we are able to prove all premises then the conclusion at the bottom will be valid, too.
+We apply sequent calculus rules from the bottom to the top but, when a proof is done, their soundness makes validity inherit from the top to the bottom.
+
+Enough said. Let's prove formula \rref{eq:ex1} in sequent calculus:
+\begin{sequentdeduction}[array]
+\linfer[equivr] {
+  \linfer[implyr] {
+    \linfer[orr] {
+      \linfer[notr] {
+        \linfer[implyl] {
+          \linfer[id]{\lclose}{\lsequent{p}{p,q}}
+          !\linfer[id]{\lclose}{\lsequent{q, p}{q}}
+        } {
+          \lsequent{p \limply q, p}{q}
+        }
+      } {
+        \lsequent{p \limply q}{\lnot p, q}
+      }
+    } {
+      \lsequent{p \limply q}{\lnot p \lor q}
+    }
+  } {
+    \lsequent{}{(p \limply q) \limply \lnot p \lor q}
+  }
+  !\linfer[implyr] {
+    \linfer[implyr] {
+      \linfer[orl] {
+        \linfer[notl] {
+          \linfer[id]{\lclose}{\lsequent{p}{p,q}}
+        } {
+          \lsequent{\lnot p, p}{q}
+        }
+        !\linfer[id]{\lclose}{\lsequent{q, p}{q}}
+      } {
+        \lsequent{\lnot p \lor q, p}{q}
+      }
+    } {
+      \lsequent{\lnot p \lor q}{p \limply q}
+    }
+  } {
+    \lsequent{}{\lnot p \lor q \limply p \limply q}
+  }
+} {
+  \lsequent{} {(p \limply q) \lbisubjunct (\lnot p \lor q)}
+}
+\end{sequentdeduction}
+
+\section{Soundness}
+
+Having conducted a sequent calculus proof, the most pressing question is what a proof proves.
+Of course, as we already alluded to before, a proof in a sound deductive system implies the validity of the conclusion.
+
+\begin{definition}[Soundness of a proof rule]
+  A sequent calculus proof rule
+  \[
+  \linfer
+  {\lsequent{\Gamma_1}{\Delta_1} & \dots & \lsequent{\Gamma_n}{\Delta_n}}
+  {\lsequent{\Gamma}{\Delta}}
+  \]
+  is \dfn{sound} iff the validity of all premises implies the validity of the conclusion:
+  \[
+  \text{if}~
+  \entails (\lsequent{\Gamma_1}{\Delta_1}) ~\text{and}~ 
+  \dots
+  ~\text{and}~
+  \entails (\lsequent{\Gamma_n}{\Delta_n})
+  ~\text{then}~
+  \entails (\lsequent{\Gamma}{\Delta})
+  \]
+\end{definition}
+Recall from \rref{def:sequent} that the meaning of the sequent \(\lsequent{\Gamma}{\Delta}\) is the same as that of the formula \(\left(\landfold_{F\in\Gamma} F\right) \limply \left(\lorfold_{G\in\Delta} G\right)\).
+
+\begin{figure}[tbp]
+\centering
+\begin{calculus}
+  \cinferenceRuleQuote{andr}
+  \cinferenceRuleQuote{orr}
+  \cinferenceRuleQuote{implyr}
+  \cinferenceRuleQuote{notr}
+  \cinferenceRuleQuote{id}
+  \cinferenceRule[botl|$\bot$\leftrule]{vacuous axiom}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent[L]{\bot}{}}
+}{}%
+\end{calculus}
+\quad
+\begin{calculus}
+  \cinferenceRuleQuote{andl}
+  \cinferenceRuleQuote{orl}
+  \cinferenceRuleQuote{implyl}
+  \cinferenceRuleQuote{notl}
+  \cinferenceRuleQuote{cut}
+  \cinferenceRule[topr|$\top$\rightrule]{vacuous axiom}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent[L]{}{\top}}
+}{}%
+\end{calculus}
+\caption{Sequent calculus proof rules for propositional logic}
+\label{fig:propositional-logic}
+\end{figure}
+
+\begin{lemma}[Soundness of propositional logic proof rules] \label{lem:sound-proof-rule}
+All propositional logic proof rules (summarized again in \rref{fig:propositional-logic}), are sound.
+\end{lemma}
+\begin{proof}
+It is crucial to prove soundness for all proof rules.
+We will, nevertheless, only prove it for one rule and leave the others as exercises.
+But we will prove that rule with exceeding care.
+\begin{enumerate}
+\item[\irref{andr}] That proof rule \irref{andr} is sound can be shown as follows.
+Assume that both of its premises \(\lsequent{\Gamma}{\asfml,\Delta}\) and \(\lsequent{\Gamma}{\bsfml,\Delta}\) are valid, i.e.\ both 
+\((\landfold_{F\in\Gamma} F) \limply \asfml\lor(\lorfold_{G\in\Delta} G)\)
+and \((\landfold_{F\in\Gamma} F) \limply \bsfml\lor(\lorfold_{G\in\Delta} G)\)
+are true in all interpretations.
+We need to show that the conclusion \(\lsequent{\Gamma}{\asfml\land\bsfml,\Delta}\) is then also valid, i.e.\ \(\entails (\lsequent{\Gamma}{\asfml\land\bsfml,\Delta})\), which means that \((\landfold_{F\in\Gamma} F) \limply (\asfml\land\bsfml)\lor(\lorfold_{G\in\Delta} G)\) is true in all interpretations.
+Consider any interpretation $\iget[const]{\I}$ and show that 
+\(\imodels{\I}{(\landfold_{F\in\Gamma} F) \limply (\asfml\land\bsfml)\lor(\lorfold_{G\in\Delta} G)}\).
+If any of the antecedent formulas $F\in\Gamma$ is false in $\iget[const]{\I}$ (\(\inonmodels{\I}{F}\)) or any of the remaining succedent formulas $G\in\Delta$ is true (\(\imodels{\I}{G}\)), 
+then 
+\(\imodels{\I}{(\landfold_{F\in\Gamma} F) \limply (\asfml\land\bsfml)\lor(\lorfold_{G\in\Delta} G)}\).
+Otherwise, all antecedent formulas in $\Gamma$ are true \(\imodels{\I}{\landfold_{F\in\Gamma} F}\) and all $\Delta$ formulas are false \(\inonmodels{\I}{\lorfold_{G\in\Gamma} G}\).
+
+By premise, 
+\(\imodels{\I}{(\landfold_{F\in\Gamma} F) \limply \asfml\lor(\lorfold_{G\in\Delta} G)}\)
+and
+\(\imodels{\I}{(\landfold_{F\in\Gamma} F) \limply \bsfml\lor(\lorfold_{G\in\Delta} G)}\).
+Since antecedents in $\Gamma$ are true and succedents in $\Delta$ false in $\iget[const]{\I}$, this implies
+\(\imodels{\I}{\asfml}\) and \(\imodels{\I}{\bsfml}\).
+By \rref{def:propositional-semantics}, these imply
+\(\imodels{\I}{\asfml\land\bsfml}\), which implies that the conclusion is true in $\iget[const]{\I}$, i.e.\
+\(\imodels{\I}{(\landfold_{F\in\Gamma} F) \limply (\asfml\land\bsfml)\lor(\lorfold_{G\in\Delta} G)}\).
+\qedhere
+\end{enumerate}
+\end{proof}
+In fact, the prelude of the soundness argument is common to all proof rules so that one usually just assumes right away without loss of generality that the common antecedent $\Gamma$ is true while the common succedent $\Delta$ false in the current interpretation $\iget[const]{\I}$.
+
+Now that all proof rules of propositional logic are sound it is easy to see that the whole proof calculus is sound, because a proof is entirely built by applying sound proof rules so validity of all premises (of which there are none in a completed proof) implies validity of the conclusion.
+Because this is so important and we want to practice the important proof principle of induction, we will show this explicitly.
+
+\begin{theorem}[Soundness of propositional logic]
+\label{thm:soundness-all}
+  The sequent calculus of propositional logic is sound, i.e.\ it only proves valid formulas.
+  That is, if \(\lsequent{}{\asfml}\) has a proof in the propositional sequent calculus, then $\asfml$ is valid, i.e.\ \(\entails \asfml\).
+\end{theorem}
+\begin{proof}
+What we need to show is that if \(\lsequent{}{\asfml}\) is the conclusion of a completed sequent calculus proof, then $\asfml$ is valid, i.e.\ \(\entails \asfml\).
+A proof of the sequent \(\lsequent{}{\asfml}\) will consist of proofs of sequents of the more general shape \(\lsequent{\Gamma}{\Delta}\).
+So we instead prove the more general statement that a proof of \(\lsequent{\Gamma}{\Delta}\) implies \(\entails (\lsequent{\Gamma}{\Delta})\).
+We will prove this by induction on the structure of the proof.
+That is, we will prove it for the smallest possible proofs.
+And then, assuming that the proofs of the smaller pieces of a proof have valid conclusions, we will show that one more proof step preserves validity.
+\begin{enumerate}
+\item The only proofs with just 1 proof step are of the form
+\[
+\linfer[id]
+{\lclose}
+{\lsequent{\Gamma,\asfml}{\asfml,\Delta}}
+\]
+Its conclusion is valid, because assumption $\asfml$ in the antecedent trivially implies $\asfml$ in the succedent.
+
+\item Consider any proof ending with a proof step of this form:
+  \begin{equation}
+  \linfer
+  {\lsequent{\Gamma_1}{\Delta_1} & \dots & \lsequent{\Gamma_n}{\Delta_n}}
+  {\lsequent{\Gamma}{\Delta}}
+  \label{eq:aproofstep}
+  \end{equation}
+  By induction hypothesis, we can assume that the (smaller!) proofs of the premises \(\lsequent{\Gamma_1}{\Delta_1}\)  and \dots \(\lsequent{\Gamma_n}{\Delta_n}\) already imply the validity of their respective conclusions so \(\entails (\lsequent{\Gamma_1}{\Delta_1})\) and \dots \(\entails(\lsequent{\Gamma_n}{\Delta_n})\).
+  
+  The proof rule used in the proof step \rref{eq:aproofstep} must have been one of the proof rules of the sequent calculus of propositional logic.
+  All these sequent calculus proof rules of propositional logic are sound by \rref{lem:sound-proof-rule}.
+  Consequently, \(\entails (\lsequent{\Gamma}{\Delta})\),
+  so the conclusion of the proof \rref{eq:aproofstep} is valid.
+  \qedhere
+\end{enumerate}
+\end{proof}
+
+\subsection{Soundness by derivation}
+
+The approach that we just learned for proving that an inference rule is sound can be used widely to introduce new rules into our system of deduction.
+If we are careful about our semantic arguments, and ultimately successful in proving that the rule is sound, then we can safely use it along with the existing rules to make sound deductions; this is exactly what Theorem~\ref{thm:soundness-all} tells us.
+However, there is another way to show that an inference rule is sound, by using the rules that we already know to be sound in a formal sequent calculus proof. We will refer to rules that we can prove in this way as \emph{derived rules}, and in many cases, their proofs give a more concise illustration of the logical principles at work.
+
+To show how this works, we will construct a rule that captures one sense of DeMorgan's law, which you may already be familiar with.
+\[
+\cinferenceRule[demo|demo]{demo}
+{\linferenceRule[sequent]
+  {\lsequent[L]{}{\lnot\asfml}
+  &\lsequent[L]{}{\lnot\bsfml}}
+  {\lsequent[L]{}{\lnot(\asfml \lor \bsfml)}}
+}{}%
+\]
+To prove that this is sound by derivation, we set out to prove the sequent $\lsequent[L]{}{\lnot(\asfml \lor \bsfml)}$. However, this sequent is not valid, so we will not be able to close out all branches of the proof by reducting to \irref{id}.
+Rather, we will stop when we have closed out all branches \emph{except for} two that containin the sequents $\lsequent[L]{}{\lnot\asfml}$ and $\lsequent[L]{}{\lnot\bsfml}$.
+A little bit of thought should convince you that this is perfectly fine, because if we intend to use this rule in a proof, that is exactly what we would need to be able to prove if we applied DeMorgan's!
+\begin{sequentdeduction}[array]
+\linfer[notr] {
+  \linfer[orl] {
+    \linfer[notl] {
+      \lsequent[L]{}{\lnot\bsfml}
+    } {
+      \lsequent[L]{\bsfml}{}
+    }
+    !\linfer[notl] {
+      \lsequent[L]{}{\lnot\asfml}
+    } {
+      \lsequent[L]{\asfml}{}
+    }
+  } {
+    \lsequent[L]{\asfml \lor \bsfml}{}
+  }
+} {
+  \lsequent[L]{}{\lnot(\asfml \lor \bsfml)}
+}
+\end{sequentdeduction}
+To reiterate, we do not need to take this proof any further, because the two unclosed branches contain exactly the premises of the \irref{demo} rule that we set out to prove.
+Because we already know that \irref{notl}, \irref{orl}, and \irref{notr} are sound, and that combining them in arbitrary order on any set of formulas is also sound, we can conclude that the rule \irref{demo} must indeed be sound: the validity of its premises imply the validity of its conclusion.
+
+\subsection{Completeness}
+
+Soundness is one thing, and most crucial for any correct reasoning.
+But since propositional logic is so simple, it enjoys other pleasant properties.
+It is also the case that every valid propositional logic formula will be provable from the sequent calculus proof rules in \rref{fig:propositional-logic}, which is called \dfn{completeness}.
+
+\begin{theorem}[Completeness of propositional logic]
+  The sequent calculus of propositional logic is complete, i.e.\ it proves all valid formulas.
+  That is, if $\asfml$ is valid, so \(\entails \asfml\) then \(\lsequent{}{\asfml}\) has a proof in the propositional sequent calculus.
+\end{theorem}
+
+In fact, because propositional logic is so simple, it is perfectly decidable whether a propositional logical formula is valid. You already knew this, however, because we discussed an effective procedure for deciding propositional validity---truth tables.
+
+\begin{theorem}[Decidability of propositional logic]
+  Propositional logic is \dfn{decidable}, i.e.\ there is an algorithm that accepts any propositional logical formula as input and correctly outputs ``valid'' or ``not valid'' in finite time.
+\end{theorem}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\section*{Exercises}
+%\begin{exercise} \label{exc:exercise1}
+%\end{exercise}
+
+% \bibliographystyle{alphaurl}
+\bibliography{bibliography}
+\end{document}
