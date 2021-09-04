@@ -1,0 +1,154 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath,amssymb,fullpage,graphicx}
+\let\hat\widehat
+\let\tilde\widetilde
+
+\usepackage{xcolor}
+\usepackage{stmaryrd}
+\usepackage{mathpartir}
+
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{mathabx}
+%\usepackage{lsyntax}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newenvironment{proof}{\textbf{ Proof.}}{$\Box$}
+
+\newcommand{\answer}[1]{\text{{\it #1}}}
+\newcommand{\solution}[1]{\textbf{Solution:} #1}
+%\newcommand{\solution}[1]{}
+
+\usepackage[irlabel]{bugcatch}
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+%%%% new version of enumerate with less spacing
+\newenvironment{enum}{
+\begin{enumerate}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{enumerate}}
+
+\parskip 10pt
+\parindent 0pt
+\pagenumbering{gobble}
+\newcommand{\note}[1]{\ \\{\small\color{red}\emph{#1}}\\}
+
+\lstset{%
+  basicstyle=\ttfamily,
+  keywordstyle=\bfseries\color{green!60!black},
+  commentstyle=\itshape\color{purple!60!black},
+  stringstyle=\color{orange}
+}
+
+\begin{document}
+
+\begin{center}
+\textbf{ Assignment 1: Just Logic\\15-316 Software Foundations of Security and Privacy}\\
+\end{center}
+Due: \textbf{ 11:59pm}, Wednesday 9/9/20 \\
+Total Points: 50
+
+\vspace{-5mm}
+
+\begin{enumerate}
+
+\item \textbf{Propositional soundness (15 points).} Use the semantics of propositional logic to prove that the \irref{notl} rule is sound by showing that the validity of the premises imply the validity of the conclusion.
+\[
+\cinferenceRule[notl|$\lnot$\leftrule]{$\lnot$ left}
+{\linferenceRule[sequent]
+  {\lsequent[L]{}{\asfml}}
+  {\lsequent[L]{\lnot \asfml}{}}
+}{}%
+\]
+\emph{Hint: use the proof for \irref{andr} given in Lecture 2 as a guide to structure your argument.}
+
+\textbf{Solution.}
+
+% Write your solution here
+%
+\newpage
+
+\item \textbf{Exclusionary rules (15 points)}
+
+\emph{Exclusive-or} is a logical operation that is true exactly when its arguments take different values. Extending the semantics of propositional logic to incorporate this connective, we define:
+\[
+I \models \ausfml \oplus \busfml~\text{iff either}~I\models P~\text{or}~I\models Q \text{, but not both}
+\]
+First, write left and write inference rules for exclusive-or. You do not need to prove that they are sound, but you should explain the reasoning that led you to the premises for each rule.
+\[
+\cinferenceRule[xorl|$\oplus$\leftrule]{$\oplus$ left}
+{\linferenceRule[sequent]
+  {\ldots}
+  {\lsequent[L]{\asfml\oplus\bsfml}{}}
+}{}
+\quad\quad
+\cinferenceRule[xorr|$\oplus$\rightrule]{$\oplus$ right}
+{\linferenceRule[sequent]
+  {\ldots}
+  {\lsequent[L]{}{\asfml\oplus\bsfml}}
+}{}
+\]
+Then, check your work by using the rules to give a sequent calculus proof that the formula below is valid. You should assume that $\oplus$ takes precedence over implication:
+\[
+q \oplus (p \oplus q) \limply p
+\]
+
+\textbf{Solution.}
+
+% Write your solution here
+%
+
+\newpage
+
+\item \textbf{Derived Resolution (15 points)}
+The \emph{resolution rule} \irref{reso} is a very powerful tool for propositional inference that serves as the workhorse for many automated solvers. 
+\[
+\cinferenceRule[reso|R]{R}
+{\linferenceRule[sequent]
+  {\lsequent[]{\Gamma}{\ausfml,\Delta_1}
+  &\lsequent[]{\Gamma}{\lnot\ausfml,\Delta_2}}
+  {\lsequent[]{\Gamma}{\Delta_1,\Delta_2}}
+}{}%
+\]
+Show that \irref{reso} is a derived rule. In addition to the inference rules presented in lecture, you may need to use one or both of the weakening rules \irref{wl},\irref{wr} shown below.
+\[
+\cinferenceRule[wl|WL]{WL}
+{\linferenceRule[sequent]
+  {\lsequent[L]{}{}}
+  {\lsequent[L]{\ausfml}{}}
+}{}%
+\quad
+\cinferenceRule[wr|WR]{WR}
+{\linferenceRule[sequent]
+  {\lsequent[L]{}{}}
+  {\lsequent[L]{}{\ausfml}}
+}{}%
+\]
+
+\textbf{Solution.}
+
+% Write your solution here
+%
+
+\newpage
+
+\end{enumerate}
+
+\end{document}
