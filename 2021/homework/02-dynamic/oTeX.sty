@@ -1,0 +1,303 @@
+\ProvidesPackage{oTeX}
+%%
+%% Copyright (c) 2004-2007 Andre Platzer
+%%
+%% This package provides a functional approach to object-oriented LaTeX.
+%% oTeX respectively oLaTeX respectively LoTeX
+
+\RequirePackage{keyval}
+\RequirePackage{ifthen}
+
+
+\newcommand{\@throwerror}[1]{\PackageError{oTeX}{#1}{}}
+
+%%%%%%
+%% Defines a new type/class.
+%% \begin{class}{Name}
+%% \end{class}
+\newenvironment{newclass}[1]
+{\def\cnewmethod##1##2[##3]{\aftergroup{\newmethod{##1}{##2}[{##3}]}}}
+{}
+%   \def\cnewmethod#1#2[#3]{%
+%     \xdef\declare@methods{\declare@methods%
+%       \newmethod{#1}{#2}[#3]}%
+%   }
+
+%% class definition looks like
+%% \beginoclass[baseclass]{classname}
+%%   \newmethod
+%% \endoclass
+%% @internal Can't be turned into an environment yet, because definitions within this environment would not be exported.
+%%\newcommand{\beginoclass}[2][]{}
+
+%% this needs \global\newcommand for them to cause effect outside of
+%% the class environment.
+
+
+%Es gibt \aftergroup, was wohl genau das ist, was du brauchst. 
+% 
+%in begin class: 
+%\xdef\declare@methods{} 
+%\aftergroup\declare@methods 
+% 
+%und in newmethod: 
+%\xdef\declare@methods{\declare@method 
+% \def\mymethod#1#2{3kjldf}} 
+
+%%%%%%
+%% Defining attributes of the data structure
+%%
+
+  %% Define an attribute for the object structure
+  %% object-oriented data structures, and as a key to the method dispatch table
+  %% \newattribute{typeid}{attribute}[defaultvalue]
+  %% @xxx currently, still has a further implementation parameter which is
+  %% supposed to vanish soon. Some messing around with parameters
+  \let\newattribute\define@key
+
+  %% Define an attribute for an object structure as an alias for a different attribute of another (or the same) object structure
+  %% define typeid.attribute as an alias for typeid2.attrib2
+  %% \newattribute{typeid}{attribute}{typeid2}{attrib2}
+  \newcommand{\newattributealias}[4]{%
+    % define attribute setting alias
+    \define@key{#1}{#2}[]{\expandafter\def\expandafter\csname#3@#4\endcsname{##1}}%
+    % define attribute lookup alias
+    \expandafter\newcommand\expandafter{\csname#1@#2\endcsname}{\csname#3@#4\endcsname}}
+  
+  %% Instantiate a new object of keyvaluegroup #1, class #2 and attribute values #3
+  \newcommand{\newobject}[3]{\setkeys{#1}{#3,@typeid=#2}}
+
+%%%%%%
+%% Constructors for data structure
+%% 
+
+
+%%%%%%
+%% Defining operations/methods on data structure
+%% 
+  
+  %%
+  %% \newmethod{method}{typeselectorarg}[args][opt]
+  %%
+  %% Defines a new method #1 with args parameters performing
+  %% dynamic dispatch on the typeselectorarg-th argument.
+  %% opt is the default value of the optional argument, which is the
+  %% first one.
+  %% @param method is the name of the method.
+  %% @param typeselectorarg is the number of the argument used for
+  %%  dynamic dispatch.
+  %% @param args is the number of arguments
+  %% @param opt the default value for the first optional argument if any.
+  %%
+  %\def\newmethod#1#2[#3][#4]{
+  %  \newcommand{#1}[#3][#4]{{%
+  %      \useobject{###2}\edef\@otype{\Interpretation@@typeid}%
+  %      \dispatch{\@otype}{#1}{{##1}{##2}...{##__#3__}}}}
+  %}
+  %{\expandafter\newcommand\expandafter{\csname#1\endcsname}[#3]{{%
+  %          \useobject{##_#2_}\edef\@otype{\Interpretation@@typeid}%
+  %          \dispatch{\@otype}{#1}{{##1}{##2}}}}%
+  %% \newmethod{method}{typeselectorarg}[args][opt]
+  \def\newmethod#1#2[#3]{%
+    \ifthenelse{\equal{#3}{1}}%
+    {\ifthenelse{\equal{#2}{1}}%
+      {\expandafter\newcommand\expandafter{\csname#1\endcsname}[#3]{{% double braces to make definitions local
+            \useobject{##1}\edef\@otype{\Interpretation@@typeid}%
+            \dispatch{\@otype}{#1}{##1}}}%
+      }%
+      {\@throwerror{illegal parameter combination `#3' arguments with
+          type-selection on `#2'}}%
+    }%
+    {\ifthenelse{\equal{#3}{2}}%
+    {\ifthenelse{\equal{#2}{1}}%
+      {\expandafter\newcommand\expandafter{\csname#1\endcsname}[#3]{{% double braces to make definitions local
+            \useobject{##1}\edef\@otype{\Interpretation@@typeid}%
+            \dispatch{\@otype}{#1}{{##1}{##2}}}}%
+      }%
+    {\ifthenelse{\equal{#2}{2}}%
+      {\expandafter\newcommand\expandafter{\csname#1\endcsname}[#3]{{% double braces to make definitions local
+            \useobject{##2}\edef\@otype{\Interpretation@@typeid}%
+            \dispatch{\@otype}{#1}{{##1}{##2}}}}%
+      }%
+      {\@throwerror{unsupported parameter combination `#3' arguments with
+          type-selection on `#2'}}%
+    }%
+    }%
+    {\ifthenelse{\equal{#3}{3}}%
+    {\ifthenelse{\equal{#2}{1}}%
+      {\expandafter\newcommand\expandafter{\csname#1\endcsname}[#3]{{% double braces to make definitions local
+            \useobject{##1}\edef\@otype{\Interpretation@@typeid}%
+            \dispatch{\@otype}{#1}{{##1}{##2}{##3}}}}%
+      }%
+    {\ifthenelse{\equal{#2}{2}}%
+      {\expandafter\newcommand\expandafter{\csname#1\endcsname}[#3]{{% double braces to make definitions local
+            \useobject{##2}\edef\@otype{\Interpretation@@typeid}%
+            \dispatch{\@otype}{#1}{{##1}{##2}{##3}}}}%
+      }%
+      {\@throwerror{unsupported parameter combination `#3' arguments with
+          type-selection on `#2'}}%
+    }%
+    }%
+    {% otherwise
+    \@throwerror{unsupported parameter combination `#3' arguments with
+        type-selection on `#2'}}%
+    }%
+    }%
+  }
+
+  %% \newmethodo{method}{typeselectorarg}[args][opt]
+  %% like \newmethod but with optional parameter [opt]
+  \def\newmethodo#1#2[#3][#4]{%
+    \ifthenelse{\equal{#3}{1}}%
+    {\ifthenelse{\equal{#2}{1}}%
+      {\expandafter\newcommand\expandafter{\csname#1\endcsname}[#3][#4]{{% double braces to make definitions local
+            \useobject{##1}\edef\@otype{\Interpretation@@typeid}%
+            \dispatch{\@otype}{#1}{##1}}}%
+      }%
+      {\@throwerror{illegal parameter combination `#3' arguments with
+          type-selection on `#2'}}%
+    }%
+    {\ifthenelse{\equal{#3}{2}}%
+    {\ifthenelse{\equal{#2}{1}}%
+      {\expandafter\newcommand\expandafter{\csname#1\endcsname}[#3][#4]{{% double braces to make definitions local
+            \useobject{##1}\edef\@otype{\Interpretation@@typeid}%
+            \dispatch{\@otype}{#1}{{##1}{##2}}}}%
+      }%
+    {\ifthenelse{\equal{#2}{2}}%
+      {\expandafter\newcommand\expandafter{\csname#1\endcsname}[#3][#4]{{% double braces to make definitions local
+            \useobject{##2}\edef\@otype{\Interpretation@@typeid}%
+            \dispatch{\@otype}{#1}{{##1}{##2}}}}%
+      }%
+      {\@throwerror{unsupported parameter combination `#3' arguments with
+          type-selection on `#2'}}%
+    }%
+    }%
+    {\ifthenelse{\equal{#3}{3}}%
+    {\ifthenelse{\equal{#2}{1}}%
+      {\expandafter\newcommand\expandafter{\csname#1\endcsname}[#3][#4]{{% double braces to make definitions local
+            \useobject{##1}\edef\@otype{\Interpretation@@typeid}%
+            \dispatch{\@otype}{#1}{{##1}{##2}{##3}}}}%
+      }%
+    {\ifthenelse{\equal{#2}{2}}%
+      {\expandafter\newcommand\expandafter{\csname#1\endcsname}[#3][#4]{{% double braces to make definitions local
+            \useobject{##2}\edef\@otype{\Interpretation@@typeid}%
+            \dispatch{\@otype}{#1}{{##1}{##2}{##3}}}}%
+      }%
+      {\@throwerror{unsupported parameter combination `#3' arguments with
+          type-selection on `#2'}}%
+    }%
+    }%
+    {% otherwise
+    \@throwerror{unsupported parameter combination `#3' arguments with
+        type-selection on `#2'}}%
+    }%
+    }%
+  }
+  
+  
+  %%
+  %% \newmethodimplementation{typeid}{method}{typeselectorarg}[args][opt]{def}
+  %%
+  %% Defines the body of a method implementation for the given method
+  %% on the specified typeid with dynamic dispatch happening via
+  %% argument number typeselectorarg.
+  %% @param typeid is the identificator of the type for this method.
+  %% @param method is the name of the method.
+  %% @param typeselectorarg is the number of the argument used for
+  %%  dynamic dispatch. Should be the same as in the call to \newmethod.
+  %% @param args is the number of arguments
+  %% @param opt the default value for the first optional argument if any.
+  %% @param def is the method body
+  %% @todo might be a bright idea to automatise typeselectorarg on the
+  %%  basis of the corresponding \newmethod call.
+  %% @todo might be a bright idea to automatise typeid according to the
+  %%  environmental context. Yet, this needs a lot of \globals or outers.
+  %%
+  %\def\newmethodimplementation#1#2#3[#4][#5]#6{
+  %  \expandafter\newcommand\expandafter{\csname o@#1@#2\endcsname}[#4][#5]
+  %  {\useobject{##___typeselectorarg__}#6}
+  %}
+  %{\expandafter\newcommand\expandafter{\csname o@#1@#2\endcsname}[#4]
+  %    {{\useobject{##_#3_}#5}}}
+  %%\newmethodimplementation{typeid}{method}{typeselectorarg}[args][opt]{def}
+  \def\newmethodimplementation#1#2#3[#4]#5{
+    \ifthenelse{\equal{#3}{1}}
+    {\expandafter\newcommand\expandafter{\csname o@#1@#2\endcsname}[#4]
+      {{% double braces to make definitions local
+        \useobject{##1}#5}}
+    }
+    {\ifthenelse{\equal{#3}{2}}
+    {\expandafter\newcommand\expandafter{\csname o@#1@#2\endcsname}[#4]
+      {{% double braces to make definitions local
+        \useobject{##2}#5}}
+    }
+    {\@throwerror{unsupported parameter with type-selection on `#3'}}
+    }
+  }
+  %%
+  %% \renewmethodimplementation{typeid}{method}{typeselectorarg}[args][opt]{def}
+  %%
+  %% Used to change an implementation for a method of a type (without subtyping).
+  \def\renewmethodimplementation#1#2#3[#4]#5{
+    \ifthenelse{\equal{#3}{1}}
+    {\expandafter\renewcommand\expandafter{\csname o@#1@#2\endcsname}[#4]
+      {{% double braces to make definitions local
+        \useobject{##1}#5}}
+    }
+    {\ifthenelse{\equal{#3}{2}}
+    {\expandafter\renewcommand\expandafter{\csname o@#1@#2\endcsname}[#4]
+      {{% double braces to make definitions local
+        \useobject{##2}#5}}
+    }
+    {\@throwerror{unsupported parameter with type-selection on `#3'}}
+    }
+  }
+  
+  %%
+  %% \newmethodinherit{typeid}{method}{basetypeid}
+  %%
+  %% Declares that the specified method implementation of typeid is inherited
+  %% from basetypeid.          
+  %% For explicitly inheriting from default implementation, use empty argument {} as {basetypeid}.
+  %% @todo might be a bright idea to automatise this when no
+  %%  implementation is provided.
+  %%
+  \def\newmethodinherit#1#2#3{
+      \@ifundefined{o@#3@#2}
+      {\@throwerror{Method `#2' for type `#1' on page \thepage
+            \space cannot inherit from undefined method in type `#3'.}}
+      {\expandafter\let\csname o@#1@#2\expandafter\endcsname\csname o@#3@#2\endcsname}}
+
+
+%%%%%%
+%% Helpers
+%%
+  
+%%
+%% Use the given object structure.
+%% Does not do anything except documenting what's happening,
+%% and check whether no side-effects like direct output occur.
+\newcommand{\useobject}[1]{#1}
+%%%%    {\edef\tmp{#1}\ifthenelse{\equal{\tmp}{}}{}
+%%%%  {\@warning{Data structures should not output `#1' as side-effects on page
+%%%%      \thepage \space. Rather, they should set the data elements.}}}}
+
+%%
+%% \dispatch{typeid}{method}{arguments list}
+%%
+%% Really performs a virtual dispatch of given method on object
+%% of type typeid, invoked with the specified list of arguments.
+%% Implementation: first try calling method #2 for dynamic type id #1. 
+%% If there is no such method, call default implementation of method #2.
+\newcommand{\dispatch}[3]{{%
+    \@ifundefined{o@#1@#2}
+    {\@ifundefined{o@@#2}
+      {{\bf ??}\@throwerror{Method `#2' for type `#1' on page \thepage
+          \space not implemented, and no default implementation is provided.}}
+      {\csname o@@#2\endcsname#3}}
+    {\csname o@#1@#2\endcsname#3}}}
+
+
+\newcommand{\deprecated}[1]{\PackageWarning{oTeX}{Method part `#1' on page
+    \thepage \space has been deprecated.}}
+

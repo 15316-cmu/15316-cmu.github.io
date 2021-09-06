@@ -1,0 +1,163 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath,amssymb,fullpage,graphicx}
+\let\hat\widehat
+\let\tilde\widetilde
+
+\usepackage{xcolor}
+\usepackage{stmaryrd}
+\usepackage{mathpartir}
+
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{mathabx}
+%\usepackage{lsyntax}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newenvironment{proof}{\textbf{ Proof.}}{$\Box$}
+
+\newcommand{\answer}[1]{\text{{\it #1}}}
+\newcommand{\solution}[1]{\textbf{Solution:} #1}
+%\newcommand{\solution}[1]{}
+
+\usepackage[irlabel]{bugcatch}
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+%%%% new version of enumerate with less spacing
+\newenvironment{enum}{
+\begin{enumerate}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{enumerate}}
+
+\parskip 10pt
+\parindent 0pt
+\pagenumbering{gobble}
+\newcommand{\note}[1]{\ \\{\small\color{red}\emph{#1}}\\}
+
+\lstset{%
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries\color{green!60!black},
+  commentstyle=\itshape\color{purple!60!black},
+  stringstyle=\color{orange}
+}
+
+\newcommand{\pand}[2]{\keywordfont{and}(#1, #2)}
+\newcommand{\por}[2]{\keywordfont{or}(#1, #2)}
+
+\begin{document}
+
+\begin{center}
+\textbf{ Assignment 2: Semantically Safe\\15-316 Software Foundations of Security and Privacy}\\
+\end{center}
+Due: \textbf{ 11:59pm}, Sunday 9/29/18 \\
+Total Points: 50
+
+\vspace{-5mm}
+
+\begin{enumerate}
+\item \textbf{Safe superdiversity (10 points).} The so-called ``monoculture problem'' of software security refers to the fact that when a large set of users runs bytecode-identical versions of the same application, then any vulnerability affecting that application will have dramatic impact as it applies to the whole population. In response to this, engineers looked for ways to diversify software by distributing different versions of the same application, each with a unique bytecode representation. 
+
+One example of this is a technique called ``superdiversification'', proposed by researchers from Nokia and Microsoft in 2008. The technique is applied by a compiler when generating an executable, and performs a brute-force search of all short instruction sequences to look for semantically-equivalent machine code implementations for desired functions. 
+
+It's probably not wise to dopt this crazy-sounding technique without convincing evidence that the implementations it produces are in fact equivalent to the original code you wrote. If this were not the case, your application might end up with arbitrary behaviors, potentially leading to even more vulnerabilities than would otherwise be present. Luckily, you are familiar with dynamic logic, and are able to rigorously prove that such implementations are correct.
+
+Prove that the following code negates $y$ and stores it in $x$. In other words, write a specification by giving a precondition $A$ and postcondition $B$ that captures this functionality, and then use the axioms of dynamic logic to show that the following formula is valid.
+\[
+\pumod{x}{x-y};\pumod{y}{y+x};\pumod{x}{x-y}
+\]
+
+\textbf{Solution.}
+
+% Write your solution here
+
+\newpage
+
+\item \textbf{Once and for all (10 pionts).} Having completed the previous exercise, there is an obvious problem when it comes to using this approach in practice. Even if we have a tool to do the proofs for us, it's going to be too much work to write down a brand new specification for the safety of each and every transformation that the system decides to use. Your goal in this problem is to write a single specification, as a dynamic logic formula, that covers all of our concerns for superdiversity.
+\begin{itemize}
+\item You should assume that the original code fragment is represented by $\alpha$, and the super-diversified replacement by $\beta$.
+\item You may assume that the only variables that both $\alpha$ and $\beta$ use are $x$ and $y$.
+\item Your specification should capture the fact that $\alpha$ and $\beta$ must be equivalent in terms of their input-output behavior with respect to $x$ and $y$. In other words, if they are executed in states that agree on the values of $x$ and $y$, then when they terminate, they will agree on (potentially new) values of $x$ and $y$.
+\item If it helps you answer the question, you may assume that $\alpha$ and $\beta$ always terminate. If your answer requires this assumption, then you must state it and explain why.
+\item Likewise, if it helps, you may assume that $\alpha$ and $\beta$ are programs in the language discussed in lecture. If your answer \emph{does not} use this assumption, then be sure to say so and explain!
+\end{itemize}
+In addition to providing a dynamic logic formula that meets these requirements, determine whether this formula corresponds to a safety property. If so, explain why by identifying the finite prefixes according to Definition 11 in the ``Semantics, Safety, \& Dynamic Logic'' lecture notes. If not, provide a concise explanation why.
+
+\textbf{Solution.}
+
+% Write your solution here
+
+\newpage
+
+\item \textbf{Nondeterministically Satisfied (20 points).} 
+
+Now that we know how to reason about programs using logic, perhaps there are interesting ways to use logic directly in a program to make life easier.
+One example would be the ``assign such that'' statement, which would let us update a variable to take some nondeterministically-chosen value \emph{such that} it satisfies a given condition.
+An example of this might look like the following, where $x$ is assigned some arbitrary value between 0 and 15,316:
+\[
+x~\texttt{:=?}~0 \le x \land x \le 15316
+\]
+Aside from being useful for writing provably-correct code, this construct could maybe even help us generate good random passwords that satisfy those annoying character class requirements...
+
+\begin{enumerate}
+\item Define the a formal semantics for this command.
+That is, define the following set of traces assuming that $p(x)$ is a formula with a free occurrence of the variable $x$:
+\[
+\llbracket x~\texttt{:=?}~p(x)\rrbracket = 
+\{
+(\omega,\nu) : \ldots
+\}
+\]
+
+\item Then, give an axiom that enables compositional reasoning about programs that make use of the command.
+\[
+\dbox{x~\texttt{:=?}~p(x)}q(x) \lbisubjunct \ldots
+\]
+The right-hand side that you fill in for this axiom should contain no box or diamond modalities.
+
+\item
+Finally, be sure to relate the axiom to your semantics by proving that it is sound.
+\end{enumerate}
+
+\newpage
+
+\item \textbf{On second thought... (10 points).}
+Sometimes adding new features to a language can be more trouble than they're worth.
+In the lecture notes, we somewhat casually concluded that the following two contracts for a given program were equivalent.
+\begin{align*}
+\dbox{\alpha}{A} &\land \dbox{\alpha}{B} \\
+\dbox{\alpha}{(A &\land B)}
+\end{align*}
+For the language we've discussed in lecture the same holds for disjunction, so:
+\[
+\vDash \dbox{\alpha}{A} \lor \dbox{\alpha}{B} \lbisubjunct
+\dbox{\alpha}{(A \lor B)}
+\]
+Now that $\alpha$ might contain an ``assign such-that'' command, is this still the case?
+\begin{itemize}
+\item If so, then prove that
+$
+\vDash \dbox{x~\texttt{:=?}~p(x)}{(A \lor B)} \lbisubjunct \dbox{x~\texttt{:=?}~p(x)}{A} \lor \dbox{x~\texttt{:=?}~p(x)}{B}
+$.
+
+\item If not, then give an example of a program $\alpha$ that makes use of ``assign such-that'', and a postcondition $A \lor B$ such that $\dbox{\alpha}{(A \lor B)}$ is not equivalent to $\dbox{\alpha}{A} \lor \dbox{\alpha}{B}$.
+\end{itemize}
+
+\end{enumerate}
+
+\end{document}

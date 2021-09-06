@@ -1,0 +1,15 @@
+# Specify filepatterns you want git to ignore.
+
+*.aux
+*.log
+*.nav
+*.out
+*.snm
+*.bbl
+*.blg
+*.synctex.gz
+*.toc
+*.vrb
+solutions/*
+exams/*
+quizzes/*
