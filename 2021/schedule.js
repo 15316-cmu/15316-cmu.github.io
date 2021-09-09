@@ -16,20 +16,20 @@ schedule = [
 	{
 		"date": "9/7",
 		"topic": "Proving soundness",
-		"pdf": "",
-		"tex": "",
-		"comments": ""
+		"pdf": "02-prop.pdf",
+		"tex": "02-prop.tex",
+		"comments": "Read sections 6.1 &amp; 6.2"
 	},
 	{
 		"date": "9/9",
-		"topic": "Program semantics",
-		"pdf": "",
-		"tex": "",
+		"topic": "Programs, semantics, and safety",
+		"pdf": "03-safety.pdf",
+		"tex": "03-safety.tex",
 		"comments": ""
 	},
 	{
 		"date": "9/14",
-		"topic": "Safety",
+		"topic": "Dynamic Logic",
 		"pdf": "",
 		"tex": "",
 		"comments": ""
