@@ -30,15 +30,15 @@ schedule = [
 	{
 		"date": "9/14",
 		"topic": "Dynamic Logic",
-		"pdf": "",
-		"tex": "",
+		"pdf": "04-safetyproofs.pdf",
+		"tex": "04-safetyproofs.tex",
 		"comments": ""
 	},
 	{
 		"date": "9/16",
 		"topic": "Proving safety compositionally",
-		"pdf": "",
-		"tex": "",
+		"pdf": "04-safetyproofs.pdf",
+		"tex": "04-safetyproofs.tex",
 		"comments": ""
 	},
 	{
