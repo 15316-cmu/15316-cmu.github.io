@@ -826,6 +826,156 @@ The axiom \irref{unfold} can be proved from the other axioms by using some of th
 Every time we need the derived axiom \irref{unfold}, we could instead write down this sequent proof to prove it.
 It just won't be very efficient, so instead we will settle for deriving axiom \irref{unfold} in the sequent calculus once and then just believing it from then on.
 
+\subsection{Worked example with [unfold]}
+
+Let's see how to make effective use of the loop axiom, supposing that we wish to verify the following loop program up to one iteration.
+This would be equivalent to adding an assumption that $y \le 1$:
+\begin{multline*}
+y \le 1 \land x \ne 0 \limply \\
+\dbox{z:=0; \pwhile{y>0}{\plgroup \pifs{y\%2=1}{\plgroup z:=z+x \prgroup} x:=2*x; y:=y/2\prgroup}}{z \ne 0}
+\end{multline*}
+To keep things easier to read, we will let $\asprg$ denote the body of the while loop. We proceed as follows.
+\begin{sequentdeduction}[array]
+\linfer[implyr+andl] {
+  \linfer[composeb] {
+    \linfer[assignbeqr] {
+      \lsequent{y \le 1,x \ne 0,z=0}{\dbox{\pwhile{y>0}{\asprg}}{z \ne 0}}
+    } {
+      \lsequent{y \le 1,x \ne 0}{\dibox{z:=0}\dbox{\pwhile{y>0}{\asprg}}{z \ne 0}}
+    }
+  } {
+    \lsequent{y \le 1, x \ne 0}{\dbox{z:=0; \pwhile{y>0}{\asprg}}{z \ne 0}}
+  }
+} {
+  \lsequent{}{y \le 1 \land x \ne 0 \limply \dbox{z:=0; \pwhile{y>0}{\asprg}}{z \ne 0}}
+}
+\end{sequentdeduction}
+Now we can proceed no further without applying \irref{unfold}.
+So we unfold and then apply non-loop axioms afterwards until we get stuck again.
+\begin{sequentdeduction}
+\linfer[unfold] {
+  \linfer[andr] {
+    \linfer[implyr] {
+      \lsequent{y\le1,x\ne0,z=0,y>0} {\dibox{\asprg}\dbox{\pwhile{y>0}{\asprg}}{z\ne0}} 
+    } {
+      \lsequent{y\le1,x\ne0,z=0} {y>0\limply\dibox{\asprg}\dbox{\pwhile{y>0}{\asprg}}{z\ne0}} 
+    }
+    &\ \ \linfer[implyr] {
+      \lsequent{y\le1,x\ne0,z=0,y\le0} {z\ne0}
+    } {
+      \lsequent{y\le1,x\ne0,z=0} {y\le0 \limply z\ne0}
+    }
+  } {
+    \lsequent{y\le1,x\ne0,z=0} {(y>0\limply\dibox{\asprg}\dbox{\pwhile{y>0}{\asprg}}{z\ne0}) \land (y\le0 \limply z\ne0)}
+  }
+} {
+  \lsequent{y \le 1,x \ne 0,z=0}{\dbox{\pwhile{y>0}{\asprg}}{z \ne 0}}
+}
+\end{sequentdeduction}
+At this point we can't help but notice that the branch of our proof with $y\le0$ in the assumptions has no path forward. The formula:
+\begin{equation}
+\label{eq:vcbug}
+y \le 1 \land x \ne 0 \land z = 0 \land y \le 0 \limply z \ne 0
+\end{equation}
+simply is not a valid formula of arithmetic. So, we've found a bug in the program. What's more, examining the sequent that we are unable to prove:
+\begin{equation}
+\lsequent{y \le 1,x\ne0,z=0,y\le0}{z\ne0}
+\end{equation}
+we can extract more useful information about the bug. 
+In particular the context provided by our assumptions tells us exactly what conditions of the initial state need to hold in order for the program to produce a trace that violates the safety property. 
+So if we take any values of $x,y,z$ that satisfy the assumptions $y \le 1 \land x\ne0 \land z=0 \land y\le0$ then we are guaranteed to ``exercise'' the bug.
+
+\paragraph{Continuing on.}
+In hindsight, perhaps this is not so impressive because one of our assumptions is $z=0$. We probably should have seen this coming, because the program begins by initializing $z$ in this way, and will only update it when the loop body is executed. Perhaps there are more bugs to uncover if we continue with the other branch of the loop. In the following, let $\bsprg$ denote the program $x:=2*x;y:=y/2$.
+\begin{sequentdeduction}[array]
+\small
+\linfer[composeb] {
+  \linfer[ifb] {
+    \textcircled{1}
+    !\textcircled{2}
+  } {
+    \lsequent{x\ne0,z=0,y>0} {\dibox{\pifs{y\%2=1}{\plgroup z:=z+x \prgroup}}\dibox{\bsprg}\dbox{\pwhile{y>0}{\asprg}}{z\ne0}} 
+  }
+} {
+  \lsequent{x\ne0,z=0,y>0} {\dibox{\pifs{y\%2=1}{\plgroup z:=z+x \prgroup};\bsprg}\dbox{\pwhile{y>0}{\asprg}}{z\ne0}} 
+}
+\end{sequentdeduction}
+The branch of the proof marked $\textcircled{1}$ continues below.
+\begin{sequentdeduction}
+\linfer[implyr] {
+  \linfer[composeb] {
+    \linfer[assignbeqr] {
+      \linfer[assignbeqr] {
+        \linfer[assignbeqr] {
+          \lsequent{y\le1,x\ne0,z=0,y>0,y\%2=1,z_1=z+x,x_1=2*x,y_1=y/2} {\dbox{\pwhile{y_1>0}{\asprg}}{z_1\ne0}}
+        } {
+          \lsequent{y\le1,x\ne0,z=0,y>0,y\%2=1,z_1=z+x,x_1=2*x} {\dibox{y:=y/2}\dbox{\pwhile{y>0}{\asprg}}{z_1\ne0}}
+        }
+      } {
+        \lsequent{y\le1,x\ne0,z=0,y>0,y\%2=1,z_1=z+x} {\dibox{x:=2*x}\dibox{y:=y/2}\dbox{\pwhile{y>0}{\asprg}}{z_1\ne0}}
+      }
+    } {
+      \lsequent{y\le1,x\ne0,z=0,y>0,y\%2=1} {\dibox{z:=z+x}\dibox{x:=2*x}\dibox{y:=y/2}\dbox{\pwhile{y>0}{\asprg}}{z\ne0}}
+    }
+  } {
+    \lsequent{y\le1,x\ne0,z=0,y>0,y\%2=1} {\dibox{z:=z+x}\dibox{\bsprg}\dbox{\pwhile{y>0}{\asprg}}{z\ne0}}
+  }
+} {
+  \lsequent{y\le1,x\ne0,z=0,y>0} {y\%2=1 \limply \dibox{z:=z+x}\dibox{\bsprg}\dbox{\pwhile{y>0}{\asprg}}{z\ne0}}
+}
+\end{sequentdeduction}
+And the branch of the proof marked $\textcircled{2}$ continues here.
+\begin{sequentdeduction}
+\linfer[implyr] {
+  \linfer[composeb] {
+    \linfer[assignbeqr] {
+      \linfer[assignbeqr] {
+        \lsequent{y\le1,x\ne0,z=0,y>0,y\%2\ne1,x_1=2*x,y_1=y/2} {\dbox{\pwhile{y_1>0}{\asprg}}{z\ne0}}
+      } {
+        \lsequent{y\le1,x\ne0,z=0,y>0,y\%2\ne1,x_1=2*x} {\dibox{y:=y/2}\dbox{\pwhile{y>0}{\asprg}}{z\ne0}}
+      }
+    } {
+      \lsequent{y\le1,x\ne0,z=0,y>0,y\%2\ne1} {\dibox{x:=2*x}\dibox{y:=y/2}\dbox{\pwhile{y>0}{\asprg}}{z\ne0}}
+    }
+  } {
+    \lsequent{y\le1,x\ne0,z=0,y>0,y\%2\ne1} {\dibox{x:=2*x;y:=y/2}\dbox{\pwhile{y>0}{\asprg}}{z\ne0}}
+  }
+} {
+  \lsequent{y\le1,x\ne0,z=0,y>0} {y\%2\ne1 \limply \dibox{x:=2*x;y:=y/2}\dbox{\pwhile{y>0}{\asprg}}{z\ne0}}
+}
+\end{sequentdeduction}
+Now in both branches of the proof, we can't go any further without applying \irref{unfold}.
+However, notice that the assumptions of both sequents now have among them:
+\[
+y \le 1~\text{and}~y_1 = y/2
+\]
+We know that the integer part of $y_1$ will be 0, so when we unfold again, and move the condition $y_1 > 0$ into our assumptions, this will create an immediate contradiction, and both branches will be valid by arithmetic: we can close out with \irref{qear}.
+For the sake of completeness, these branches will be:
+\begin{align*}
+&\lsequent{y\le1,x\ne0,z=0,y>0,y\%2=1,z_1=z+x,x_1=2*x,y_1=y/2,y_1>0} {\dbox{\asprg;\pwhile{y_1>0}{\asprg}}{z_1\ne0}} \\
+&\lsequent{y\le1,x\ne0,z=0,y>0,y\%2\ne1,x_1=2*x,y_1=y/2,y_1>0} {\dbox{\asprg;\pwhile{y_1>0}{\asprg}}{z\ne0}}
+\end{align*}
+On the other hand, the branches in which we move $y_1 \le 0$ into the assumptions, which corresponds to exiting the loop after one iteration, will not have conflicting assumptions:
+\begin{align*}
+&\lsequent{y\le1,x\ne0,z=0,y>0,y\%2\ne1,z_1=z+x,x_1=2*x,y_1=y/2,y_1\le0} {z_1\ne0} \\
+&\lsequent{y\le1,x\ne0,z=0,y>0,y\%2=1,x_1=2*x,y_1=y/2,y_1\le0} {z\ne0}
+\end{align*}
+But note that these are purely formulas of arithmetic, and if they are valid, then we can close them with \irref{qear} as well.
+This completes our analysis of the program with \irref{unfold}.
+
+\paragraph{Verification conditions.}
+Looking back on our work, we were able to reduce our reasoning about the correctness of the loopy program to questions of the validity of arithmetic formulas in all cases.
+Such formulas, whose validity implies the validity of the dynamic logic formula from which they were derived, are called \emph{verification conditions}.
+By convention, we will only call the formulas that consist purely of arithmetic, and do not contain dynamic logic constructs, the verification conditions of a formula.
+In our example, these would be:
+\begin{align*}
+y \le 1 \land x \ne 0 \land z = 0 \land y \le 0 &\limply z \ne 0 \\
+y\le1 \land x\ne0 \land z=0 \land y>0 \land y\%2\ne1 \land z_1=z+x \land x_1=2*x \land y_1=y/2 \land y_1\le0 &\limply z_1\ne0 \\
+y\le1 \land x\ne0 \land z=0 \land y>0 \land y\%2=1 \land x_1=2*x \land y_1=y/2 \land y_1\le0 &\limply z\ne0
+\end{align*}
+Although we closed out the remaining two sequents with \irref{qear}, they did not correspond to formulas entirely of arithmetic, as they still each contained a box modality with the remainder of the loop to execute.
+By convention, we will not refer to these as verification conditions.
+
 \section{Summary and next steps}
 The axioms introduced in this lecture are summarize in \rref{fig:elementary-program-axioms}.
 \begin{figure}[tbp]
