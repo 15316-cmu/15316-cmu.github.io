@@ -44,8 +44,8 @@ schedule = [
 	{
 		"date": "9/21",
 		"topic": "Memory safety",
-		"pdf": "",
-		"tex": "",
+		"pdf": "05-memsandbox.pdf",
+		"tex": "05-memsandbox.tex",
 		"comments": ""
 	},
 	{
