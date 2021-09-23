@@ -51,8 +51,8 @@ schedule = [
 	{
 		"date": "9/23",
 		"topic": "Sandboxing",
-		"pdf": "",
-		"tex": "",
+		"pdf": "06-sfi.pdf",
+		"tex": "06-sfi.tex",
 		"comments": ""
 	},
 	{
