@@ -1,0 +1,6 @@
+using test.db :
+i := 0;
+while i <= 1000 do
+	i := i + 1
+done;
+output 7

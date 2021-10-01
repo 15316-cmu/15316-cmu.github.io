@@ -1,0 +1,16 @@
+using test.db:
+if 0 <= 1 then
+	output 7
+else
+	output 0
+endif;
+if 1 <= 0 then
+	output 0
+else
+	output 7
+endif;
+if 1 <= 1 then
+	output 7
+else
+	output 7
+endif

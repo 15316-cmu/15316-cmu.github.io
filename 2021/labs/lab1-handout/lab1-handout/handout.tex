@@ -1,0 +1,719 @@
+\documentclass[11pt]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+% EDIT THESE TWO COMMANDS TO BE YOUR ANDREW ID AND NAME
+\newcommand*{\stulogin}{}
+\newcommand*{\stuname}{}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+\usepackage{algorithm2e}
+\usepackage{fancyheadings}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{fullpage-old}
+\usepackage{graphics}
+\usepackage{sudoku}
+\usepackage[colorlinks,linkcolor=blue,urlcolor=blue]{hyperref}
+\usepackage{url}
+\usepackage{framed}
+\usepackage[dvipsnames,usenames]{xcolor}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{tikz}
+\usepackage{xspace}
+\usepackage{enumitem}
+
+\usepackage{ragged2e}
+% \usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{listings}
+% \usepackage{syntax}
+% \usepackage{semantic}
+% \usepackage{mathpartir}
+\usepackage{stmaryrd}
+\usepackage{amsmath}
+\usepackage{xspace}
+\usepackage{adjustbox}
+\usepackage{xspace}
+\usepackage{algpseudocode}
+\usepackage{mathtools}
+\usepackage{array}
+\usepackage{rotating}
+\usepackage{dirtree}
+
+\usepackage[irlabel]{bugcatch}
+
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{backgray}{gray}{0.95}
+\lstdefinelanguage
+   [x86]{Assembler}     
+   [x86masm]{Assembler}    
+   {morekeywords={movl, addl, subl, cmpl}} 
+\lstdefinestyle{customc}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  language=C,
+  showstringspaces=false,
+  numbers=none,
+  % xleftmargin=1ex,
+  framexleftmargin=1ex,
+  numbers=left,
+  numbersep=5pt,
+  numberstyle=\tiny\color{mygray},
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\color{blue},
+  commentstyle=\itshape\color{purple!40!black},  
+  stringstyle=\color{orange},
+  morekeywords={as,principal,password,do,exit,return,create,change,set,append,to,local,foreach,in,replacewith,filtereach,with,if,then,else,true,false,equal,notequal},
+  tabsize=2,
+  deletestring=[b]',
+  backgroundcolor=\color{gray!15},
+  frame=tb
+}
+% \lstset{escapechar=^,style=customc}
+
+\makeatletter
+\renewcommand{\paragraph}{%
+  \@startsection{paragraph}{4}%
+  {\z@}{1ex \@plus 1ex \@minus .2ex}{-1em}%
+  {\normalfont\normalsize\bfseries}
+}
+\makeatother
+
+\usetikzlibrary{automata,shapes,positioning}
+
+\renewenvironment{shaded}{%
+  \def\FrameCommand{\fboxsep=\FrameSep \colorbox{shadecolor}}%
+  \MakeFramed{\advance\hsize-\width \FrameRestore\FrameRestore}}%
+ {\endMakeFramed}
+\definecolor{shadecolor}{gray}{0.95}
+
+% \newcommand{\ex}{\ensuremath{\mathbf{EX\ }}\xspace}
+% \newcommand{\eg}{\ensuremath{\mathbf{EG\ }}\xspace}
+% \newcommand{\ef}{\ensuremath{\mathbf{EF\ }}\xspace}
+% \newcommand{\ax}{\ensuremath{\mathbf{AX\ }}\xspace}
+% \newcommand{\ag}{\ensuremath{\mathbf{AG\ }}\xspace}
+% \newcommand{\af}{\ensuremath{\mathbf{AF\ }}\xspace}
+% \newcommand{\nextt}{\ensuremath{\mathbf{X\ }}\xspace}
+% \newcommand{\future}{\ensuremath{\mathbf{F\ }}\xspace}
+% \newcommand{\always}{\ensuremath{\mathbf{G\ }}\xspace}
+% \newcommand{\until}{\ensuremath{\mathbf{\ U\ }}\xspace}
+% \newcommand{\release}{\ensuremath{\mathbf{\ R\ }}\xspace}
+% \newcommand{\existpath}{\ensuremath{\mathbf{E\ }}\xspace}
+% \newcommand{\forallpath}{\ensuremath{\mathbf{A\ }}\xspace}
+
+% \newcommand{\imp}{\ensuremath{\mathsf{Imp}}\xspace}
+% \newcommand{\aexp}{\ensuremath{\mathsf{AExp}}\xspace}
+% \newcommand{\bexp}{\ensuremath{\mathsf{BExp}}\xspace}
+% \newcommand{\com}{\ensuremath{\mathsf{Com}}\xspace}
+% \newcommand{\var}{\ensuremath{\mathsf{Var}}\xspace}
+% \newcommand{\strue}{\ensuremath{\mathsf{true}}\xspace}
+% \newcommand{\sfalse}{\ensuremath{\mathsf{false}}\xspace}
+% \newcommand{\true}{\ensuremath{\mathit{true}}\xspace}
+% \newcommand{\false}{\ensuremath{\mathit{false}}\xspace}
+
+\newcommand*{\escape}[1]{\expandafter\string\csname #1\endcsname}
+
+\newcommand*{\assignmentnumb}{1}
+% ---------------------------------------------------------------------------
+
+\lhead[{\bfseries 15-316\quad Lab \assignmentnumb\ \ \ \stulogin}]{{\bfseries 15-316\quad Lab \assignmentnumb\ \ \ \stulogin}}
+\rhead[{\bfseries\thepage}]{{\bfseries\thepage}}
+\pagestyle{fancy}
+\parskip 1ex
+\parindent 0mm
+
+% -----------Danny's Macros-------------
+
+\newcommand{\problem}[1]{\section{#1}\vspace{-1em}}
+\newcounter{partnumber}
+\newenvironment{parts}{\begin{list}{
+      % \arabic{problemnumber}\alph{partnumber}:}{
+      (\alph{partnumber})}{
+      \usecounter{partnumber} \setlength{\rightmargin}{\leftmargin}}
+    \setlength{\itemsep}{.0 in}}{
+  \end{list} \vspace*{.0 in}}
+
+% ---------------------------------------
+
+\begin{document}
+
+Total points: 100 \\
+\vspace{1.5ex}
+\centerline{\Large\bf Lab \assignmentnumb: Pinning Down Safety}
+\vspace{0.5ex}
+\centerline{\Large\bf \stuname}
+
+\begin{problem}{Introduction}
+  % \paragraph{Not-so-tiny Server Post-mortem}
+    In this lab, your job is to implement a small web server that maintains a key-value mapping that users can store data in, and supports a scripting language that allows them to query and process data in this key-value store.
+    Using the provided template as a starting point, you will build on the ``tiny server'' implementation presented in 15-213.
+    The template also has code to parse the user-provided scripts, as well as some useful data structures, and an implementation of \verb'malloc', \verb'calloc', and \verb'free' that is compatible with Software Fault Isolation.
+    Finally, you will implement runtime enforcement of a system call sandbox policy to ensure that unoforeseen vulnerabilities do not wreak havoc on the server, and optionally for extra credit, a Software Fault Isolation policy.
+    You will complete this part of the lab using a tool called Pin, devloped by Intel.
+    
+  \paragraph{In a bit more more detail.}
+    Your goal is to allow users to submit processing tasks in a limited interpreted language for the server to execute over its key-vale store. 
+    The language has facilities for reading and writing variables, branching on conditions, looping, and displaying results. 
+    All variables are backed by a key-value store so that the values computed by a script can be saved to disk and later retrieved to use in other tasks. 
+    All of these programs will be interpreted by a single program that you will carefully implement to avoid introducing safety vulnerabilities.
+    
+    By confining users' tasks to this scripting language, you are limiting their ability to impact the state of the server while still providing useful functionality. The language is quite simple, and all of the results are stored in a single \verb'.db' file, so if implemented correctly this should introduce minimal risk to the state of the server. Moreover, programs in the scripting language are much easier to reason about than binary or even C programs, so there may be opportunities to develop additional safeguards using principled techniques when additional security demands arise in the future.
+  
+    However, this means that the security of the server rests on your implementation. Especially concerning is the code responsible for interpreting commands given in untrusted scripts. 
+    To guard against the possibility that your implementation does contain a suprising vulnerability, you will also provide a sandbox for the interpreter to make sure that the impact of any vulnerabilities is contained. In particular, you will make sure that a certain set of dangerous system calls, such as \verb'execve', that are of no use to the interpreter, are never called. Moreover, your sandbox will ensure that all filesystem operations executed by the interpreter are limited to exactly the resources that the interpreter needs in order to do its job. 
+    You will do this using a tool called \emph{Pin} that instruments binary programs dynamically.
+  
+  \paragraph{Learning goals.}
+    As you complete this lab, you will:
+    \begin{itemize}[noitemsep,topsep=0pt]
+      \item Gain experience translating formal semantics to an implementation by writing an interpreter for a small domain-specific language.
+      \item Develop a deeper understanding of safety policy enforcement techniques by implementing a sandbox that enforces security automata and (optionally) SFI.
+      \item Gain experience with a practical code instrumentation tool (\emph{Pin}) that is widely used in industry and research.
+      \item Practice writing secure imperative code by extending the functionality of your server.
+    \end{itemize}
+  \paragraph{Evaluation.}
+    This lab is worth 100 points, and will be graded by a combination of autograder test cases and, when necessary, manual inspection by the course staff. The test cases will \emph{(i)} evaluate the correctness of your interpreter absent any security considerations, and \emph{(ii)} evaluate the extent to which your sandbox achieves the goals described in these instructions by attempting to exploit likely vulnerabilities that violate the safety policy. 
+    
+    Note that if you fail an autograder test, then you will not necessarily lose a significant number of points if your code is clear, well-commented, and we are able to deduce that your implementation nearly implements the correct behavior with only minor issues.
+    Likewise, passing an autograder test does not mean that you will automatically recieve all of the available points. For example, if your policy enforcer trivially rejects nearly all traces, including those that comply with the policy, then you will not receive credit for passing tests that check whether your implementation rejects violating traces.
+    In short, write clear and concise code, provide comments, and use the autograder along the way to sanity-check your work.
+    Don't rely on the autograder as a perfect oracle---use your knowledge and best judgement to decide whether your solution meets the objectives described in this document!
+    \begin{description}[noitemsep,topsep=0pt]
+      \item[Checkpoint (10 point deduction for missing).] Halfway through the allotted time, you should at least have an interpreter that is able to pass most of the provided tests.
+      You will still have time to make changes and correct issues with your implementation, but if you do not pass at least half of the tests (11 out of 22), then 10 points will be deducted from your final score.
+      \item[Correct interpreter (40 points).] The interpreter must implement the language semantics as given in this document, producing the exact output described in these instructions. Partial credit will be given based on how many test cases passed, and in situations where very few tests yield the correct output, manual inspection.
+      \item[Correct sandbox implementation (60 points, 15 possible extra credit).] The sandbox implementation is mostly contained in a Pintool that instruments the interpreter's binary code, but parts of the interpreter must also be written in a way that interacts correctly with the Pintool. When running in your sandbox, the interpreter should still pass all of the functionality test cases, and terminate the interpreter in cases where the policy would be violated.
+    \end{description}
+\end{problem}
+
+\paragraph{What to hand in.}
+As indicated above, there are \textbf{\color{red} two dates} on which you will hand this assignment: a half-way checkpoint, and a final submission.
+For the checkpoint, we expect you to have implemented all of the command forms for the interpreter described in Section~\ref{sect:task1}. 
+If the autograder indicates that you fail more than half of the tests, then you are responsible for contacting the course staff to ensure that we are able to help you.
+
+When you have completed the lab, for the final deadline you should hand in:
+\begin{itemize}[noitemsep,topsep=0pt]
+\item A \verb'.zip' archive of the same directory tree contained in \verb'template', with your completed solution in the appropriate files. The necessary changes that you will need to make are in \verb'sandbox/em.cpp' and \verb'src/tinyscript/interp.c'. 
+\item \textbf{Do not hand in the entire Pin kit!} Rather, take your completed \verb'em.cpp' from the Pin kit directory tree, and replace the template file \verb'em.cpp' with it.
+\end{itemize}
+
+\paragraph{\large \color{red}{Important!}} The template code provided to get you started with your sandbox implementation makes several platform-specific assumptions about the operating system's binary executable format, as well compiler features present on the system. It has been developed and tested on the Andrew Linux cluster machines (\verb'linux.andrew.cmu.edu'), and you are encouraged to complete this lab on that cluster.
+\newpage
+
+\section{Getting started}
+\label{sect:start}
+
+The \verb'template' directory contains template code to get you started on this lab. The following map lays out what is provided. {\color{red}{Red}} files and directories are essential infrastructure that you should not modify as doing so is likely to break your implementation. {\color{blue}{Blue}} files are those in which you will spend most of your time implementing the lab.
+\\
+
+\dirtree{%
+  .1 template.
+  .2 \color{red}{CMakeLists.txt}\DTcomment{Build file, \emph{do not modify}}.
+  .2 sandbox\DTcomment{Template sandbox implementation}.
+  .3 \color{blue}{em.cpp}\DTcomment{Template Pintool}.
+  .3 \color{red}{makefile}\DTcomment{Pin build file, \emph{do not modify}}.
+  .3 \color{red}{makefile.rules}\DTcomment{Pin build file, \emph{do not modify}}.
+  .2 src.\DTcomment{Template server and interpreter}.
+  .3 common\DTcomment{Common library for server}.
+  .4 \color{red}{CMakeLists.txt}\DTcomment{Build file, \emph{do not modify}}.
+  .4 csapp.c\DTcomment{Robust IO routines}.
+  .4 extendible\_hash.c\DTcomment{Extendible hash table}.
+  .4 safemem.c\DTcomment{Sandbox memory manager}.
+  .4 ubarray.c\DTcomment{Unbounded array data structure}.
+  .3 include\DTcomment{Header files}.
+  .4 common\DTcomment{Definitions for common library}.
+  .5 csapp.h\DTcomment{Definitions for robust IO}.
+  .5 extendible\_hash.h\DTcomment{Extendible hash definitions}.
+  .5 safemem.h\DTcomment{Sandbox memory manager definitions}.
+  .5 ubarray.h\DTcomment{Unbounded array definitions}.
+  .4 tinyscript\DTcomment{Definitions for interpreter}.
+  .5 ast.h\DTcomment{Abstract syntax tree definitions}.
+  .5 interp.h\DTcomment{Interpreter definitions}.
+  .3 server\DTcomment{Core server implementation}.
+  .4 \color{red}{CMakeLists.txt}\DTcomment{Build file, \emph{do not modify}}.
+  .4 client.c\DTcomment{Simple client to test server functionality}.
+  .4 tiny.c\DTcomment{Server implementation}.
+  .3 tinyscript\DTcomment{Interpreter}.
+  .4 \color{red}{CMakeLists.txt}\DTcomment{Build file, \emph{do not modify}}.
+  .4 ast.c\DTcomment{Functions to build abstract syntax trees}.
+  .4 \color{blue}{interp.c}\DTcomment{Core interpreter routines}.
+  .4 interp\_main.c\DTcomment{Interpreter shell}.
+  .4 \color{red}{parser}\DTcomment{Parser implementation, \emph{do not modify}}.
+  .5 \color{red}{lexer.l}\DTcomment{Rules for scanning strings containing programs}.
+  .5 \color{red}{parser.y}\DTcomment{Grammar for language syntax}.
+  .4 testscripts\DTcomment{Example programs to test interpreter}.
+}
+
+\subsection{Build Infrastructure} 
+\label{sect:build}
+The template code uses CMake, which generates all of the necessary makefiles after ensuring that the system has the necessary dependencies. One benefit of using CMake in a larger implementation like this is that one can easily place the generated makefiles, object files, and executables in a separate directory heirarchy. After making numerous changes to the implementation, it is straightforward to start with a fresh build by deleting this directory heirarchy.
+
+To use CMake to build this lab, enter the top-level \verb'template' directory, and create a fresh \verb'build' directory. Then generate the makefiles with the command \verb'cd build && cmake ..', which will result in a number of subdirectories of \verb'interp/build' being created with fresh makefiles. Finally, from the \verb'build' directory, run the \verb'make' command. You should see approximately the following output, and if you do not then please contact the course staff immediately.
+
+\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,backgroundcolor=\color{gray!15}]
+[user@unix template]$ mkdir build
+[user@unix template]$ cd build && cmake ..
+-- The C compiler identification is GNU 4.8.5
+-- The CXX compiler identification is GNU 4.8.5
+-- Check for working C compiler: /usr/lib64/ccache/cc
+-- Check for working C compiler: /usr/lib64/ccache/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working CXX compiler: /usr/lib64/ccache/c++
+-- Check for working CXX compiler: /usr/lib64/ccache/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Looking for include file pthread.h
+-- Looking for include file pthread.h - found
+-- Looking for pthread_create
+-- Looking for pthread_create - not found
+-- Looking for pthread_create in pthreads
+-- Looking for pthread_create in pthreads - not found
+-- Looking for pthread_create in pthread
+-- Looking for pthread_create in pthread - found
+-- Found Threads: TRUE
+-- Found BISON: /usr/bin/bison (found version "3.0.4")
+-- Found FLEX: /usr/bin/flex (found version "2.5.37")
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /afs/andrew.cmu.edu/usr8/usr/template/build
+[user@unix template/build]$ make
+[ 28%] Built target common
+Scanning dependencies of target tinyscript
+[ 35%] Building C object src/tinyscript/CMakeFiles/tinyscript.dir/interp_main.c.o
+Linking C static library libtinyscript.a
+[ 78%] Built target tinyscript
+Scanning dependencies of target interp
+[ 85%] Building C object src/tinyscript/CMakeFiles/interp.dir/interp_main.c.o
+Linking C executable interp
+[ 85%] Built target interp
+[ 92%] Built target client
+Linking C executable server
+[100%] Built target server
+\end{lstlisting}
+
+Each time you build your solution, you can simply run \verb'make' from \verb'build' if you do not wish to build from scratch. To clean and rebuild, simply remove \verb'template/build' and repeat this process.
+
+\subsection{Setting up Pin} 
+\label{sect:pinsetup}
+Pin is a dynamic binary instrumentation framework\footnote{See the \href{https://15316-cmu.github.io/lectures/09-automata.pdf}{lecture notes} from 2/13 for background on this technique}) that provides an API for creating dynamic analysis tools. Analysis tools created using Pin are called \emph{Pintools}, and tell Pin's just-in-time compiler how to insert instrumentation into a target executable. Importantly, Pintools can be applied without recompiling the target executable.
+
+\paragraph{Installing the kit.}
+To implement the sandbox for this lab, you will need to download the appropriate Pin kit to your AFS home directory. The following commands will download the kit and move it to a directory called \verb'pin'. It is recommended that you do this outside of the \verb'template' directory, as you should not hand the entire Pin kit in with your final solution.
+\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,backgroundcolor=\color{gray!15}]
+[user@unix ~]$ wget https://intel.ly/2YfeYdw 
+[user@unix ~]$ mv 2YfeYdw pin.tar.gz
+[user@unix ~]$ tar xzf pin.tar.gz
+[user@unix ~]$ mv pin-3.20-98437-gf02b61307-gcc-linux pin
+\end{lstlisting}
+The directory \verb'pin' now contains the following tree, with parts that are particularly relevant highlighted and expanded.
+\\
+
+\dirtree{%
+  .1 pin.
+  .2 doc.
+  .2 extlicense.
+  .2 extras.
+  .2 ia32.
+  .2 intel64.
+  .2 LICENSE.
+  .2 \color{Plum}{pin}\DTcomment{Pin executable, used to apply Pintools to applications}.
+  .2 README.
+  .2 redist.txt.
+  .2 source.
+  .3 include.
+  .3 launcher.
+  .3 \color{Plum}{tools}\DTcomment{Directory containing Pintools}.
+}
+
+\vspace*{1em}
+
+\paragraph{Building example Pintools.}
+Enter the subdirectory \verb'source/tools/SimpleExamples', and execute \verb'make' to build all of the example Pintools in this directory. Alternatively, set the environment variable PIN\_ROOT to your pin distribution before running make, and the pintool will be made in the directory you called make from. If the build does not complete successfully, make sure that you are in fact running on one of the Andrew Linux machines, and if so, \textbf{contact the course staff immediately}. A successful build should end with the following output.  
+\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,backgroundcolor=\color{gray!15}]
+make[1]: Leaving directory `/afs/.../pin/source/tools/SimpleExamples'
+\end{lstlisting}
+If the examples built correctly, then you should see a directory named \verb'obj-intel64' containing a number of \verb'.so', \verb'.o', and \verb'.exe' files. The Pintools are in the \verb'.so' files, and despite their Windows-ish extensions, the \verb'.exe' files contain valid executable test applications. 
+
+\paragraph{Running Pintools.} To use a Pintool on an application, run the \verb'pin' binary in the top-level Pin kit directory passing the \verb'.so' of the Pintool with the flag \verb'-t'. The target application is given on the command line after \verb'--', along with any arguments. Try running the \verb'calltrace' Pintool on any program, e.g., \verb'ls'.
+\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,backgroundcolor=\color{gray!15}]
+[user@unix SimpleExamples]$ ../../../pin -t obj-intel64/calltrace.so -- ls .
+\end{lstlisting}
+Running \verb'wc -l calltrace.out' when it finishes should indicate that \verb'ls' made approximately 10,000 function calls during its execution. You can also tell Pin to follow children spawned by \verb'execv' using the flag \verb'-follow_execv', which you will need to do to ensure that the interpreter spawned by \verb'tiny' is instrumented.
+
+\paragraph{Set up the template sandbox.} To compile your sandbox Pintool, it is easiest to move the \verb'template/sandbox' directory into the \verb'pin/source/tools' directory. Then you can use the same commands to build your solution Pintool as we used to compile the tools in \verb'SimpleExamples', i.e., just run \verb'make'. The tool will then be found in \verb'pin/source/tools/sandbox/obj-intel64/em.so'. \textbf{\emph{Note that the build infrastructure for the server and interpreter will not automatically make your Pintool!}}
+
+You may find it helpful to define a few environment variables to save keystrokes when working on both the Pintool and server.
+\begin{description}
+\item[\texttt{PINROOT}] The directory containing the \verb'pin' binary.
+\item[\texttt{SBOXROOT}] The directory containing your sandbox code, i.e. \verb'pin/source/tools/sandbox'.
+\item[\texttt{SBOXBIN}] The directory containing your sandbox Pintool, i.e. \verb'$SBOXROOT/obj-intel64'.
+\end{description}
+Finally, you probably want to set your \verb'PATH' to point to \verb'PINROOT'.
+
+\subsubsection*{Useful links}
+\begin{description}
+\item[\href{https://software.intel.com/content/www/us/en/develop/articles/pin-a-binary-instrumentation-tool-downloads.html}{Pin kit for 32 and 64-bit Linux}.] Tarball containing the Pin kit you should use to complete this lab on Andrew Linux machines.
+
+\item[\href{https://software.intel.com/content/dam/develop/external/us/en/documents/asplos2008-handson-256675.pdf}{ASPLOS 2008 Pin tutorial}.] Good tutorial to understand the basics of Pin. \textbf{\emph{It is strongly recommended that you read the first 11 pages of this tutorial, as well as the section titled ``Build Your Own Pin Tool -- \texttt{strace} Using Pin''}} prior to starting the sandbox portion of this lab.
+
+\item[\href{https://software.intel.com/sites/landingpage/pintool/docs/98437/Pin/html/}{Pin User's Manual}.] The user's manual has detailed information on all of Pin's features and API routines. If you encounter problems using Pin to develop your sandbox, consult this reference before asking the course staff for assistance.
+
+\item[\href{https://software.intel.com/content/www/us/en/develop/articles/pin-a-dynamic-binary-instrumentation-tool.html}{Pin main website.}] This website is the main trustworthy source of information about Pin. Additional tutorials and technical documentation are available here.
+\end{description}
+
+\newpage
+
+\section{Task 1: Implement the Interpreter}
+\label{sect:task1}
+
+Your first task after getting set up and familiarizing yourself with Pin is to implement an interpreter for a simple imperative language. The context-free grammar below is a complete syntactic description of the language you are to implement. Each rule consists of a non-terminal identifier, given in bold-face font and surrounded by angular brackets (e.g., $\langle\mathbf{com}\rangle$), followed by one or more production rules. Elements in typewriter font (e.g., $\mathtt{exit}$) are terminals, and correspond to keywords and punctuation required by the language.
+
+\begin{center}
+\begin{tabular}{lcll}
+$\langle\mathbf{prog}\rangle$ & ::= & $\mathtt{using}~\mathit{table}~\mathtt{:}~\langle\mathbf{com}\rangle$ &
+\\
+$\langle\mathbf{com}\rangle$ & ::= & $\mathtt{skip}$ & \textit{// do nothing}
+\\
+& $\mid$ & $x := \langle\mathbf{aexp}\rangle$ & \textit{// assignment}
+\\
+& $\mid$ & $\mathtt{undef(}x\mathtt{)}$ & \textit{// remove variable}
+\\
+& $\mid$ & $\mathtt{output}~\langle\mathbf{aexp}\rangle$ & \textit{// print expression value}
+\\
+& $\mid$ & $\langle\mathbf{com}\rangle\mathtt{;}\langle\mathbf{com}\rangle$ & \textit{// composition}
+\\
+& $\mid$ & $\mathtt{if}~\langle\mathbf{bexp}\rangle~\mathtt{then}~\langle\mathbf{com}\rangle~\mathtt{else}~\langle\mathbf{com}\rangle~\mathtt{endif}$ & \textit{// conditional}
+\\
+& $\mid$ & $\mathtt{while}~\langle\mathbf{bexp}\rangle~\mathtt{do}~\langle\mathbf{com}\rangle~\mathtt{done}$ & \textit{// loop}
+\\
+$\langle\mathbf{aexp}\rangle$ & ::= & $c$ & \textit{// integer constant}
+\\
+& $\mid$ & $x$ &  \textit{// variable identifier}
+\\
+& $\mid$ & $(\langle\mathbf{aexp}\rangle)$ &   \textit{// parenthesized expression}
+\\
+& $\mid$ & $\langle\mathbf{aexp}\rangle~\text{\texttt{+}}~\langle\mathbf{aexp}\rangle$ & \textit{// addition}
+\\
+& $\mid$ & $\langle\mathbf{aexp}\rangle~\text{\texttt{-}}~\langle\mathbf{aexp}\rangle$ & \textit{// subtraction}
+\\
+& $\mid$ & $\langle\mathbf{aexp}\rangle~\text{\texttt{*}}~\langle\mathbf{aexp}\rangle$ & \textit{// multiplication}
+\\
+$\langle\mathbf{bexp}\rangle$ & ::= & $\mathtt{true} \mid \mathtt{false}$ &  \textit{// boolean constants}
+\\
+& $\mid$ & $\mathtt{hasdef}(x)$ & \textit{// check that variable is defined}
+\\
+& $\mid$ & $\text{\texttt{!}}\langle\mathbf{bexp}\rangle$ & \textit{// negation}
+\\
+& $\mid$ & $(\langle\mathbf{bexp}\rangle)$ & \textit{// parenthesized expression}
+\\
+& $\mid$ & $\langle\mathbf{bexp}\rangle~\text{\texttt{\&\&}}~\langle\mathbf{bexp}\rangle$ & \textit{// conjunction}
+\\
+& $\mid$ & $\langle\mathbf{bexp}\rangle~\text{\texttt{||}}~\langle\mathbf{bexp}\rangle$ & \textit{// disjunction}
+\\
+& $\mid$ & $\langle\mathbf{aexp}\rangle~\text{\texttt{==}}~\langle\mathbf{aexp}\rangle$ & \textit{// equality}
+\\
+& $\mid$ & $\langle\mathbf{aexp}\rangle~\text{\texttt{<=}}~\langle\mathbf{aexp}\rangle$ & \textit{// inequality}
+\end{tabular}
+\end{center}
+
+Programs begin by declaring the \verb'.db' file containing the state on which they will execute, with the syntax \verb'using' \textit{table} \verb':' ..., following by a command containing the operations to perform on the state. Note that the filename is not in quotation marks, and is immediately preceded by a colon. Whitespace is ignored in programs. \textbf{You should also make sure that your program file always ends with a newline in the end.}
+
+\paragraph{Semantics.} The primary component of program state is a mapping from variables to values, much like in the languages we have discussed in lecture. There are two key differences from the states that we have discussed in lecture. First, the variable mapping is partial, and may be undefined on some variables. Second, programs in the server's scripting language can output results by writing to \verb'stdout'. So a program state $\omega$ consists of two components, the partial variable mapping $\omega_v$ and output stream $\omega_s$. We model the output stream as a (possibly empty) sequence of integers, i.e. $\omega_s \in \mathbb{Z}^{*}$.
+
+\begin{figure}[t]
+\textbf{Arithmetic expressions}
+\begin{center}
+\linferenceRule{}{\langle\omega,c\rangle \bigstep_{\mathbb{Z}} c}
+\quad
+\linferenceRule{
+  \omega_v(x)~\text{is defined}
+  &\omega_v(x) = v
+}{
+  \langle\omega,x\rangle \bigstep_{\mathbb{Z}} v
+}
+\quad
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}} v
+}{
+  \langle\omega,(\astrm)\rangle \bigstep_{\mathbb{Z}} v
+}
+\quad
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}} v_1
+  &\langle\omega,\bstrm\rangle \bigstep_{\mathbb{Z}} v_2
+}{
+  \langle\omega,\astrm \odot \bstrm\rangle \bigstep_{\mathbb{Z}} v_1 \odot v_2
+}
+\end{center}
+\textbf{Boolean expressions}
+\begin{center}
+\linferenceRule{}{\langle\omega,\mathtt{true}\rangle \bigstep_\mathbb{B} \ltrue}
+\quad
+\linferenceRule{}{\langle\omega,\mathtt{false}\rangle \bigstep_\mathbb{B} \lfalse}
+\quad
+\linferenceRule{
+  \omega_v(x)~\text{is defined}  
+}{
+  \langle\omega,\mathtt{hasdef}(x)\rangle \bigstep_\mathbb{B} \ltrue
+}
+\quad
+\linferenceRule{
+  \omega_v(x)~\text{not defined}  
+}{
+  \langle\omega,\mathtt{hasdef}(x)\rangle \bigstep_\mathbb{B} \lfalse
+}
+\\[1ex]
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_\mathbb{B} b
+}{
+  \langle\omega,\text{\texttt{!}}\ausfml\rangle \bigstep_\mathbb{B} \lnot b
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_\mathbb{B} b
+}{
+  \langle\omega,(\ausfml)\rangle \bigstep_\mathbb{B} b
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_\mathbb{B} b_1
+  &\langle\omega,\busfml\rangle \bigstep_\mathbb{B} b_2
+}{
+  \langle\omega,\ausfml~\text{\texttt{\&\&}}~\busfml\rangle \bigstep_\mathbb{B} b_1 \land b_2
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_\mathbb{B} b_1
+  &\langle\omega,\busfml\rangle \bigstep_\mathbb{B} b_2
+}{
+  \langle\omega,\ausfml~\text{\texttt{||}}~\busfml\rangle \bigstep_\mathbb{B} b_1 \lor b_2
+}
+\\[1ex]
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_\mathbb{Z} v_1
+  &\langle\omega,\bstrm\rangle \bigstep_\mathbb{Z} v_2
+}{
+  \langle\omega,\ausfml~\text{\texttt{==}}~\busfml\rangle \bigstep_\mathbb{B} v_1 = v_2
+}
+\quad
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_\mathbb{Z} v_1
+  &\langle\omega,\bstrm\rangle \bigstep_\mathbb{Z} v_2
+}{
+  \langle\omega,\ausfml~\text{\texttt{<=}}~\busfml\rangle \bigstep_\mathbb{B} v_1 \le v_2
+}
+\end{center}
+
+\textbf{Commands}
+\begin{center}
+\linferenceRule{}{\langle\omega,\mathtt{skip}\rangle \bigstep \omega}
+\quad
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}} v
+}{
+  \langle\omega,x := \astrm\rangle \bigstep \memupd{\omega}{x}{v}
+}
+\quad
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}} v
+  &\omega'_v = \omega_v
+  &\omega'_o = \omega_o,v
+}{
+  \langle\omega,\mathtt{output}~\astrm\rangle \bigstep \omega'
+}
+\\[1ex]
+\linferenceRule{
+  \omega_v(x)~\text{is defined}
+  &\omega'=\omega~\text{except}~x~\text{is undef. in}~\omega'_v
+}{
+  \langle\omega,\mathtt{undef}(x)\rangle \bigstep \omega'
+}
+\quad
+\linferenceRule{
+  \omega_v(x)~\text{is undef.}
+}{
+  \langle\omega,\mathtt{undef}(x)\rangle \bigstep \omega
+}
+\\[1ex]
+\linferenceRule{
+  \langle\omega,\asprg\rangle \bigstep \omega_1
+  &\langle\omega_1,\bsprg\rangle \bigstep \omega_2
+}{
+  \langle\omega,\asprg;\bsprg\rangle \bigstep \omega_2
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} \ltrue
+  &\langle\omega,\asprg\rangle \bigstep \omega'
+}{
+  \langle\omega,\pif{\ausfml}{\asprg}{\bsprg}\rangle \bigstep \omega'
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} \lfalse
+  &\langle\omega,\bsprg\rangle \bigstep \omega'
+}{
+  \langle\omega,\pif{\ausfml}{\asprg}{\bsprg}\rangle \bigstep \omega'
+}
+\\[1ex]
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} \lfalse
+}{
+  \langle\omega,\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} \ltrue
+  &\langle\omega,\asprg;\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega'
+}{
+  \langle\omega,\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega'
+}
+\end{center}
+
+\caption{Semantics of the scripting language.}
+\label{fig:semantics}
+\end{figure}
+
+The semantics of the language are given in Figure~\ref{fig:semantics}. They are given in the \emph{big-step transition style}, which we introduce in the lectures on information flow. There are three relations $\bigstep_{\mathbb{Z}}, \bigstep_{\mathbb{B}}$, and $\bigstep$ for arithmetic expressions, Boolean expressions, and commands, respectively. The judgement $\langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}} v$ denotes that the arithmetic expression $\astrm$ evaluates to value $v$ in state $\omega$; $\langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} b$ denotes that Boolean expression $\ausfml$ evaluates to value $b$ (i.e., either $\ltrue$ or $\lfalse$) in state $\omega$; and $\langle\omega,\asprg\rangle\bigstep\omega'$ denotes that command $\asprg$ terminates in state $\omega$ when started in state $\omega'$.
+
+Any valid execution of a command must have a corresponding derivation from the rules in Figure~\ref{fig:semantics}. If no such derivation exists, then the program is ``stuck'' and cannot complete a valid execution. For example, if we were to attempt to evaluate the program $x := x + 1$ in a state $\omega$ in which $x$ is undefined, then there would be no way to evaluate the right-hand side of the assignment using the rules from Figure~\ref{fig:semantics}; there is no rule to evaluate variables when they are undefined. \textbf{These cases amount to aborted executions.}
+
+\paragraph{Reading and parsing programs.} Programs are sent to the server over a network connection as strings. A client is implemented for you in the server subdirectory to handle this. When the main server loop in \verb'tiny.c' receives a connection, it will do the following:
+\begin{enumerate}
+\item Log the connection's time and client IP to a specified log file.
+\item Read the string sent and save it in a temporary file.
+\item Spin up a new interpreter via \verb'fork' and \verb'exec' of the \verb'interp' binary.
+\item Pass the temporary filename containing the network data to the newly-created interpreter.
+\end{enumerate}
+The entry point of the \verb'interp' is in \verb'interp_main.c'. It simply reads the given filename from disk into the fixed buffer \verb'pbuf', and calls \verb'parse_buf' to obtain an abstract syntax tree (AST) of the target program. Note that we are making an assumption about the length of the script we are executing here. This is a simplifying assumption and it is okay to assume that the client never sends a program longer than the size of the buffer. The AST is a data structure defined in \verb'include/tinyscript/ast.h', and is a linked (tree) structure that contains all of the information needed to interpret a program. \textbf{The necessary functionality to parse a string containing a syntactically-correct program into an AST has been provided as part of the template, and you do not need to do anything more with this aspect of the implementation.}
+
+\paragraph{Interpreting programs.} Once the program is in an AST stored in variable \verb'program', \verb'interp_main.c' does the following:
+\begin{enumerate}
+\item Uses the \verb'init_state' function implemented in \verb'interp.c' to initialize a new program state from the specified database file (\verb'program->table').
+\item Interprets the program's command (\verb'program->command') using the \verb'interp_com' function implemented in \verb'interp.c'.
+\item If the program aborts because there is no valid execution according to the semantics given above, it prints an error message and exits. Otherwise, it writes the program state after evaluation to the same file as before (\verb'program->table'), using \verb'store_state' implemented in \verb'interp.c'.
+\end{enumerate}
+The template provides initial implementations for \verb'init_state' and \verb'store_state', and a skeleton implementation of \verb'interp_com'. \textbf{Your task is to finish the implementation of \texttt{interp\_com} so that the \texttt{interp} binary correctly interprets well-formed programs that are given to it, starting in the state represented in the database file, and saves the final state back to the given database file.}
+
+You should use the semantics in Figure~\ref{fig:semantics} as your exclusive reference when implementing \verb'interp_com' and any functions that it depends on. The big-step transition rules translate into code naturally, by implementing each syntactic construct as a set of cases corresponding to the antecedents of each rule for that construct, returning values or updating state according to the consequent. To make sure that you don't miss any cases, you may find it helpful to cross off the corresponding rule in this handout as you complete the corresponding implementation.
+
+As you implement the interpreter, use the following guidelines to make sure that the server's behavior reflects changes to the script state.
+\begin{itemize} 
+  \item You are free to implement the partial variable mapping component of the state in any way that you like, but you may find it easiest to rely on the \verb'extendible_hash' and \verb'ubarray' (unbounded array) data structures that are provided in the template. The template code has been set up accordingly, so if you wish to use a different approach then you should remember to update \verb'init_state' and \verb'store_state' in \verb'interp.c' accordingly so that mappings can be read from and written to disk before and after scripts execute.
+  \item You do not need to save the output stream component of state to disk. Rather, you should ensure that changes to $\omega_o$ are reflected on a new line of \verb'stdout' as they occur. That is, each time a new integer $v$ is appended to $\omega_o$, print it to \verb'stdout' any way you wish (e.g., \verb'printf') with a newline at the end. The provided server and client code ensures that whatever you print out to command line in the interpreter is sent back to the client.
+  \item You will need to account for executions that cannot proceed according to the big-step transition rules, i.e. those that abort. For example, attempts to read a variable that is not defined in the current state. \textbf{For any such situation in which there is no valid way to proceed with execution, the interpreter should stop immediately, and \texttt{interp\_com} should return a negative code to signify aborted execution.}
+  \item If memory resources are exhausted while executing a command, then the interpreter should stop executing and \verb'interp_com' should return a positive (non-zero) code to signify early termination for reasons other than aborted execution.
+\end{itemize}
+
+\paragraph{Preventing DoS.} You don't want a user-provided script to exhaust resources on the server indefinitely, thus mounting a denial-of-service attack on all the other users. You should take steps to ensure that the interpreter stops executing divergent scripts rather than looping forever. When the interpreter terminates execution for this reason, \verb'interp_com' should return a positive (non-zero) status code. \textbf{You can implement this protection however you like, but your implementation should allow scripts to execute either until they terminate naturally, and otherwise no loop should iterate more than 10,000 iterations.}
+
+\paragraph{Test it.} As you implement the interpreter, don't forget to write test cases to make sure you've done it correctly. 
+To test your interpreter, you do not need to run the tiny web server alongside it. Rather, you can invoke the \verb'interp' binary directly on a test script that you have written.
+For example, to run the \verb'unit.imp' test provided in the \verb'testscripts' directory, you would run the following commands after having built your interpreter:
+\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,backgroundcolor=\color{gray!15}]
+[user@unix template]$ cp build/src/tinyscript/interp .
+[user@unix template]$ cd src/tinyscript/testscripts
+[user@unix testscripts]$ ../interp unit.imp
+7
+\end{lstlisting}
+Note that you should run you interpreter from the directory containing the \verb'.db' file referenced inside the test case.
+Please hand your test cases in with your final solution, placing them in a directory called \verb'template/my_tests'. 
+These should be well-formed programs that can be run directly as arguments to the interpreter.
+
+\paragraph{A note about testing.} After having made significant progress on your interpreter and testing it on an Andrew Linux machine, you may find that (frustratingly) the outputs shown by the autograder do not match what you see locally. For example, you may be able to run some of the provided test scripts locally, but they are marked as having failed by the autograder! The most common reasons for this are: 
+\begin{enumerate}
+\item The directory structure that you handed in is not correct. Make sure that the \verb'template' directory is at the root of your archive, and that the \verb'build' directory is not present.
+\item There is a memory bug in your code. Step through with \verb'gdb' and, if necessary, \verb'valgrind' to make sure that you are only reading and writing memory that was previously \verb'malloc''d, and has not been mistakenly \verb'free''d.
+\end{enumerate}
+If you are absolutely certain that neither of these issues applies to your code, then tell us about it on Piazza. It is possible, but unlikely, that a version difference between the autograder image and your local environment is causing the problem.
+
+\paragraph{Scope of the task.} At first glance, this might seem like a daunting amount of work. However, it need not be, and the key to a good solution lies in not making the solution more complicated than necessary. If your code in \verb'interp.c' exceeds 500-600 lines (including the 350 lines with comments provided in the template), then please get in touch with the course staff, as we may be able to help simplify your solution.
+
+\newpage
+\section{Task 2: Sandbox the Interpreter}
+
+Having implemented the interpreter, it's time to make sure that it doesn't let bad things happen on the server. You will use Pin to implement a sandbox that enforces two safety policies: \emph{(i)} a system call monitor, and (optionally) \emph{(ii)} software fault isolation. \textbf{If you have not already followed the instructions in Section~\ref{sect:pinsetup} and followed the tutorial linked at the end of that section, then do so now before starting on this task.}
+
+\subsection{System call monitor}
+Modern operating systems that run on conventional hardware, such as Linux and Windows, mediate programs' access to disk, network, display, and most other devices. There are numerous good reasons to architect systems in this way, but one of the practical upshots of doing so is that the impact of malicious programs that are under the influence of an attacker can be more easily contained. If the operating system were to block access to all devices, then the only impact an attack in a user's program could have would be to change memory and registers, and these are discarded when the program terminates anyway.
+
+\emph{System calls} are the mechanism by which programs interact with the operating system. Any attempt to read or write files or sockets, manage memory, or use other devices must be sent to the operating system by way of a system call. If you implemented it correctly, your interpreter will make use of the following system calls.
+\begin{description}
+\item[File operations:] Obviously the interpreter needs to \verb'open', \verb'openat', \verb'read', \verb'write', and \verb'close' files, and printing to \verb'stdout' is also implemented as writing to a file (with descriptor \verb'0x1'). These are all system calls. Although you may not have used them explicitly in your code, the standard library will also use \verb'stat', \verb'fstat', \verb'lstat', and \verb'poll', which return information about a file descriptor or wait for an event on one. Finally, the interpreter may also use \verb'lseek' or \verb'fseek' to change the position of the read/write pointer associated with a file descriptor.
+
+\item[Memory management:] The operating system manages the virtual address space for processes. One of the most common system calls made is \verb'brk', which changes the size of the data segment to give the program more heap space. Programs also use \verb'mmap' to map the contents of a file to memory, and \verb'munmap' to release such memory. Finally, \verb'mprotect' changes the protection flags on virtual memory. The interpreter may make use of all these system calls as it executes a script.
+\end{description}
+Before the interpreter enters \verb'main', however, the loader will execute other syscalls on behalf of the program to populate memory with the executable's code and that of any libraries it uses. This will involve the \verb'exec' and \verb'access' system calls.
+
+Armed with the knowledge of how the interpreter should use system calls as it goes about its business, your task is to implement a Pintool that makes sure the interpreter never strays from its intended correct syscall behavior. You should extend the template in \verb'template/sandbox/em.cpp' to complete this part of the lab.
+
+\paragraph{Part 1: Whitelist system calls.} Given the above discussion, there is no good reason for the interpreter to ever make a system call that is not in the following list after it has entered \verb'main':
+\begin{equation}
+\label{eq:whitelist}
+\mathtt{open,openat,read,write,close,stat,fstat,lstat,poll,brk,mmap,munmap,mprotect}
+\end{equation}
+\textbf{Your system call monitor should implement the following safety policy: \emph{after entering the \texttt{main} function in the \texttt{interp} image, the program does not execute system calls other than those in (\ref{eq:whitelist})}.} To accomplish this, the tool will need to keep track of whether the \verb'main' in \verb'interp' has been entered, as well as each system call that the program makes as it executes.
+
+In order to implement the first part which tracks entry to \verb'main', your tool should scan all of the routines in each image that is loaded, and use the \href{https://software.intel.com/sites/landingpage/pintool/docs/81205/Pin/html/group__RTN__BASIC__API.html#gb274bf5dadf6f1ae3259715ae161ebd1}{\texttt{RTN\_Name}} and \href{https://software.intel.com/sites/landingpage/pintool/docs/97438/Pin/html/group__IMG__BASIC__API.html#g491b26d161526b35498839f5cdf30a76}{\texttt{IMG\_Name}} functions to determine when to instrument the appropriate routine in the correct image. On finding the right routine, you can instrument the entry and exit point of the function body using Pin's \href{https://software.intel.com/sites/landingpage/pintool/docs/81205/Pin/html/group__RTN__BASIC__API.html#g006ef964b9e6e4d8e7880231e216344a}{\texttt{RTN\_InsertCall}} API, which places instrumentation that invokes a callback function inside your Pintool each time the routine is entered or exited. This callback can maintain the necessary state to enforce the policy. You should consult the documentation and tutorials listed in Section~\ref{sect:pinsetup} to learn more about setting up these callback functions in your Pintool.
+
+To implement the second part you should make use of Pin's system call API, which has been simplified and improved since the writing of the ASPLOS 2008 tutorial referenced in Section~\ref{sect:pinsetup}. You can use the \href{https://software.intel.com/sites/landingpage/pintool/docs/81205/Pin/html/group__PIN__SYSCALL__API.html#gb62f4c93284ca4219f53aa9c4ab4d545}{\texttt{PIN\_AddSyscallEntryFunction}} and \href{https://software.intel.com/sites/landingpage/pintool/docs/81205/Pin/html/group__PIN__SYSCALL__API.html#g8bf568a9177431df0939d478de94bb51}{\texttt{PIN\_AddSyscallExitFunction}} to insert a callback to your tool whenever a system call begins and ends executing, respectively. The signature of the entry and exit callbacks is:
+\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,language=C,keywordstyle=\bfseries\color{green!40!black}, commentstyle=\itshape\color{purple!40!black},stringstyle=\color{orange}]
+VOID Callback(THREADID thrIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID *v)
+\end{lstlisting}
+Where the arguments mean the following:
+\begin{description}
+\item[\texttt{thrIndex}:] The Pin thread ID of the thread that executes the system call. You do not need to worry about this, as the interpreter is single-threaded.
+\item[\texttt{ctxt}:] The target application's register state immediately before execution of the system call.
+\item[\texttt{std}:] The calling standard of the system call instruction.
+\item[\texttt{v}:] A value defined by the tool to pass to the callback. You can probably ignore this, unless you think of something useful to put in this value.
+\end{description}
+Inside the callback, your monitor will need to examine the system call number, which identifies the function being invoked, to determine its membership in (\ref{eq:whitelist}). You can obtain this with \href{https://software.intel.com/sites/landingpage/pintool/docs/81205/Pin/html/group__PIN__SYSCALL__API.html#g441fc7c57ea2f00024e35c8360af6b0d}{\texttt{PIN\_GetSyscallNumber}}. A mapping from system call numbers to their corresponding names can be found on \href{https://github.com/torvalds/linux/blob/master/arch/x86/entry/syscalls/syscall_64.tbl}{\texttt{github.com/torvalds}}, and is also defined in \verb'<sys/syscall.h>'. Generally, including this file will let you refer to system call numbers as \verb'SYS_name', so for example \verb'SYS_open' is defined to the number for \verb'open' on the platform the tool is compiled for.
+
+Finally, if the policy is violated, the monitor should terminate its target by calling \verb'exit'.
+
+\paragraph{Part 2: Stateful monitoring.} Implementing the whitelist safety policy from Part 1 will prevent someone from exploiting an unknown vulnerability, and then for example calling \verb'execve' to load a totally different executable from somewhere on the system, or opening new network connections to wait for further instructions or transmit confidential information. But certain behaviors are still permitted, such as opening and overwriting files on the server. We need to refine our safety policy further to prevent a potential attack through these channels.
+
+Make your syscall monitor more restrictive by implementing a safety policy that restricts the file operations performed by the interpreter. In more detail, implement a policy that gives the interpreter only what it needs in terms of file operations:
+\begin{itemize}
+\item Before executing any other file operations, the interpreter is allowed to open the file created by the server containing the script to execute. It must only do so in mode \verb'O_RDONLY' using either the \verb'open' or \verb'openat' system call.
+\item While the script file is open, the only file operations permitted are \verb'fstat', \verb'lseek', \verb'fseek', \verb'read', and \verb'close'. The file descriptor used in these syscalls must be the same one returned by the \verb'open' on the script file.
+\item After closing the script file, it can open a \verb'.db' file in the directory from which the interpreter is executing, and it must use mode \verb'O_RDONLY|O_CREAT' with either \verb'open' or \verb'openat'.
+\item While the database file is open, it may not write to any files, and it can only read from the descriptor given from calling \verb'open' on the \verb'.db' file.
+\item After closing the \verb'.db' file, the only file operations permitted are \verb'write', \verb'open', and \verb'openat'. Moreover, all \verb'write' calls must be to file descriptor \verb'0x1', and the only allowed \verb'open'/\verb'openat' call is to the same \verb'.db' file as before in mode \verb'O_WRONLY|O_TRUNC'.
+\item After calling \verb'open' or \verb'openat' on the \verb'.db' file for the second time, the only file operations permitted are \verb'fstat', \verb'lseek', \verb'fseek', \verb'write', and \verb'close'. The file descriptor used in these syscalls must be the same one returned by the most recent \verb'open' on the \verb'.db' file.
+\end{itemize}
+You may find it helpful to write this policy out as a security automaton before implementing it in code, both as a sanity check that you have understood the policy and as a guide for when you implement.
+
+In order to implement this policy, you will need to inspect the arguments passed to system calls. You can do so with the \href{https://software.intel.com/sites/landingpage/pintool/docs/81205/Pin/html/group__PIN__SYSCALL__API.html#gd38043f1ae2f1198b7f3b233218593d4}{\texttt{PIN\_GetSyscallArgument}} API, which takes the current register context, the system call convention, and the argument number. You can find more information on which arguments to inspect by consulting the relevant \href{http://man7.org/linux/man-pages/man2/syscalls.2.html}{man pages}. In general, file operation syscalls take file descriptors in argument 0, except for \verb'open' which takes a C string denoting the filename in that argument. 
+
+For arguments that contain pointers, your Pintool can access memory at the corresponding location by casting an appropriate pointer variable. For example, to inspect the buffer in argument 0 of \verb'open', the following code will suffice.
+\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,language=C,keywordstyle=\bfseries\color{green!40!black}, commentstyle=\itshape\color{purple!40!black},stringstyle=\color{orange}]
+VOID Callback(THREADID thrIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID *v) {
+  if(PIN_GetSyscallNumber(ctxt, std) == SYS_open) {
+    char *fname = (char *)PIN_GetSyscallArgument(ctxt, std, 0);
+    if(!strcmp(fname, "/etc/passwd")) { ... }
+  }
+}
+\end{lstlisting}
+
+Note that you may not have needed to use \verb'PIN_AddSyscallExitFunction' to implement Part 1, but you will need to use it here because system call return values are not available on entry, only on exit. You will need to examine the return value of certain syscalls to keep track of returned file descriptors, and can do so with \href{https://software.intel.com/sites/landingpage/pintool/docs/81205/Pin/html/group__PIN__SYSCALL__API.html#g2b7ff20cfdcb54df003635e693944da1}{\texttt{PIN\_GetSyscallReturn}}.
+
+When your monitor detects a policy violation, it should terminate the application as in Part 1. Your final solution should enforce both policies from Parts 1 and 2.
+
+\subsection{Software Fault Isolation (Optional, Extra Credit: 15 points)}
+Pin is a powerful tool for analyzing and modifying the runtime behavior of binary applications. It would be a shame to stop improving the security of the interpreter with the system call monitor, as there are more possible attacks that this policy does not address. For example, the interpreter does not need indiscriminate access to memory once it has been given a program, so perhaps we want to make sure that while the interpreter is executing a script, its memory accesses all stay inside a pre-defined sandbox region.
+
+The build script provided in the template sets up a memory sandbox at addresses \verb'0x18000000' -- \verb'0x18ffffff', which is managed by the memory allocation routines in \verb'safemem.c'. Additionally, the parser, scanner, and setup code in \verb'interp_main.c' have been designed to make use of this sandbox, so that all memory allocations made in those files will be confined to the sandbox region. All that remains is to make small modifications to the functions involved with managing the variable mapping, to ensure that they also use \verb'malloc', \verb'calloc', and \verb'free' as implemented in \verb'safemem.c', and to extend the Pintool to confine memory accesses appropriately.
+
+For extra credit, complete this functionality in your sandbox execution monitor, \verb'em.cpp'. In particular, make sure that when the primary interpreter function \verb'interp_com' executes, none of the memory reads or writes that it makes, with the few exceptions described below, access addresses outside the range \verb'0x18000000' -- \verb'0x18ffffff'. Use the instrumentation techniques discussed in class for SFI to rewrite all memory operands so that this policy is never violated.
+\begin{itemize}
+\item On Intel64 architectures, compilers generally manage function-local variables on the stack pointed to by \verb'esp'. Because your interpreter most likely uses function arguments and local variables, your execution monitor will need to make an exception for accesses to stack memory.
+\item Some high-level language constructs, such as C's \verb'switch' statement, make use of read-only memory outside of the main code section (\verb'.text' on most Unix systems) to store the targets of indirect jumps. This will result in legitimate memory reads outside of the sandbox, so you may need to make exceptions for these cases.
+\item If your implementation of \verb'interp_com' makes use of libraries, then it may invoke code that accesses memory outside the sandbox. In practice, depending on the degree to which such libraries are trusted, this may warrant an exception to the SFI policy. For this assignment, you can assume that such libraries are trusted, and make an exception when library code accesses memory outside the specified range.
+\end{itemize}
+Because this part of the lab is extra credit, the course staff will not answer all questions about this task. We will answer questions about the specification of this particular SFI policy, but we will not point you to the Pin API functions needed to implement it or help you debug this portion of the assignment. If you choose to implement this policy, then you should consult the API documentation, and also look for example Pintools that provide functionality similar to the components needed to enforce this policy.
+
+\end{document}

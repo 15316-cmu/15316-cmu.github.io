@@ -1,0 +1,13 @@
+using test.db :
+e := 1;
+n := n0;
+while (1 <= e) do
+  if 101 <= n then
+    n := n - 10;
+    e := e - 1
+  else
+    n := n + 11;
+    e := e + 1
+  endif
+done;
+output n

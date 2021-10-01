@@ -1,0 +1,3 @@
+using assign.db:
+x := 7;
+output x

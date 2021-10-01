@@ -1,0 +1,4 @@
+using persist.db:
+z := 7;
+undef(z);
+x := 7

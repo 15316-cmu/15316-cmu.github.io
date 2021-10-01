@@ -1,0 +1,60 @@
+using tmp.db :
+i := 0;
+while i <= 4 do
+	i := i + 1
+done;
+output i;
+i := i * 2;
+output i;
+i := i - 1;
+output i;
+if (i <= 10 && 0 <= i) then
+	output 1
+else
+	output 0
+endif;
+if i <= 10 then
+	if 0 <= i then
+		output 1
+	else
+		output 0
+	endif
+else
+	output 0
+endif;
+if (10 <= i || 0 <= i) then
+	output 1
+else
+	output 0
+endif;
+if (10 <= i && i <= 0) then
+	output 1
+else
+	output 0
+endif;
+if (10 <= i || i <= 0) then
+	output 1
+else
+	output 0
+endif;
+if !(10 <= i || i <= 0) then
+	output 1
+else
+	output 0
+endif;
+if hasdef(x) then
+	output 1
+else
+	output 0
+endif;
+if hasdef(i) then
+	output 1
+else
+	output 0
+endif;
+undef(i);
+if hasdef(i) then
+	output 1
+else
+	output 0
+endif

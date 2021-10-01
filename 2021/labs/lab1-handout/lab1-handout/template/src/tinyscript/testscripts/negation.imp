@@ -1,0 +1,6 @@
+using test.db:
+if !(false) then
+        output 7
+else
+        output 0
+endif

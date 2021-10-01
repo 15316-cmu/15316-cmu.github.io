@@ -1,0 +1,21 @@
+using test.db:
+if true && true then
+	output 7
+else
+	output 0
+endif;
+if true && false then
+	output 0
+else
+	output 7
+endif;
+if false && true then
+	output 0
+else
+	output 7
+endif;
+if false && false then
+	output 0
+else
+	output 7
+endif

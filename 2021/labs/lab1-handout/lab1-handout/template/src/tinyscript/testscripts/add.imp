@@ -1,0 +1,2 @@
+using test.db:
+output 0+7
