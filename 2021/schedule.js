@@ -57,30 +57,30 @@ schedule = [
 	},
 	{
 		"date": "9/28",
-		"topic": "Security Automata",
+		"topic": "Security automata",
 		"pdf": "09-automata.pdf",
 		"tex": "09-automata.tex",
 		"comments": ""
 	},
 	{
 		"date": "9/30",
-		"topic": "Verifying end-to-end safety at scale",
-		"pdf": "",
-		"tex": "",
+		"topic": "Enforceable policies &amp; dynamic instrumentation",
+		"pdf": "09-automata.pdf",
+		"tex": "09-automata.tex",
 		"comments": ""
 	},
 	{
 		"date": "10/5",
 		"topic": "Non-interference",
-		"pdf": "",
-		"tex": "",
+		"pdf": "10-flow.pdf",
+		"tex": "10-flow.tex",
 		"comments": ""
 	},
 	{
 		"date": "10/7",
-		"topic": "Information flow policies",
-		"pdf": "",
-		"tex": "",
+		"topic": "Information flow policies &amp; security types",
+		"pdf": "11-flowtypes1.pdf",
+		"tex": "11-flowtypes1.tex",
 		"comments": ""
 	},
 	{
