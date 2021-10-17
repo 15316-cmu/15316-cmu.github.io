@@ -85,9 +85,9 @@ schedule = [
 	},
 	{
 		"date": "10/12",
-		"topic": "Enforcing flow with types",
-		"pdf": "",
-		"tex": "",
+		"topic": "Simple security, confinement, \& sound enforcement",
+		"pdf": "12-flowtypes2.pdf",
+		"tex": "12-flowtypes2.tex",
 		"comments": ""
 	},
 	{
@@ -100,14 +100,14 @@ schedule = [
 	},
 	{
 		"date": "10/19",
-		"topic": "Simple security &amp; confinement",
+		"topic": "Relaxing non-interference",
 		"pdf": "",
 		"tex": "",
 		"comments": ""
 	},
 	{
 		"date": "10/21",
-		"topic": "Relaxing non-interference",
+		"topic": "Declassifying information",
 		"pdf": "",
 		"tex": "",
 		"comments": ""
