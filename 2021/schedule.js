@@ -101,15 +101,15 @@ schedule = [
 	{
 		"date": "10/19",
 		"topic": "Relaxing non-interference",
-		"pdf": "",
-		"tex": "",
+		"pdf": "13-declass.pdf",
+		"tex": "13-declass.tex",
 		"comments": ""
 	},
 	{
 		"date": "10/21",
-		"topic": "Declassifying information",
-		"pdf": "",
-		"tex": "",
+		"topic": "Declassifying information &amp; side-channel leaks",
+		"pdf": "14-sidechan.pdf",
+		"tex": "14-sidechan.tex",
 		"comments": ""
 	},
 	{
