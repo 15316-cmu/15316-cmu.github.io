@@ -107,16 +107,16 @@ schedule = [
 	},
 	{
 		"date": "10/21",
-		"topic": "Declassifying information &amp; side-channel leaks",
-		"pdf": "14-sidechan.pdf",
-		"tex": "14-sidechan.tex",
+		"topic": "Declassifying information",
+		"pdf": "13-declass.pdf",
+		"tex": "13-declass.tex",
 		"comments": ""
 	},
 	{
 		"date": "10/26",
 		"topic": "Timing side channels",
-		"pdf": "",
-		"tex": "",
+		"pdf": "14-sidechan.pdf",
+		"tex": "14-sidechan.tex",
 		"comments": ""
 	},
 	{
