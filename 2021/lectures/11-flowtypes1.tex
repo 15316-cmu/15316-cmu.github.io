@@ -412,7 +412,7 @@ In order to reject programs with implicit flows, we will keep track of the secur
   \lsequent{\Gamma}{x := \astrm}
 }}{}%
 \]
-The rule \irref{asgnflow} says that if the label of $x$ is at least as large as the larger of the label for the right-hand side and \pc, then the assignment is well-typed. Thinking through a few cases, this means that whenever $\Gamma(\pc) = \hisec$, then $\Gamma(x)$ must be \lowsec because $\hisec \lub \ell = \hisec$ and $\hisec \not\posetleq \lowsec$. Really, if either of $\astrm$ or \pc is $\hisec$, then in order for the assignment to be well-typed then $x$ must also be $\hisec$. This seems like what we want, so we move to the next command.
+The rule \irref{asgnflow} says that if the label of $x$ is at least as large as the larger of the label for the right-hand side and \pc, then the assignment is well-typed. Thinking through a few cases, this means that whenever $\Gamma(\pc) = \hisec$, then $\Gamma(x)$ must be \hisec because $\hisec \lub \ell = \hisec$ and $\hisec \not\posetleq \lowsec$. Really, if either of $\astrm$ or \pc is $\hisec$, then in order for the assignment to be well-typed then $x$ must also be $\hisec$. This seems like what we want, so we move to the next command.
 
 \paragraph{Composition.} Compared to the surprisingly nuanced reasoning we had to do for assignment commands, composition is relatively easy to think about. If we want to reason that a program $\asprg;\bsprg$ is well-typed, then the only rule that makes any sense is to require that both $\asprg$ and $\bsprg$ also be well-typed on their own.
 \[
