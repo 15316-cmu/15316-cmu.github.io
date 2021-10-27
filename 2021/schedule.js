@@ -122,8 +122,8 @@ schedule = [
 	{
 		"date": "10/28",
 		"topic": "Memory side channels",
-		"pdf": "",
-		"tex": "",
+		"pdf": "14-cachechan.pdf",
+		"tex": "14-cachechan.tex",
 		"comments": ""
 	},
 	{
