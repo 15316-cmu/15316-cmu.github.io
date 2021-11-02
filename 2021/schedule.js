@@ -129,8 +129,8 @@ schedule = [
 	{
 		"date": "11/2",
 		"topic": "Privacy policies",
-		"pdf": "",
-		"tex": "",
+		"pdf": "16-privacy.pdf",
+		"tex": "16-privacy.tex",
 		"comments": ""
 	},
 	{
