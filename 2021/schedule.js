@@ -136,9 +136,9 @@ schedule = [
 	{
 		"date": "11/4",
 		"topic": "Provable privacy",
-		"pdf": "",
-		"tex": "",
-		"comments": ""
+		"pdf": "16-privacy.pdf",
+		"tex": "16-privacy.tex",
+		"comments": "See <a href="../lectures/priv-supplement.pdf">these notes</a> for more reading"
 	},
 	{
 		"date": "11/9",
