@@ -157,15 +157,15 @@ schedule = [
 	{
 		"date": "11/16",
 		"topic": "Bootstrapping trust",
-		"pdf": "",
-		"tex": "",
+		"pdf": "18-pki.pdf",
+		"tex": "18-pki.tex",
 		"comments": ""
 	},
 	{
 		"date": "11/18",
 		"topic": "Trusted computing",
-		"pdf": "",
-		"tex": "",
+		"pdf": "19-tc.pdf",
+		"tex": "19-tc.tex",
 		"comments": ""
 	},
 	{
