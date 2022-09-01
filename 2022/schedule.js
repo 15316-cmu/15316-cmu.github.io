@@ -9,9 +9,9 @@ schedule = [
 	{
 		"date": "9/1",
 		"topic": "Safety &amp; proof",
-		"pdf": "",
+		"pdf": "02-prop.pdf",
 		"tex": "",
-		"comments": ""
+		"comments": "<a href=\"lectures/02-safety-intro.pdf\">[slides]</a>"
 	},
 	{
 		"date": "9/6",
