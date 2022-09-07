@@ -8,16 +8,16 @@ schedule = [
 	},
 	{
 		"date": "9/1",
-		"topic": "Safety &amp; proof",
+		"topic": "Safety &amp; logic",
 		"pdf": "02-prop.pdf",
-		"tex": "",
+		"tex": "02-prop.tex",
 		"comments": "<a href=\"lectures/02-safety-intro.pdf\">[slides]</a>"
 	},
 	{
 		"date": "9/6",
-		"topic": "Soundness",
-		"pdf": "",
-		"tex": "",
+		"topic": "Proof",
+		"pdf": "02-prop.pdf",
+		"tex": "02-prop.tex",
 		"comments": ""
 	},
 	{
