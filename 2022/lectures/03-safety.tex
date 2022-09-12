@@ -1,0 +1,466 @@
+\documentclass[11pt,twoside]{scrartcl}
+%\documentclass[11pt,twoside]{article}
+
+%opening
+\newcommand{\lecid}{15-316}
+\newcommand{\leccourse}{Software Foundations of Security and Privacy}
+\newcommand{\lecdate}{} %e.g. {October 21, 2013}
+\newcommand{\lecnum}{3,4}
+\newcommand{\lectitle}{Semantics, Safety, \& Dynamic Logic}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecurl}{https://15316-cmu.github.io/index}
+
+\usepackage{varwidth}
+\usepackage{lecnotes}
+\usepackage[irlabel]{bugcatch}
+\usepackage{xspace}
+
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\errstate}{\ensuremath{\Lambda}\xspace}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+
+\begin{document}
+
+\newcommand{\atrace}{\sigma}%
+%% the standard interpretation naming conventions
+\newcommand{\stdI}{\dTLint[state=\omega]}%
+\newcommand{\Ip}{\dTLint[trace=\atrace]}%
+
+\maketitle
+\thispagestyle{empty}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+
+This lecture will advance to reasoning about program behavior, using what we learned about the sequent calculus and formal proof as our logical foundation for doing so. We will focus on a class of behaviors called \emph{safety properties}, which can be broadly understood as specifying behaviors in which ``something bad'' never happens. To formalize particular instances of ``something bad'', we will build on what we already know about contracts. In particular, the bad thing characterized by our safety properties will be contract violations.
+
+To make our study of safety properties concrete, we will fix a simple imperative core language with such familiar constructs as assignments, conditionals (i.e., if-then-else), sequential composition (i.e., semicolon), and while loops. This will be sufficient to illustrate the key ideas, and in future lectures we will add features to the language as needed when we discuss various kinds of security policies.
+
+Our understanding of this language and its safety properties will be grounded in \emph{first-order dynamic logic}~\cite{DBLP:conf/focs/Pratt76,Harel_et_al_2000}, which will provide a set of axioms to use in sequent calculus proofs of program behavior.
+Dynamic logic has been used for many programming languages \cite{DBLP:journals/jcss/Kozen85,DBLP:journals/jacm/Peleg87,DBLP:conf/stacs/DrexlerRSSSW93}, and is the basis for a number of automated program verification tools~\cite{DBLP:conf/cade/BeckertP06,DBLP:journals/jar/Platzer08,KeYBook2016,Platzer17}. In the following lectures, we will see how to use it to ensure properties like memory safety, access control, and other security-related properties that can be formalized in terms of safety.
+
+\newpage
+\section{Review}
+In the last lecture, we introduced propositional logic by giving its syntax and semantics. Recall that all of the ``variables'' (i.e., atomic propositions denoted by lower-case letters) represent true/false statements, and the semantics is given in terms of an interpretation $I$ that maps atomic propositions to either $\ltrue$ (true) or $\lfalse$ (false) values.
+
+\begin{definition}[Syntax of propositional logic]
+\label{def:proplog-grammer}
+  The formulas $F,G$ of propositional logic are defined by the following grammar (where $p$ is an atomic proposition):
+  \[
+  F \bebecomes \bot \alternative \top \alternative p \alternative \lnot F \alternative F\land G \alternative F\lor G \alternative F\limply G \alternative F \lbisubjunct G
+  \]
+\end{definition}
+
+\begin{definition}[Semantics of propositional logic] \label{def:propositional-semantics}
+The propositional formula $F$ is true in interpretation $\iget[const]{\I}$, written \(I \models F\), as inductively defined by distinguishing the shape of formula $F$:
+\begin{enumerate}
+\item \(I \not\models \mfalse\), i.e., \mfalse is true in no interpretations
+\item \(I \models \mtrue\), i.e., \mtrue is true in all interpretations
+\item \(I \models p\) iff \(\iget[const]{\I}(p)=\mtrue\) for atomic propositions $p$
+\item \(I \models F\land G\) iff \(I \models F\) and \(I \models G\).
+\item \(I \models F\lor G\) iff \(I \models F\) or \(I \models G\).
+\item \(I \models \lnot F\) iff \(I \not\models F\), i.e. it is not the case that \(I \models F\).
+\item \(I \models F\limply G\) iff \(I \not\models F\) or \(I \models G\).
+\item \(I \models F\lbisubjunct G\) iff both are either true or both false.
+\end{enumerate}
+\end{definition}
+We then learned about the propositional sequent calculus, a deductive system for proving the validity of propositional formulas. The sequent calculus is comprised of compositional proof rules, and is sound and complete. In other words, by combining sequent calculus proof rules, it is possible to construct a proof for any valid formula (completeness), and it is only possible to construct such a proof for valid formulas (soundness). This property follows from the soundness of the individual proof rules, which holds if and only if the validity of all premises in the rule implies the validity of its conclusion.
+
+\begin{definition}[Soundness of a proof rule]
+  A sequent calculus proof rule
+  \[
+  \linfer
+  {\lsequent{\Gamma_1}{\Delta_1} & \dots & \lsequent{\Gamma_n}{\Delta_n}}
+  {\lsequent{\Gamma}{\Delta}}
+  \]
+  is \dfn{sound} iff the validity of all premises implies the validity of the conclusion:
+  \[
+  \text{if}~
+  \entails (\lsequent{\Gamma_1}{\Delta_1}) ~\text{and}~ 
+  \dots
+  ~\text{and}~
+  \entails (\lsequent{\Gamma_n}{\Delta_n})
+  ~\text{then}~
+  \entails (\lsequent{\Gamma}{\Delta})
+  \]
+\end{definition}
+
+\section{Programs}
+
+The first thing we do for the sake of concreteness is to fix the programming language as an imperative core while-programming language with assignments, conditional execution, and while loops.
+
+\begin{definition}[Program] \label{def:deterministic-program}
+\dfn[program]{Deterministic while programs} are defined by the following grammar ($\asprg,\bsprg$ are programs, $x$ is a variable, $\astrm$ is a term, and $\ivr$ is a Boolean formula of arithmetic):%
+\indexn{\cup}\indexn{;}\indexn{{}^*}\indexn{{:}{=}}\indexn{x\,{:}{=}\,\astrm}\index{\ptest{\ivr}}%
+\begin{equation*}
+  \asprg,\bsprg ~\bebecomes~
+  \pupdate{\pumod{x}{\astrm}}
+  \alternative
+  \passert{\ivr}
+  \alternative
+  \pif{\ivr}{\asprg}{\bsprg}
+  \alternative
+  \asprg;\bsprg
+  \alternative
+  \pwhile{\ivr}{\asprg}
+\end{equation*}
+\end{definition}
+
+Of course, imperative programming languages have other control structures, too, but in many cases they are not essential because they can be defined out of these.
+For example, a repeat-until loop can easily be defined in terms of the while-loop, and a switch statement can be defined in terms of nested conditionals.
+Likewise, real imperative languages that you have used in the past have more variation on the data types that are supported.
+Today we start very easily just with a single data type, and assume that all variables hold integer values.
+
+As terms $\astrm$ we use addition and multiplication (but subtraction would be fine to add).
+
+\begin{definition}[Terms]
+\label{def:term-syntax}
+Terms are defined by the following grammar ($\astrm,\bstrm$ are terms, $x$ is a variable, $c$ is a number literal such as $7$):
+\[
+  \astrm,\bstrm ~\bebecomes~
+  x
+  \alternative
+  c
+  \alternative
+  \astrm+\bstrm
+  \alternative
+  \astrm\cdot\bstrm
+\]
+\end{definition}
+Some applications need further arithmetic operators on terms such as subtraction $\astrm-\bstrm$, integer division \(\astrm\div\bstrm\) provided $\bstrm\neq0$, and integer remainder \(\astrm\mod\bstrm\) provided $\bstrm\neq0$.
+Subtraction \(\astrm-\bstrm\) for example is already expressible as \(\astrm+(-1)\cdot\bstrm\).
+
+\begin{definition}[Arithmetic Formulas]
+\label{def:arith-syntax}
+Arithmetic formulas $\asfml,\bsfml$ are defined by the following grammar ($\astrm,\bstrm$ are terms, $\ltrue,\lfalse$ are literals corresponding to \emph{true} and \emph{false}, respectively):
+\[
+  \asfml,\bsfml ~\bebecomes~
+  \ltrue
+  \alternative
+  \lfalse
+  \alternative
+  \astrm = \bstrm
+  \alternative
+  \astrm \le \bstrm
+  \alternative
+  \lnot \asfml
+  \alternative
+  \asfml \land \bsfml
+  \alternative
+  \asfml \lor \bsfml  
+  \alternative
+  \asfml \limply \bsfml
+  \alternative
+  \asfml \lbisubjunct \bsfml    
+\]
+\end{definition}
+
+We now know everything that we need to write programs in our simple imperative core language. As we did in the last lecture with propositional logic, we'll continue by defining semantics that tell us what the syntax means.
+
+\subsection{Semantics of terms and formulas}
+
+Recall from the previous lecture that we defined the semantics of propositional logic to assign values of either true or false to formulas, given an interpretation $I$ that maps all the atomic propositions (i.e., variables) to true/false values. Our intuition about programs tells us that they do not map to true/false values, but rather execute to change the state of a machine until they (hopefully) terminate. For example, a program consisting of the assignment \(\pupdate{\pumod{x}{x+1}}\) will move from an initial state $\iget[state]{\I}$ to a new state $\iget[state]{\It}$ that has a different value for the variable $x$, namely exactly such that \(\iget[state]{\It}(x)=\iget[state]{\I}+1\) while no other variables change their value.
+
+We formalize a program state $\iget[state]{\I}$ as a function assigning an integer value in $\integers$ to every variable.
+The set of all states is denoted \(\linterpretations{\Sigma}{V}\). In addition, we will assume that \(\linterpretations{\Sigma}{V}\) contains a special error state \errstate. For example, a program might end up in the error state after attempting to divide by zero (in case our language supports division), or after executing a failed assertion command. The special state \errstate does not map values for any variables, so no terms can be evaluated in it and no program can continue executing from \errstate.
+
+The value that a term $\astrm$ has in a state $\iget[state]{\I}$ is written \(\ivaluation{\I}{\astrm}\) and defined by simply evaluating when using the concrete (integer) values that the state $\iget[state]{\I}$ provides for all the variables in term $\astrm$.
+\begin{definition}[Semantics of terms]
+\label{def:term-semantics}
+The \emph{semantics of a term} $\astrm$ in a state $\iget[state]{\I}\in\linterpretations{\Sigma}{V}$ is its value \(\ivaluation{\I}{\astrm}\).
+It is defined inductively by distinguishing the shape of term $\astrm$ as follows:
+\begin{itemize}
+  \item \m{\ivaluation{\I}{x} = \iget[state]{\I}(x)} for variable $x$
+  \item \m{\ivaluation{\I}{c} = c} for number literals $c$
+  %\item \(\ivaluation{\I}{f(\theta_1,\dots,\theta_k)} = \iget[const]{\I}(f)\big(\ivaluation{\I}{\theta_1},\dots,\ivaluation{\I}{\theta_k}\big)\)
+  \item \m{\ivaluation{\I}{\astrm\odot\bstrm} = \ivaluation{\I}{\astrm} \odot \ivaluation{\I}{\bstrm}}, where $\odot \in \{+,\times\}$
+\end{itemize}
+Note that if $\iget[state]{\I} = \errstate$ then the state does not map any variables to values, and there is no way to evaluate a term. So if $\iget[state]{\I} = \errstate$ then \m{\ivaluation{\I}{\astrm}} is undefined.
+\end{definition}
+
+The arithmetic formulas used in our programming language are distinct from propositional logic in an important way. Namely, rather than containing propositional variables their variables correspond to integer values. Otherwise we define the semantics of arithmetic formulas just as we did for propositional formulas, by enumerating rules for the relation $\imodels{\I}{\asfml}$ that evaluate formulas to either true or false.
+
+\begin{definition}[Semantics of arithmetic formulas] \label{def:arithmetic-semantics}
+The DL formula $\asfml$ is true in state $\iportray{\I}$, written \(\imodels{\I}{\asfml}\), as inductively defined by distinguishing the shape of formula $\asfml$:
+\begin{enumerate}
+\item \(\inonmodels{\I}{\mfalse}\), i.e., \mfalse is true in no states
+\item \(\imodels{\I}{\mtrue}\), i.e., \mtrue is true in all states
+\item \(\imodels{\I}{\astrm=\bstrm}\) iff \(\ivaluation{\I}{\astrm}=\ivaluation{\I}{\bstrm}\)
+\item \(\imodels{\I}{\astrm\leq\bstrm}\) iff \(\ivaluation{\I}{\astrm}\leq\ivaluation{\I}{\bstrm}\)
+\item \(\imodels{\I}{\asfml\land\bsfml}\) iff \(\imodels{\I}{\asfml}\) and \(\imodels{\I}{\bsfml}\).
+\item \(\imodels{\I}{\asfml\lor\bsfml}\) iff \(\imodels{\I}{\asfml}\) or \(\imodels{\I}{\bsfml}\).
+\item \(\imodels{\I}{\lnot\asfml}\) iff \(\inonmodels{\I}{\asfml}\), i.e. it is not the case that \(\imodels{\I}{\asfml}\).
+\item \(\imodels{\I}{\asfml\limply\bsfml}\) iff \(\inonmodels{\I}{\asfml}\) or \(\imodels{\I}{\bsfml}\).
+\item \(\imodels{\I}{\asfml\lbisubjunct\bsfml}\) iff both are true or both false, i.e., it is either the case that both \(\imodels{\I}{\asfml}\) and \(\imodels{\I}{\bsfml}\) or it is the case that \(\inonmodels{\I}{\asfml}\) and \(\inonmodels{\I}{\bsfml}\).
+\end{enumerate}
+Note that if $\iget[state]{\I} = \errstate$ then the state does not map any variables to values, and there is no way to evaluate terms to integer values, and thus no way to evaluate the predicates $\le$ and $=$. So as in the case of terms, if $\iget[state]{\I} = \errstate$ then \m{\imodels{\I}{\ausfml}} is undefined.
+\end{definition}
+
+\subsection{Program semantics}
+
+The semantics of a program is comprised of the \textbf{set of traces generated by running the program starting in any initial state $\omega$}.
+To fully appreciate what this means, we first need some background on what a trace is.
+
+A trace $\atrace$ is either a finite sequence of states $(\sigma_0, \sigma_1, \ldots, \sigma_n)$ of some length $n \in \naturals$, or an infinite sequence of states, one for each natural number: $(\sigma_0, \sigma_1, \sigma_2, \ldots)$. We say that a trace \emph{terminates} if and only if it is finite, and its last state is not the error state \errstate. If a trace is finite and its last state is \errstate, we say that it \emph{aborts}. Otherwise, we say that the trace \emph{diverges} if it is infinite.
+
+\begin{definition}[Trace semantics of programs] \label{def:program-trace}
+  \newcommand{\ws}{\omega}\newcommand{\wt}{\nu}% 
+  % \renewcommand{\I}{\iconcat[state=\ws]{\stdI}}%
+  % \renewcommand{\It}{\iconcat[state=\wt]{\stdI}}%
+  
+The \dfn[valuation!of~programs]{trace semantics $\iaccess[\alpha]{\I}$ of a program}~$\alpha$ is the set of all its possible traces and is defined inductively as follows:
+    % \index{_\tau(\alpha)_@$\tau(\alpha)$}%
+    \begin{enumerate}
+    \item
+      \m{\iaccess[\pupdate{\umod{x}{\astrm}}]{\I}}
+      =
+      \m{\{(\iget[state]{\I},\iget[state]{\It}) \with
+      \iget[state]{\It}=\iget[state]{\I}~\text{except that}~ \iget[state]{\It}(x)=\ivaluation{\I}{\astrm}}
+      for~\m{\ws\in\linterpretations{\Sigma}{V}\}} \\
+      The final state $\iget[state]{\It}$ is identical to the initial state $\iget[state]{\I}$ except in its interpretation of the variable $x$, which is changed to the value that $\genDJ{x}$ has in initial state $\iget[state]{\I}$.      
+   
+   \item \(\iaccess[\passert{\ivr}]{\I} = \{(\ws,\ws) \with
+      \imodels{\I}{\ivr}\} \cup
+        \{(\ws,\errstate) \with
+      \inonmodels{\I}{\ivr}\}\)
+      \index{$\ptest{}$} \\
+      The assert stays in its state $\iget[state]{\I}$ if formula $\ivr$ holds in $\iget[state]{\I}$, otherwise the final state is the error state \errstate.
+    
+    \item \(\iaccess[\pif{\ivr}{\alpha}{\beta}]{\I} =
+      \{\atrace \in \iaccess[\alpha]{\I} \with \atrace_0 \models \ivr\} \cup
+      \{\atrace \in \iaccess[\beta]{\I} \with \atrace_0 \nonmodels \ivr\}\) \\
+      The \m{\pif{\ivr}{\asprg}{\bsprg}} program runs $\asprg$ if $\ivr$ is true in the initial state and otherwise runs $\bsprg$.
+    
+    \item \(\iaccess[{\alpha};{\beta}]{\I} =
+      \{\atrace \compose \varsigma \with \atrace\in\iaccess[\alpha]{\I} \mand \varsigma\in\iaccess[\beta]{\I}\}\);\\
+      the composition of~\m{\atrace=(\atrace_0,\atrace_1,\atrace_2,\dots)} and~\m{\varsigma=(\varsigma_0,\varsigma_1,\varsigma_2,\dots)} is
+      \[
+      \atrace \compose \varsigma \eqdef
+      \begin{cases}
+        (\atrace_0,\dots,\atrace_n,\varsigma_1,\varsigma_2,\dots) &\mylpmi[\text{if}~] \text{$\asprg$ terminates in $\atrace_n$}~\text{and}~\atrace_n=\varsigma_0\\
+        \atrace &\mylpmi[\text{if}~] \asprg~\text{does not terminate}
+        % \\
+        % \text{not defined} &\text{otherwise}
+      \end{cases}
+      \] \\
+      The relation \m{\iaccess[\asprg;\bsprg]{\I}} is the composition of traces from \(\iaccess[\bsprg]{\I}\) after those from \(\iaccess[\asprg]{\I}\) and can, thus, follow any transition of $\asprg$ through any intermediate state $\iget[state]{\Iz}$ to a transition of $\bsprg$.
+    
+    \item
+      \(\iaccess[\pwhile{\ivr}{\alpha}]{\I}\)
+=\(\{\atrace^{(0)} \compose \atrace^{(1)} \compose \dots \compose \atrace^{(n)} \with\)
+for some $n\geq0$
+such that for all $0\leq i \leq n$:
+\textcircled{1} the loop condition is true \m{\atrace^{(i)}_0 \models \ivr} and
+\textcircled{2}
+\m{\atrace^{(i)} \in \iaccess[\asprg]{\Iz[i]}}
+and \textcircled{3} $\atrace^{(n)}$ is either infinite or, if finite, ends with $\atrace^{(n)}_m$ and \m{\atrace^{(n)}_m \nonmodels \ivr}$\big\}$
+\\
+  \(\cup~\{\atrace^{(0)} \compose \atrace^{(1)} \compose \atrace^{(2)} \compose \dots \with\)
+for all $i\in\naturals$:
+\textcircled{1} \m{\atrace^{(i)}_0 \models \ivr} and
+\textcircled{2}
+\m{\atrace^{(i)} \in \iaccess[\asprg]{\Iz[i]}}$\}$
+  \\
+  \(\cup~\{(\iget[state]{\I},\iget[state]{\I}) \with \inonmodels{\I}{\ivr}\}\)
+  \\
+  That is, the loop either runs a nonzero finite number of times with the last iteration either terminating or running forever,
+  or the loop itself repeats infinitely often and never stops,
+  or the loop does not even run a single time.
+    \end{enumerate}
+\end{definition}
+
+\section{Safety properties}
+
+Now that we have defined the semantics of programs in terms of their traces, we are in a better position to understand safety properties. Intuitively, safety properties characterize programs in which ``something bad'' never happens. Which ``bad thing'' we care about is precisely what a policy is meant to express. A few examples of safety properties that you may already be familiar with are:
+\begin{itemize}
+  \item \textbf{Memory safety} refers to a class of safety properties that characterize appropriate use of memory resources by software. One aspect of memory safety in C programs has to do with making sure that each time an array is accessed, the index is within the bounds of $0$ and the allocated length of the array. In this case the ``bad thing'' that must never happen is the program accessing an array outside of its allocated bounds.
+  \item \textbf{Mutual exclusion} has to do with using a shared resource, and characterizes behaviors in which two processes never access the shared resource at the same time. In other words the ``bad thing'' that defines safety property is the event in which two processes simultaneously access their shared resource.
+  \item \textbf{Access control} policies correspond to safety properties. A typical access control policy defines a set of \emph{principals} who make use of the system, a set of \emph{resources} that need protection, and a list of rules that define which principals may use which resources. The corresponding safety property is based on the ``bad thing'' which is that someone accesses a resource not allowed by the policy rules.
+\end{itemize}
+
+Each of the properties listed above is an example of an \emph{invariant}, which is an important class of safety properties. Invariants require that some condition $\ausfml$ holds in all reachable states of the program.
+
+\begin{definition}[Invariant property]
+\label{def:invariant}
+An invariant property $\Phi$ characterizes a set of traces where some formula $\ausfml$ holds in every state of every trace.
+\[
+\Phi = \{\atrace \in \ttraces{\linterpretations{\Sigma}{V}} \with~\text{there does not exist}~i~\text{where}~\atrace_i \not\models \ausfml \}
+\]
+The formula $\ausfml$ is called an invariant condition of $\Phi$.
+\end{definition}
+
+Invariants are not the only type of safety property, and are not the only useful kind of safety property for defining security policies. Consider a basic user login module, which requires that users enter the correct password before proceeding with any further operations. This requirement is not an invariant, because it cannot be expressed in terms of a formula that must hold over every state in the module's execution traces. It is however a safety property because it can be characterized by the ``bad event'' of a user proceeding past login without entering the correct password.
+
+In general, we can formalize any safety property by defining a set of prefixes such that if a trace ever starts out with such a prefix, then it can never satisfy the corresponding safety property regardless of what corrective steps it might attempt to make.
+Thinking of our examples from before, if a program ever lets someone execute a command without providing a correct password, then safety has been violated because it has a trace that starts out by allowing the bad thing to happen.
+
+\begin{definition}[Safety property]
+\label{def:safety}
+A set of traces $\Phi$ is a safety property if for all traces $\atrace \in  \ttraces{\linterpretations{\Sigma}{V}}\setminus\Phi$, there exists a finite prefix $\hat{\atrace}$ of $\atrace$ such that:
+\[
+\Phi \cap \{\atrace' \in  \ttraces{\linterpretations{\Sigma}{V}} \with \hat{\sigma}~\text{is a prefix of}~\atrace'\} = \emptyset
+\]
+\end{definition}
+
+In other words, we can think of a safety property as an enumeration of every possible trace that does not begin with one of the bad prefixes that we wish to avoid; every trace not in $\Phi$ has some bad prefix $\hat{\atrace}$ that is not shared by any trace in $\Phi$.
+This means that properties do not necessarily apply to any particular program, and a safety property may contain traces from many programs. 
+Given an arbitrary program $\asprg$ and property $\Phi$, it then makes sense to ask whether $\asprg$ satisfies $\Phi$. 
+We answer this question by determining whether the set of traces in the semantics of $\asprg$ is a subset of those that define $\Phi$; if so, then the program satisfies the property, and otherwise it does not.
+
+\begin{definition}[Trace property satisfaction]
+\label{def:invariant-sat}
+A program $\asprg$ satisfies a trace property $\Phi$ if and only if $\iaccess[\asprg]{\I} \subseteq \Phi$. In other words, if all of the behaviors of $\asprg$ are explicitly allowed by the property, then $\asprg$ satisfies $\Phi$.
+\end{definition}
+
+We will now go into further detail on two types of safety properties that are especially useful when reasoning about programs written in our core language.
+
+\subsection{Assertions and aborted execution}
+
+One of the commands in our language is $\passert{\ausfml}$, where $P$ is some arithmetic formula over the program variables. An assertion effects no change on the program state if the formula evaluates to true, and otherwise aborts the program by transitioning to \errstate. In the latter case, the program is said to violate the assertion.
+
+We can define a safety property $\Phi_\errstate$ that characterizes all programs that never violate their assertions by the set of bad prefixes $\widehat{\Phi_\errstate}$ shown in Equation~\ref{eq:assert-prop}.
+\begin{equation}
+\label{eq:assert-prop}
+\widehat{\Phi_\errstate} = \{\hat{\atrace} \in \ttraces{\linterpretations{\Sigma}{V}} \with \hat{\atrace}~\text{is finite and the final state}~\hat{\atrace}_n = \errstate\}
+\end{equation}
+In words, the bad prefixes characterized by Equation~\ref{eq:assert-prop} comprise all aborted traces, i.e., those that end in the error state \errstate. Then the safety property $\Phi_\errstate$ is the set of all traces that never abort after a finite number of steps.
+\begin{equation}
+\Phi_\errstate = \{\atrace \in \ttraces{\linterpretations{\Sigma}{V}} \with \atrace~\text{does not begin with any}~\hat{\atrace}\in\widehat{\Phi_\errstate}\}
+\end{equation}
+$\Phi_\errstate$ is a tremendously useful property because it captures unwanted behavior that may arise from a broad set of erroneous and insecure program behaviors.
+It also allows us as programmers to use the $\passert{\ausfml}$ syntax to specify what we intend for the policy to be, and then if we have a way of checking whether our program satisfies $\Phi_\errstate$, we can use it to check our policy.
+
+\subsection{Program contracts}
+
+Going back to 15-122, program contracts given by \verb'@requires' and \verb'@ensures' clauses also define safety properties. In the previous lecture, we looked at a binary multiplication function annotated with the following C0 contract.
+\begin{verbatim}
+//@requires b >= 0;
+//@ensures  \result = a*b
+\end{verbatim}
+The meaning of this contract is that whenever the function begins executing with $b \ge 0$, then when it finishes the return value will hold the value $a \cdot b$. Our core language doesn't have functions or procedures yet, so from now on we will view contracts as applying to the execution of the entire program. In other words, \verb'@requires' clauses hold at the very beginning of execution, and \verb'@ensures' apply to the program state upon termination (if the program actually terminates). The language also doesn't have a \verb'return' command, or any variable designated to hold results, so we'll state the postcondition in terms of the variable used to store the result prior to returning. The contract will be:
+\begin{verbatim}
+//@requires b >= 0;
+//@ensures  z = a*b
+\end{verbatim}
+
+Why is this a safety property? Think about the contract's meaning in terms of bad prefixes. A bad prefix for this contract would be a finite trace $\atrace$ whose initial state $\atrace_0 \models b \ge 0$, and whose final state $\atrace_n \nonmodels z = a \cdot b$. Alternatively, a bad prefix could be one where $\atrace_0 \models b \ge 0$ and the final state $\atrace_n = \errstate$.
+
+In general, we can formalize the safety property corresponding to a contract given by \verb'@requires P' and \verb'@ensures Q' as shown in Equation~\ref{eq:safety-contract}.
+\begin{equation}
+\label{eq:safety-contract}
+\Phi = \{\atrace \in \ttraces{\linterpretations{\Sigma}{V}} \with \atrace~\text{is finite of length}~n, \atrace_0 \models \ausfml,~\text{and}~\atrace_n \models \busfml\}
+\end{equation}
+Notice that Equation~\ref{eq:safety-contract} does not make any mention of the error state, although our description of the bad prefixes did. Consideration of \errstate in this case is already taken care of by the way we defined the semantics of arithmetic formulas. If $\atrace_n = \errstate$, then it is not the case that $\atrace_n \models \busfml$ because $\models$ is not defined on the error state.
+
+\section{Reasoning about safety properties and programs}
+
+We continue in our study of safety properties now by considering a way of determining whether a given program satisfies a property. We won't tackle the whole problem of verifying arbitrary safety properties yet, and will instead focus on an approach that works well for contracts. Along the way, we will discover tools that will help us with different types of safety properties later on.
+
+Given one particular value for each of the variables, the arithmetic formulas that define a contract are either true or false (much like, in an interpretation $\iget[const]{\I}$, propositional logic formulas are either true or false). Looking at Equation~\ref{eq:safety-contract}, we see that the values used to evaluate the precondition $\ausfml$ are taken from the initial state $\atrace_0$, and those used to evaluate the postcondition $\busfml$ from the final state $\atrace_n$. In this sense the logic used to define the pre- and postconditions is \emph{static}, or fixed according to the values in a single state or interpretation. 
+
+Why is this problematic?
+Consider a situation where the precondition evaluates to true in the initial state, but becomes false in the final state. 
+If the logic that we use to reason about whether the states generated by a program gives us no way of referring to what was true at the beginning, and what will be true at the end of a trace, then how can we possibly figure out that this trace violates the contract?
+Contracts deal with the dynamics of state as programs make changes to variables, and we need a logical formalism that can do so as well.
+
+\emph{Dynamic logic} provides modalities that talk about what is true after a program runs.
+The modal formula \(\dbox{\asprg}{\asfml}\) expresses that the formula $\asfml$ is true after all terminating runs of program $\asprg$.
+That is, the formula \(\dbox{\asprg}{\asfml}\) is true in a state $\omega$ if it is indeed the case that all states $\nu$ reached after running program $\asprg$ starting in $\omega$ satisfy the postcondition $\asfml$.
+As we will see, we can use dynamic logic to rigorously express what contracts mean, as well as to reason about them by way of sequent calculus proofs.
+But let's first officially introduce the language of dynamic logic.
+
+
+\subsection{Dynamic Logic}
+
+\begin{definition}[DL formula]
+The \emph{formulas of dynamic logic} ({DL}) are defined by the grammar
+(where $\asfml,\bsfml$ are DL formulas, $\astrm,\bstrm$ terms, $x$ is a variable, $\asprg$ a program):
+  \[
+  \asfml,\bsfml ~\bebecomes~
+  \astrm=\bstrm \alternative
+  \astrm\leq\bstrm \alternative
+  \lnot \asfml \alternative
+  \asfml \land \bsfml \alternative
+  \asfml \lor \bsfml \alternative
+  \asfml \limply \bsfml \alternative
+  \asfml \lbisubjunct \bsfml \alternative
+  \lforall{x}{\asfml} \alternative 
+  \lexists{x}{\asfml} \alternative
+  \dbox{\asprg}{\asfml}
+  \alternative \ddiamond{\asprg}{\asfml}
+  \]
+\end{definition}
+
+The propositional connectives such as $\land,\lor,\ldots$ and predicates $\le,=$ mean what they already mean in Definition~\ref{def:arithmetic-semantics}, and terms $\astrm,\bstrm$ are constructed exactly as in Definition~\ref{def:term-syntax}.
+The universal quantifier in \(\lforall{x}{\asfml}\) and the existential quantifier in \(\lexists{x}{\asfml}\) quantify over all (in the case of $\forall$), or over some (in the case of $\exists$) value of the variable $x$.
+But it will be quite important to settle on the domain of values that both quantifiers range over.
+In most of our applications, this will be the set of integers $\integers$, but other domains are of interest, too.
+
+Most importantly, and indeed the defining characteristic of dynamic logic, are the box modality in \(\dbox{\asprg}{\asfml}\) and the diamond modality in \(\ddiamond{\asprg}{\asfml}\).
+The modal formula \(\dbox{\asprg}{\asfml}\) is true in a state iff the final states of all runs of program $\asprg$ beginning in that final state satisfy the postcondition $\asfml$.
+Likewise the modal formula \(\ddiamond{\asprg}{\asfml}\) is true in a state iff there is a final state for at least one run of program $\asprg$ beginning in that final state that satisfies the postcondition $\asfml$.
+So \(\dbox{\asprg}{\asfml}\) expresses that $\asfml$ is true after all terminating runs of $\asprg$ whereas \(\ddiamond{\asprg}{\asfml}\) expresses that $\asfml$ is true after at least one run of $\asprg$. We will focus almost exclusively on the box modality.
+
+\subsection{Contracts in Dynamic Logic}
+
+Since the box modality in \(\dbox{\asprg}{\asfml}\) expresses that formula $\asfml$ holds after all runs of program $\asprg$, we can use it directly to express \verb'@ensures' postconditions.
+Let \texttt{bmult} be the binary multiplication program from the previous lecture, \texttt{pre} and \texttt{post} be the pre and post-conditions.
+\begin{align*}
+  \texttt{bmult} &\mequiv x:=a; y:=b; z:=0; \pwhile{y>0}{\plgroup \pifs{y\%2=1}{\plgroup z:=z+x \prgroup} x:=2*x; y:=y \div 2\prgroup}\\
+  \texttt{pre} &\mequiv b \ge 0\\
+  \texttt{post} &\mequiv z = a \cdot b
+\end{align*}
+With these abbreviations and the box modalities of dynamic logic it suddenly is a piece of cake to express the \verb'@ensures' postcondition holds after all program runs:
+\[
+\dbox{\texttt{bmult}}{\texttt{post}}
+\]
+Suppose that we had a second postcondition $\texttt{post2} \mequiv y \le b$.
+Well, if we want to say that both postconditions are true after running \texttt{bmult} and the logic is closed under all operators including conjunction, we can simply use the conjunction of both formulas for the job:
+\[
+\dbox{\texttt{bmult}}{\texttt{post}} \land \dbox{\texttt{bmult}}{\texttt{post2}}
+\]
+This formula means that \texttt{post} is true after all runs of \texttt{bmult} and that \texttt{post2} is also true after all runs of \texttt{bmult}.
+Maybe it would have been better to simultaneously state both postconditions at once?
+That is simply the formula
+\[
+\dbox{\texttt{bmult}}{(\texttt{post} \land \texttt{post2})}
+\]
+which says that the conjunction of \texttt{post} and \texttt{post2} is true after all runs of \texttt{bmult}.
+Which formula is better now?
+
+Well that depends. For one thing, both are perfectly equivalent, because that is what it means for a formula to be true after all runs of a program.
+That means the following biimplication in dynamic logic is valid so true in all states:
+\[
+\dbox{\texttt{bmult}}{\texttt{post}} \land \dbox{\texttt{bmult}}{\texttt{post2}}
+~\lbisubjunct~
+\dbox{\texttt{bmult}}{(\texttt{post} \land \texttt{post2})}
+\]
+
+Now that we have worried so much about how to state the postcondition in a lot of different equivalent ways, the question is whether the following formula or any of its equivalent forms is actually always true?
+\[
+\dbox{\texttt{bmult}}{(\texttt{post} \land \texttt{post2})}
+\]
+The answer is of course ``no'', because we forgot to take the program's precondition from the \verb'@requires' clause into account, which the program assumes to hold in the initial state.
+But that is really easy in logic because we can simply use implication for the job of expressing such an assumption:
+\[
+\texttt{pre} \limply
+\dbox{\texttt{bmult}}{(\texttt{post} \land \texttt{post2})}
+\]
+And, indeed, this formula will now turn out to be valid, so true in all states.
+In particular, in every initial state it is true that if that initial state satisfies the \verb'@requires' preconditions \(b \ge 0\), then all states reached after running the \texttt{gcd} program will satisfy the \verb'@ensures' postconditions \(\texttt{post} \land \texttt{post2}\).
+If the initial state does not satisfy the precondition, then the implication does not claim anything, because it makes an assumption about the initial state that apparently is not presently met.
+
+\section{Next lecture}
+In this lecture we formalized safety properties in terms of the semantics of programs in our core language. We then zoomed in on one particular kind of safety property corresponding to program contracts, and saw how to make their meaning precise using dynamic logic. This is nice, but we didn't go to all the trouble of introducing (another) new logic just to write contracts down in a different way. In the next lecture, we will study several useful axioms of dynamic logic, and see how to use them in sequent calculus proofs of program safety. This will lay the groundwork for understanding how two important automated safety verification techniques, called \emph{bounded model checking} and \emph{symbolic execution}, work to identify safety vulnerabilities in real code.
+
+\bibliography{bibliography}
+\end{document}

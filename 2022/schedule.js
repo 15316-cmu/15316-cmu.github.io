@@ -23,15 +23,15 @@ schedule = [
 	{
 		"date": "9/8",
 		"topic": "Programs &amp; semantics",
-		"pdf": "",
-		"tex": "",
+		"pdf": "03-safety.pdf",
+		"tex": "03-safety.tex",
 		"comments": ""
 	},
 	{
 		"date": "9/13",
-		"topic": "Dynamic Logic",
-		"pdf": "",
-		"tex": "",
+		"topic": "Safety &amp; Dynamic Logic",
+		"pdf": "03-safety.pdf",
+		"tex": "03-safety.tex",
 		"comments": ""
 	},
 	{
