@@ -43,9 +43,9 @@ schedule = [
 	},
 	{
 		"date": "9/20",
-		"topic": "Memory safety",
-		"pdf": "",
-		"tex": "",
+		"topic": "Safety &amp; soundness",
+		"pdf": "04-safetyproofs.pdf",
+		"tex": "04-safetyproofs.tex",
 		"comments": ""
 	},
 	{
