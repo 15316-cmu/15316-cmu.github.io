@@ -50,16 +50,16 @@ schedule = [
 	},
 	{
 		"date": "9/22",
-		"topic": "Sandboxing",
+		"topic": "Memory safety &amp; sandboxing",
 		"pdf": "05-memsandbox.pdf",
 		"tex": "05-memsandbox.tex",
 		"comments": ""
 	},
 	{
 		"date": "9/27",
-		"topic": "Security automata",
-		"pdf": "",
-		"tex": "",
+		"topic": "Software Fault Isolation",
+		"pdf": "06-sfi.pdf",
+		"tex": "06-sfi.tex",
 		"comments": ""
 	},
 	{
