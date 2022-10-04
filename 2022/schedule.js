@@ -64,16 +64,16 @@ schedule = [
 	},
 	{
 		"date": "9/29",
-		"topic": "Enforceable policies &amp; dynamic instrumentation",
-		"pdf": "",
-		"tex": "",
-		"comments": ""
+		"topic": "Control Flow Integrity",
+		"pdf": "07-cfi.pdf",
+		"tex": "07-cfi.tex",
+		"comments": "Additional reading: sections 3 &amp; 4 of <a href=\"https://dl.acm.org/doi/pdf/10.1145/1609956.1609960\">this paper</a>"
 	},
 	{
 		"date": "10/4",
-		"topic": "Non-interference",
-		"pdf": "",
-		"tex": "",
+		"topic": "Security automata",
+		"pdf": "07-automata.pdf",
+		"tex": "07-automata.tex",
 		"comments": ""
 	},
 	{
