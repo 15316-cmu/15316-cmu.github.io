@@ -78,10 +78,10 @@ schedule = [
 	},
 	{
 		"date": "10/6",
-		"topic": "Information flow policies &amp; security types",
-		"pdf": "",
-		"tex": "",
-		"comments": ""
+		"topic": "Inline reference monitoring",
+		"pdf": "08-automata.pdf",
+		"tex": "08-automata.tex",
+		"comments": "<a href=\"lectures/09-316-z3-live.html\">[live code html]</a><a href=\"lectures/09-316-z3-live.ipynb\">[live code notebook]</a>"
 	},
 	{
 		"date": "10/11",
