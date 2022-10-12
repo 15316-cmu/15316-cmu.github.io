@@ -85,14 +85,14 @@ schedule = [
 	},
 	{
 		"date": "10/11",
-		"topic": "Simple security, confinement, \& sound enforcement",
+		"topic": "Lab 1 intro &amp; live coding",
 		"pdf": "",
 		"tex": "",
-		"comments": ""
+		"comments": "<a href=\"lectures/10-lab1-live.html\">[live code html]</a><a href=\"lectures/10-lab1-live.ipynb\">[live code notebook]</a>"
 	},
 	{
 		"date": "10/13",
-		"topic": "Relaxing non-interference",
+		"topic": "Information Flow",
 		"pdf": "",
 		"tex": "",
 		"comments": "",
