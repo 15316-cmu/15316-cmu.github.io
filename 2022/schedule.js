@@ -93,8 +93,8 @@ schedule = [
 	{
 		"date": "10/13",
 		"topic": "Information Flow",
-		"pdf": "",
-		"tex": "",
+		"pdf": "11-flow.pdf",
+		"tex": "11-flow.tex",
 		"comments": "",
 	},
 	{
@@ -115,9 +115,9 @@ schedule = [
 	},
 	{
 		"date": "10/25",
-		"topic": "Timing side channels",
-		"pdf": "",
-		"tex": "",
+		"topic": "Security types",
+		"pdf": "12-flowtypes.pdf",
+		"tex": "12-flowtypes.tex",
 		"comments": ""
 	},
 	{

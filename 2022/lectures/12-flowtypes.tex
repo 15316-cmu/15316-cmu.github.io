@@ -1,0 +1,497 @@
+\documentclass[11pt,twoside]{scrartcl}
+%\documentclass[11pt,twoside]{article}
+
+%opening
+\newcommand{\lecid}{15-316}
+\newcommand{\leccourse}{Software Foundations of Security and Privacy}
+\newcommand{\lecdate}{} %e.g. {October 21, 2013}
+\newcommand{\lecnum}{12}
+\newcommand{\lectitle}{Information Flow Types I}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecurl}{https://15316-cmu.github.io/index}
+
+\usepackage{varwidth}
+\usepackage{lecnotes}
+\usepackage[irlabel]{bugcatch}
+
+\usepackage{tikz}
+\usetikzlibrary{automata,shapes,positioning,matrix,shapes.callouts,decorations.text,patterns,trees,backgrounds}
+
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+\begin{document}
+
+\newcommand{\atrace}{\sigma}%
+%% the standard interpretation naming conventions
+\newcommand{\stdI}{\dTLint[state=\omega]}%
+\newcommand{\Ip}{\dTLint[trace=\atrace]}%
+\newcommand{\ws}{\omega}\newcommand{\wt}{\nu}% 
+
+\maketitle
+\thispagestyle{empty}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+
+In the previous lecture we had a formal introduction to information flow policies. We saw why they are different than safety properties, in that they cannot be enforced or even checked just by looking at a single execution trace. While there are ways of approximating information flow with safety properties, most notably with dynamic taint analysis~\cite{Schwartz2010}, doing so will result in missing some real flows.
+
+The property that captures information flow is called \emph{non-interference}, and is shown in Definition~\ref{def:nonint}. Recall that the big-step transition relation $\langle \omega, \asprg\rangle \bigstep \omega'$ used in the definition denotes the fact that by executing $\asprg$ starting in $\omega$ it is possible to terminate in state $\omega'$. Additionally, the type environment $\Gamma$ is a mapping from variables to security labels, which we said are either $\hisec$ (high security) or $\lowsec$ (low security). We write specific type environments out as lists, so the environment that maps $x$ to \lowsec and $y$ to \hisec is $(x:\lowsec, y:\hisec)$. If $\Gamma$ is an environment, possibly containing a mapping for $x$, then $(\Gamma, x:\lowsec)$ is the environment that maps $x$ to \lowsec and everything else $y$ to $\Gamma(y)$.
+
+Finally, to properly define secure information flow we needed to formalize a concept of $\ell$-equivalent states. Let $\omega_1$ and $\omega_2$ be states, and $\Gamma$ be an environment. Then we say that $\omega_1$ and $\omega_2$ are $\ell$-equivalent, where $\ell \in \{\lowsec,\hisec\}$ is a security label, if and only if all of the variables where $\Gamma(x) = \ell$ have the same value in $\omega_1$ and $\omega_2$.
+\begin{equation}
+\label{eq:secequiv}
+\forall x . \Gamma(x) = \ell \limply \omega_1(x) = \omega_2(x)
+\end{equation}
+We use the notation $\omega_1 \approx_{\Gamma,\ell} \omega_2$ to denote the relation in Equation~\ref{eq:secequiv}, and if the choice of $\Gamma$ is clear from the context, we will abbreviate it as $\omega_1 \approx_{\ell} \omega_2$.
+
+\begin{definition}[Non-interference]
+\label{def:nonint}
+Let $\asprg$ be a program and $\Gamma$ a type environment associating security labels to all of the variables in $\asprg$. Then $\asprg$ satisfies non-interference under $\Gamma$ if and only if executing $\asprg$ under \lowsec-equivalent states leads to final states that are also \lowsec-equivalent. More precisely,
+\begin{equation}
+\label{eq:noninterference}
+\forall \omega_1,\omega_2 . \omega_1 \approx_{\Gamma,\lowsec} \omega_2 \land 
+\langle \omega_1, \asprg\rangle \bigstep \omega_1' \land 
+\langle \omega_2, \asprg\rangle \bigstep \omega_2'
+\limply
+\omega_1' \approx_{\Gamma,\lowsec} \omega_2'
+\end{equation}
+where $\omega_1$ and $\omega_2$ range over the set of possible program states.
+\end{definition}
+
+Equation~\ref{eq:noninterference} captures the idea that whatever the values of high-security variables labeled \hisec may be, they should not influence the values that the low-security values labeled \lowsec variables take when the program terminates. If such influence exists, then the program does \emph{not} satisfy non-interference. In this way, non-interference equates information flow with the tendency of one variable to influence that of another.
+
+Today we will dive deeper into information flow. We will start by squaring away some preliminaries, namely how the big-step transition relation is defined for our simple imperative language. Then we will introduce a type system~\cite{Volpano1996} that is able to enforce Definition~\ref{def:nonint} with respect to a particular typing context. That is, only programs that satisfy non-interference can be typed according to this system. Along the way we'll generalize the set of security labels that are allowed to appear in the typing context $\Gamma$, to allow for richer policies that just labeling variables as either \hisec or \lowsec.
+
+\section{Big-step semantics}
+
+In previous lectures we have defined the semantics of languages in two different ways. When we studied safety properties, we defined the \emph{trace semantics} in terms of the set of traces that a program can execute. Later, we looked at the \emph{small-step semantics}, which define how each step of a computation proceeds by modifying state. These both offer a similar view of a program's exeuction, because they characterize the sequence of intermediate states between the initial and final states.
+
+The big-step semantic relation $\langle \omega, \asprg\rangle \bigstep \omega'$ used in Definition~\ref{def:nonint} is different. Rather than ``recording'' the sequence of transitions that a program takes as it executes, this way of defining the semantics simply relates the initial state $\omega$ with a possible final state $\omega'$. If the language is deterministic, as in the case of our simple imperative language, then there will only ever be one possible final state for each initial state of a given program. Also noteworthy is the fact that when using big-step semantics, there is no direct way to refer to divergent behavior of programs. If $\asprg$ diverges from initial state $\omega$, then there is no $\omega'$ for which we could write $\langle \omega, \asprg\rangle \bigstep \omega'$.
+
+Why bother with another way of defining semantics at this point? As we will see when we define the typesystem and prove that it enforces non-interference, the structure of the big-step semantics definition closely mirrors that of the typing rules. This symmetry makes proving things about the typesystem simpler and easier to follow, highlighting the correspondence between the syntactic typing rules and the underlying semantics of the language.
+
+\paragraph{Expressions.} Let's proceed with defining the big-step semantics of our language. Recall that the syntax of terms is defined by the following constructors.
+\[
+  \astrm,\bstrm ~\bebecomes~
+  x
+  \alternative
+  c
+  \alternative
+  \astrm+\bstrm
+  \alternative
+  \astrm\cdot\bstrm
+\]
+We will simplify this a bit by abstracting away the functions $+$ and $\cdot$, and instead just use the function symbol $\odot$ to stand for either. The big-step semantics of a term relates an initial state $\omega$ and term $\astrm$ with a final value $v$, because that is how terms are evaluated in states. We will use the symbol $\bigstepa$ to denote the big-step relation on terms, where the $\mathbb{Z}$ subscript reminds us of the fact that we evaluate \emph{arithmetic} terms to \emph{integer} values.
+
+We can begin defining the semantics of terms. We will do so using a set of rules that resemble the proof rules we have used previously. The most straightforward rule is the one for constants, which is shown in Equation~\ref{eq:sem-const}. This rule has no conditions, so it always applies for any constant $c$ and state $\omega$, and simply says that the value of a constant is the constant itself.
+\begin{equation}
+\label{eq:sem-const}
+\linferenceRule{}{\langle\omega,c\rangle \bigstep_{\mathbb{Z}} c}
+\end{equation}
+The next rule covers terms that consist of just a variable $x$, and is shown in Equation~\ref{eq:sem-var}. Intuitively, we want a variable to evaluate to the integer that $\omega$ maps it to. The rule reflects this in its antecedent, which requires that $\omega(x) = v$. The entire rule can be read ``if $\omega(x) = v$ (i.e. $\omega$ maps $x$ to value $v$), then the term $x$ evaluates to $v$ in state $\omega$.''
+\begin{equation}
+\label{eq:sem-var}
+\linferenceRule{
+  \omega(x) = v
+}{
+  \langle\omega,x\rangle \bigstep_{\mathbb{Z}} v
+}
+\end{equation}
+The next and final rule shown in Equation~\ref{eq:sem-aop} for arithmetic terms covers operations, abstractly represented by symbol $\odot$. The antecedent refers to the big-step semantic relation for terms $\bigstepa$ to refer to the values of each operand $\astrm, \bstrm$, and the consequent defines the value of the operation to be the operation applied to the value of each operand.
+\begin{equation}
+\label{eq:sem-aop}
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}} v_1
+  &\langle\omega,\bstrm\rangle \bigstep_{\mathbb{Z}} v_2
+}{
+  \langle\omega,\astrm \odot \bstrm\rangle \bigstep_{\mathbb{Z}} v_1 \odot v_2
+}
+\end{equation}
+Arithmetic terms aren't the only sort of term-like object that programs can use. Conditional and while-loop commands can also refer to formulas $\ausfml$ to test when deciding which branch to take. We will think of these as terms as well, but we will distinguish them from arithmetic terms by defining a separate big-step transition relation $\bigstepb$ to reflect the fact that they evaluate to Boolean values $\ltrue,\lfalse$ rather than integers. With this in mind, their definitions are similar to those for arithmetic expressions, and we won't belabor the matter with a tedious explanation of each. The rules are shown in Equation~\ref{eq:sem-bexp}
+\begin{equation}
+\label{eq:sem-bexp}
+\begin{array}{c}
+\linferenceRule{}{\langle\omega,\mathtt{true}\rangle \bigstep_\mathbb{B} \ltrue}
+\quad
+\linferenceRule{}{\langle\omega,\mathtt{false}\rangle \bigstep_\mathbb{B} \lfalse}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_\mathbb{B} b
+}{
+  \langle\omega,\text{\texttt{!}}\ausfml\rangle \bigstep_\mathbb{B} \lnot b
+}
+\\ \\
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_\mathbb{B} b_1
+  &\langle\omega,\busfml\rangle \bigstep_\mathbb{B} b_2
+}{
+  \langle\omega,\ausfml~\text{\texttt{\&\&}}~\busfml\rangle \bigstep_\mathbb{B} b_1 \land b_2
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_\mathbb{B} b_1
+  &\langle\omega,\busfml\rangle \bigstep_\mathbb{B} b_2
+}{
+  \langle\omega,\ausfml~\text{\texttt{||}}~\busfml\rangle \bigstep_\mathbb{B} b_1 \lor b_2
+}
+\\ \\
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_\mathbb{Z} v_1
+  &\langle\omega,\bstrm\rangle \bigstep_\mathbb{Z} v_2
+}{
+  \langle\omega,\ausfml~\text{\texttt{==}}~\busfml\rangle \bigstep_\mathbb{B} v_1 = v_2
+}
+\quad
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_\mathbb{Z} v_1
+  &\langle\omega,\bstrm\rangle \bigstep_\mathbb{Z} v_2
+}{
+  \langle\omega,\ausfml~\text{\texttt{<=}}~\busfml\rangle \bigstep_\mathbb{B} v_1 \le v_2
+}
+\end{array}
+\end{equation}
+
+\paragraph{Commands.} Now we come to the commands. We will no longer use the $\passert{\ivr}$ command, as it was useful primarily for thinking about safety properties and we are concerned with information flow now. We will also forget for the moment about memory accesses and state, and focus only on assignments to variables. So the language that we will consider is shown in Equation~\ref{eq:simple-imp}.
+\begin{equation}
+\label{eq:simple-imp}
+  \asprg,\bsprg ~\bebecomes~
+  \pupdate{\pumod{x}{\astrm}}
+  \alternative
+  \pif{\ivr}{\asprg}{\bsprg}
+  \alternative
+  \asprg;\bsprg
+  \alternative
+  \pwhile{\ivr}{\asprg}
+\end{equation}
+The big-step semantics for the language are actually a bit more intuitive than the trace and small-step semantics. Recall that $\langle\omega,\asprg\rangle \bigstep \omega'$ denotes the fact that when executing $\asprg$ starting in $\omega$, it is possible to end in $\omega'$. So the rule for assignment is shown in Equation~\ref{eq:sem-assign}, and it simply says that if the right-hand side $\astrm$ evaluates to $v$ in $\omega$, then the final state after the assignment will be the same as $\omega$ but with $x$ mapping to $v$. Notice that to reason about the value $v$ of the right-hand side, the big-step relation for arithmetic expressions $\bigstepa$ is used.
+\begin{equation}
+\label{eq:sem-assign}
+\linferenceRule{
+  \langle\omega,\astrm\rangle \bigstep_{\mathbb{Z}} v
+}{
+  \langle\omega,x := \astrm\rangle \bigstep \memupd{\omega}{x}{v}
+}
+\end{equation}
+The remaining rules for commands refer to the big-step command transition rule recursively. The one for composition is shown in Equation~\ref{eq:sem-compose}, and its antecedent defines an intermediate state $\omega_1$ for after $\asprg$ executes, which $\bsprg$ begins executing in to finally reach $\omega'$. But this intermediate state is not present in the transition $\langle\omega,\asprg;\bsprg\rangle \bigstep \omega'$ of the composition, and is ``forgotten'' as the only thing that matters is the final state $\omega'$.
+\begin{equation}
+\label{eq:sem-compose}
+\linferenceRule{
+  \langle\omega,\asprg\rangle \bigstep \omega_1
+  &\langle\omega_1,\bsprg\rangle \bigstep \omega'
+}{
+  \langle\omega,\asprg;\bsprg\rangle \bigstep \omega'
+}
+\end{equation}
+The rules for conditionals are shown in Equation~\ref{eq:sem-if}. Note that there are two of them, one for the case where the condition $\ausfml$ evaluates to $\ltrue$, and another for when it evaluates to $\lfalse$. Everything else is the same between the two rules, except that the final state is related to either the ``if'' branch $\asprg$ or the ``then'' branch $\bsprg$.
+\begin{equation}
+\label{eq:sem-if}
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} \ltrue
+  &\langle\omega,\asprg\rangle \bigstep \omega'
+}{
+  \langle\omega,\pif{\ausfml}{\asprg}{\bsprg}\rangle \bigstep \omega'
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} \lfalse
+  &\langle\omega,\bsprg\rangle \bigstep \omega'
+}{
+  \langle\omega,\pif{\ausfml}{\asprg}{\bsprg}\rangle \bigstep \omega'
+}
+\end{equation}
+Finally, the while-loop command has two rules as well, as shown in Equation~\ref{eq:sem-while}. The first covers the case where $\ausfml$ evaluates to $\lfalse$, and says that the final state is the same as the initial. The other covers $\ausfml$ evaluating to $\ltrue$, and defines the final state as that of executing the body $\asprg$ once, and then executing the loop immediately afterwards. You may notice the resemblence to the axioms we used when reasoning about \keywordfont{while} commands earlier in the semester.
+\begin{equation}
+\label{eq:sem-while}
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} \lfalse
+}{
+  \langle\omega,\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega
+}
+\quad
+\linferenceRule{
+  \langle\omega,\ausfml\rangle \bigstep_{\mathbb{B}} \ltrue
+  &\langle\omega,\asprg;\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega'
+}{
+  \langle\omega,\pwhile{\ausfml}{\asprg}\rangle \bigstep \omega'
+}
+\end{equation}
+
+% \section{Security lattices}
+
+\section{Enforcing non-interference with types}
+
+We now turn to developing a type system that enforces Definition~\ref{def:nonint}. What does it mean for a type system to \emph{enforce} a security policy like non-interference? To understand this, think about types as you understand them from programming languages like C and possibly SML. 
+
+When we associate the type \verb'int' with a variable $x$ in our program, we are telling the compiler that we expect $x$ to only hold data representing signed machine integers. Thus, the compiler should expect us to perform operations on $x$ and make use of it in ways that are consistent with machine integers. So for example performing addition on $x$ with other \verb'int' data would be perfectly normal and correct behavior, but attempting to invoke $x$ as though it were a function or append a string to $x$ would not. The compiler would tell us that this is a type error, and refuse to produce executable code for our program.
+
+In the case above, the compiler checked the types of data used in operations and prevented us from performing an operation on \verb'int' data that has no well-defined meaning. If it had not, and instead compiled our program after trying to infer some reasonable intention on our part (as in the case of languages like Javascript and Python) regarding the nonsensical integer operations, then who knows what behavior would result? This form of \emph{type safety} gives us modest guarantees about how our program will behave when its commands are consistent with the types that we associate to data.
+
+We wish to ensure that our programs satisfy non-interference, and the types that we associate with variables label them as either \hisec (``high security'') or \lowsec (``low security''). Perhaps the type-checker can confirm that all of the computations that are done on our data are consistent with these labelings, so that only programs satisfying non-interference will successfully typecheck, and those that do not will be rejected. This is the goal that we will pursue in this section, starting with expressions and moving to commands.
+
+\subsection{Assigning types to expressions}
+Recall that our type context $\Gamma$ assigns labels \lowsec,\hisec to variables. The meaning of such an assignment is that the data stored in the variable is either of no concern to the security policy, i.e. should not contain secret data (\lowsec), or is allowed to contain secret data (\hisec). In our language, variables are a type of expression and expressions represent data, so it is natural to extend this labeling to other expressions as well. The notation that we use to say that an expression $\astrm$ has label $\ell$ in context $\Gamma$ is shown in Equation~\ref{eq:exp-judgement}.
+\begin{equation}
+\label{eq:exp-judgement}
+\lsequent{\Gamma}{\astrm : \ell}
+\end{equation}
+Notice the familiar sequent notation, which should suggest to you that $\Gamma$ can be thought of as our assumptions, and $\astrm : \ell$ is what we want to prove from these assumptions.
+
+So what rules do we use to prove these judgements? Let's start from the simple cases, and work our way up to more complicated ones. The simplest possible expression are constants, which in our language can be integers $c$ or Boolean constants \verb'true', \verb'false'. What security type do we assign to constants? Perhaps there is a conceivable scenario in which considering program constants as secret \hisec data makes sense, but in general we would like to assume that an attacker is allowed to see the syntax of a program. So we will assume that constants are always \lowsec, reflected in the rules \irref{constl}, \irref{truel}, and \irref{falsel} below.
+\[
+\cinferenceRule[constl|ConstL]{const low}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma}{c : \lowsec}}
+}{}%
+\quad
+\cinferenceRule[truel|TrueL]{true low}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma}{\keywordfont{true} : \lowsec}}
+}{}%
+\quad
+\cinferenceRule[falsel|FalseL]{false low}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma}{\keywordfont{false} : \lowsec}}
+}{}%
+\]
+Variable expressions are also easy to reason about, as their labels follow immediately from the context as shown in rule \irref{vartype}.
+\[
+\quad
+\cinferenceRule[vartype|Var]{variable type}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma}{x : \Gamma(x)}}
+}{}%
+\]
+Now moving on to operations on expressions, we will treat arithmetic and Boolean expressions the same, again abstracting operators with $\odot$. But we will treat binary operations that take two operands differently from unary operations like $\lnot$ that take a single operand by giving them separate rules. First consider the case of unary operations, shown in \irref{unop} below.
+\[
+\cinferenceRule[unop|UnOp]{unary operator}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma}{\astrm : \ell}}
+  {\lsequent{\Gamma}{\odot~\astrm : \ell}}
+}{}%
+\]
+If the operand in this expression has, for example, type \lowsec then it means that the term does not contain any secret information. After applying a fixed operation to it, containing no other sources of data, can it have secret information afterwards? Certainly not, and the same goes for operands labeled \hisec, so \irref{unop} carries the type of its operand to the full expression.
+
+On the other hand, binary operators are different. If an expression consisting of a binary operation has two operands that are labeled \lowsec under $\Gamma$, then by the same reasoning above the result should also have this label. This is reflected in \irref{binopl}. On the other hand, if either of its operands are labeled \hisec, denoting that the expression carries secret data, then will the result? The answer is that it depends, because the expression could evaluate to a constant as in $x + -x$. But without considering such cases in detail, we ultimately want our type system to reject \emph{any} program that has an information flow from \hisec to \lowsec, and one could certainly arise from a binary operation with one \hisec operand. So \irref{binoph} below says that if \emph{either} operand is \hisec, then the result is as well.
+\[
+\cinferenceRule[binopl|BinOpL]{binary operator low}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma}{\astrm : \lowsec} & \lsequent{\Gamma}{\bstrm : \lowsec}}
+  {\lsequent{\Gamma}{\astrm\odot\bstrm : \lowsec}}
+}{}%
+\quad
+\cinferenceRule[binoph|BinOpH]{binary operator high}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma}{\astrm : \ell_1} & \lsequent{\Gamma}{\bstrm : \ell_2} & \ell_1=\hisec~\text{or}~\ell_2=\hisec}
+  {\lsequent{\Gamma}{\astrm\odot\bstrm : \hisec}}
+}{}%
+\]
+That pretty much does it for assigning security types to the expressions in our language. Let's see a short example of the rules in action to get a better feel for them. Suppose that we want to check that the expression $x + 1 \le y$ has type $\hisec$ in the context $\Gamma = (x : \hisec, y : \lowsec)$. To do so, we must construct a proof of the judgement in Equation~\ref{eq:example1}.
+\begin{equation}
+\label{eq:example1}
+\lsequent{x : \hisec, y : \lowsec}{x + 1 \le y : \hisec}
+\end{equation}
+We construct a proof using the typing rules that we have discussed so far.
+\begin{sequentdeduction}[array]
+\linfer[binoph] {
+  \linfer[binoph] {
+    \linfer[vartype] {\lclose} {\lsequent{x : \hisec, y : \lowsec}{x : \hisec}}
+    !\linfer[constl] {\lclose} {\lsequent{x : \hisec, y : \lowsec}{1 : \lowsec}}
+  } {
+    \lsequent{x : \hisec, y : \lowsec}{x + 1 : \hisec}
+  }
+  !\linfer[vartype]{\lclose}{\lsequent{x : \hisec, y : \lowsec}{y : \lowsec}}
+} {
+  \lsequent{x : \hisec, y : \lowsec}{x + 1 \le y : \hisec}
+}
+\end{sequentdeduction}
+
+\subsection{Generalizing security types} 
+Looking at \irref{binopl} and \irref{binoph}, we might ask ourselves whether it is possible to express all of the necessary logic in a single rule for binary operations. For example, our intuition about ``high'' and ``low'' security suggests some structure that might be useful in reasoning about these cases uniformly. Perhaps we can define an ordering on the security labels, denoted by $\posetleq$. The natural way to order elements would be as shown in Equation~\ref{eq:labelord}.
+\begin{equation}
+\label{eq:labelord}
+\lowsec \posetleq \hisec,\lowsec \posetleq \lowsec,~\text{and}~\hisec \posetleq \hisec,~\text{but}~\hisec \not\posetleq \lowsec
+\end{equation}
+We might build on this ordering, the define a notion of ``least upper bound'', which given two security labels $\ell_1, \ell_2$ corresponds to the label that is at least as ``large'' as both (according to \posetleq), but equal to one of them. We denote this operation $\lub$, and reason that it satisfies the equalities in Equation~\ref{eq:labelcup}.
+\begin{equation}
+\label{eq:labelcup}
+\begin{array}{ll}
+\lowsec \lub \lowsec &= \lowsec \\
+\lowsec \lub \hisec &= \hisec \\
+\hisec \lub \lowsec &= \hisec \\
+\hisec \lub \hisec &= \hisec
+\end{array}
+\end{equation}
+Then with this in mind, the rules \irref{binopl} and \irref{binoph} can be combined into one \irref{binop} rule shown below.
+\[
+\cinferenceRule[binop|BinOp]{binary operator}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma}{\astrm : \ell_1} & \lsequent{\Gamma}{\bstrm : \ell_2}}
+  {\lsequent{\Gamma}{\astrm\odot\bstrm : \ell_1 \lub \ell_2}}
+}{}%
+\]
+We will prove that this is correct later, but for now convince yourself that it is not completely broken by replacing the \irref{binoph} rules in the proof above with \irref{binop}, and verifying that the result stays the same.
+
+Now that we have thought about some general concepts related to our security labels, perhaps we can define even more labels to denote different levels of security or labels. For example, instead of just \lowsec and \hisec, perhaps we also want a \medsec type so that we can label data as not-quite of the utmost secrecy or importance, but not available to the entire world as we might imagine \lowsec to be. We could define the ordering in Equation~\ref{eq:ord2}, assuming all of the reflexive relations $\ell \posetleq \ell$ hold and nothing else.
+\begin{equation}
+\label{eq:ord2}
+\lowsec \posetleq \medsec \posetleq \hisec
+\end{equation}
+Of course, we also want the ordering to be transitive, so that we can conclude $\lowsec \posetleq \hisec$ because $\lowsec \posetleq \medsec$ and $\lowsec \posetleq \hisec$.
+
+Alternatively, we could define a set of labels $\usec_1, \ldots, \usec_n$ for users 1 through $n$, and let \hisec be the system administrator's label and \lowsec be a ``guest'' label for temporary untrusted system users. Then we may want the ordering
+\begin{equation}
+\label{eq:ord3}
+\text{For all}~1 \le i \le n, \lowsec \posetleq \usec_i \posetleq \hisec
+\end{equation}
+So any user can read ``guest'' data, and the administrator can read any user's data as well as ``guest''. But we don't want users to read each other's data, so for any $i,j$ we want $\usec_i \not\posetleq \usec_j$.
+
+We can generalize our types to consist of \emph{security lattices} $(L, \posetleq, \lub, \bot, \top)$. The components of a security lattice are as follows.
+\begin{itemize}
+\item A set of elements $L$. In our examples, $L = \{\lowsec,\hisec\}$, $L = \{\lowsec,\medsec,\hisec\}$, and $L = \{\lowsec,\usec_1,\ldots,\usec_n,\hisec\}$.
+\item A \emph{partial order} $\posetleq : L \times L \to \{\keywordfont{true},\keywordfont{false}\}$, or a reflexive ($\forall \ell . \ell \posetleq \ell$), transitive ($\forall \ell_1,\ell_2,\ell_3 . \ell_1 \posetleq \ell_2 \land \ell_2 \posetleq \ell_3 \limply \ell_1 \posetleq \ell_3$), and anti-symmetric ($\forall \ell_1,\ell_2 . \ell_1 \posetleq \ell_2 \land \ell_2 \posetleq \ell_1 \limply \ell_1 = \ell_2$) relation between elements of $L$.
+\item A least upper-bound operator $\lub : L \times L \to L$ defined on all pairs from $L$.
+\item A \emph{least element} $\bot$ such that $\bot \posetleq \ell$ for all $\ell \in L$.
+\item A \emph{greatest element} $\bot$ such that $\ell \posetleq \top$ for all $\ell \in L$.
+\end{itemize}
+The types that we started out with, $L = \{\lowsec,\hisec\}$ is indeed a security lattice with $\bot = \lowsec$ and $\top = \hisec$. It should come as no surprise that we can generalize the definition of non-interference to arbitrary security lattices, and doing so is an excellent exercise.
+
+\subsection{Type-checking commands}
+
+Now that we know how to assign types to expressions, we can move on to the more interesting question of how to check that a given command satisfies non-interference under a type context $\Gamma$. We will proceed as before, developing a set of rules that we can later prove give us this property. The judgements that the rules derive is slightly different than with expressions, though. Keeping in mind that the security types \lowsec, \hisec denote the fact that a given data element, e.g. an expression in our language, carries information of a particular security level, it does not make sense to write something like the following:
+\[
+\lsequent{\Gamma}{\pif{x \le 0}{y := 1}{y := 0} : \hisec}
+\]
+We have not thought of programs as any sort of data element capable of carrying information by themselves, and however intriguing such an idea may seem, doing so would distract us from our goal of enforcing non-interference at the moment.
+
+Instead, we have thought of programs as objects that compute, i.e., by applying operations to data and moving it between variables. Our goal is to make it impossible to use the typing rules to constructa proof that a program satisfies non-interference when it doesn't. So the judgements that our rules for commands will use takes the form shown in Equation~\ref{eq:command-judgement}, and should be read as ``under type context $\Gamma$, program $\asprg$ is well-typed''. We will set up the rules so that ``well-typed'' implies ``satisfies non-interference'', but we'll say more on this later.
+\begin{equation}
+\label{eq:command-judgement}
+\lsequent{\Gamma}{\asprg}
+\end{equation}
+Now we proceed to design typing rules for each of the commands in our language.
+
+\paragraph{Assignments.} To design a typing rule for assignment commands, we must ask ourselves what conditions might result in a violation of Definition~\ref{def:nonint}. More intuitively, what conditions on $\Gamma$ and the command $x := \astrm$ would result in a flow of information from variables labeled \hisec to those labeled \lowsec?
+
+Certainly, if the target of the assignment $x$ is labeled \lowsec and the expression on the right-hand side is labeled \hisec, then such a flow will occur. More generally, if $\Gamma(x) = \ell_1$ and $\lsequent{\Gamma}{\astrm : \ell_2}$, where $\ell_2 \not\posetleq \ell_2$, then an information flow will occur when the value of $\astrm$ is assigned to $x$. Perhaps we can write the following rule, shown in Equation~\ref{eq:assignbroken}.
+\begin{equation}
+\label{eq:assignbroken}
+\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\astrm : \ell_1}
+  &\ell_1 \posetleq \Gamma(x)
+} {
+  \lsequent{\Gamma}{x := \astrm}
+}
+\end{equation}
+This rule says that if the label of $\astrm$ as no larger (i.e., ``more secret'') than that of $x$, then the assignment is well-typed. Does this work? What about the ``implicit'' information flows we discussed last lecture, such as that in the following judgement?
+\begin{equation}
+\lsequent{x : \hisec, y : \lowsec}{\pif{x}{y:=1}{y:=0}}
+\end{equation}
+We know that this doesn't satisfy non-interference, but it seems as though we might not reject it using the rule shown in (\ref{eq:assignbroken}).
+
+In order to reject programs with implicit flows, we will keep track of the security label of a distinguished ``program counter'' variable \pc in $\Gamma$. Later when we design rules for conditionals and loops, we will make sure to account for this part of the type context so that whenever the control flow is currently influenced by \hisec-labeled data, then $\Gamma(\pc) = \hisec$. But for now we will just assume that this has been properly accounted for in the context, and use it to define our rule for assignment.
+\[
+\cinferenceRule[asgnflow|Asgn]{assignment}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\astrm : \ell_1}
+  &\ell_1 \lub \Gamma(\pc) \posetleq \Gamma(x)
+}{
+  \lsequent{\Gamma}{x := \astrm}
+}}{}%
+\]
+The rule \irref{asgnflow} says that if the label of $x$ is at least as large as the larger of the label for the right-hand side and \pc, then the assignment is well-typed. Thinking through a few cases, this means that whenever $\Gamma(\pc) = \hisec$, then $\Gamma(x)$ must be \hisec because $\hisec \lub \ell = \hisec$ and $\hisec \not\posetleq \lowsec$. Really, if either of $\astrm$ or \pc is $\hisec$, then in order for the assignment to be well-typed then $x$ must also be $\hisec$. This seems like what we want, so we move to the next command.
+
+\paragraph{Composition.} Compared to the surprisingly nuanced reasoning we had to do for assignment commands, composition is relatively easy to think about. If we want to reason that a program $\asprg;\bsprg$ is well-typed, then the only rule that makes any sense is to require that both $\asprg$ and $\bsprg$ also be well-typed on their own.
+\[
+\cinferenceRule[composeflow|Comp]{composition}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\asprg}
+  &\lsequent{\Gamma}{\bsprg}
+}{
+  \lsequent{\Gamma}{\asprg;\bsprg}
+}}{}%
+\]
+The rule \irref{composeflow} above says exactly this.
+
+\paragraph{Conditionals.} Now we come to conditionals. Unlike the previous cases, conditionals raise the possibility of influencing control flow (represented in our type system by $\Gamma(\pc)$) on \hisec-labeled data. We need to account for this in the typing rule, so that when we reason about whether the branches are well-typed we properly account for whether the \pc might carry \hisec data.
+
+Recall that we treat type environments similar to updateable maps, so that if $\Gamma$ is an environment, possibly containing a mapping for $x$, then $(\Gamma, x:\lowsec)$ is the environment that maps $x$ to \lowsec and everything else $y$ to $\Gamma(y)$. Then to carry the type of the Boolean expression $\ivr$ in the guard of a conditional to the type contexts of its branches, we want to use a context that maps \pc to the least upper bound of the current \pc, and the type of $e$.
+\[
+\cinferenceRule[condflow|If]{conditional}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\ivr : \ell}
+  &\ell' = \ell \lub \Gamma(\pc)
+  &\lsequent{\Gamma,\pc : \ell'}{\asprg}
+  &\lsequent{\Gamma,\pc : \ell'}{\bsprg}
+}{
+  \lsequent{\Gamma}{\pif{\ivr}{\asprg}{\bsprg}}
+}}{}%
+\]
+The rule \irref{condflow} above does this. Looking at the antecedent, we first type the guard expression $\ivr$ as $\ell$, and then compute the least upper bound $\ell'$ of $\ell$ and the current label of \pc. We then check that both branches are well-typed under the environment where $\Gamma(pc) = \ell'$. If this is the case, then the conditional is well-typed.
+
+\paragraph{While Loops.} The last command that we need to derive a rule for is our looping construct \keywordfont{while}. Much like in the case of conditionals, while loops can leak information from \hisec data to the program counter through their conditional test. Not surprisingly, the rule for while loops can use the same approach as that for conditionals, as shown in \irref{whileflow} below.
+\[
+\cinferenceRule[whileflow|While]{while}
+{\linferenceRule[sequent] {
+  \lsequent{\Gamma}{\ivr : \ell}
+  &\ell' = \ell \lub \Gamma(\pc)
+  &\lsequent{\Gamma,\pc : \ell'}{\asprg}
+}{
+  \lsequent{\Gamma}{\pwhile{\ivr}{\asprg}}
+}}{}%
+\]
+It may seem strange that the rule for \keywordfont{while} is in some ways simpler than the one for \keywordfont{if} statements, as this was certainly not the case when we discussed axioms for proving safety. However, the type of reasoning that this type system does about program behaviors is significantly more ``coarse'' than what we did when proving arbitrary postconditions, and in this case the only special consideration that we need to account for is whether the loop flows \hisec data to \lowsec state through the program counter.
+
+\subsection{Generalizing beyond \lowsec, \hisec}
+
+The type system described so far assumes that the policy in effect is the simple two-label lattice $\lowsec \sqsubseteq \hisec$.
+More generally, we may want to typecheck a program against a policy with multiple labels, to ensure that information higher than a specified label $\ell$ will not flow to state labeled no greater than $\ell$.
+
+To accommodate this, we change the typing judgement for programs to make the target label explicit.
+\[
+\Gamma \vdash_\ell \alpha
+\]
+Which typing rules will we need to change? 
+It turns out that the only case we need to worry about is assignment.
+Namely, if the variable being assigned is labeled above $\ell$, then there is no way that the policy can be violated, as non-interference only places constraints on the final values of variables \emph{below or at the level of} $\ell$.
+\[
+\linfer{
+  \ell \ne \Gamma(x)
+  &
+  \ell \sqsubseteq \Gamma(x)
+} {
+  \Gamma \vdash_\ell \pumod{x}{e}
+}
+\]
+On the other hand, if the target of the assignment is labeled at or below $\ell$, then we need to check, as before, that the right side of the assignment and current $\mathtt{pc}$ context are no larger than $\ell$.
+\[
+\linfer{
+  \Gamma(x) \sqsubseteq \ell
+  &
+  \Gamma \vdash e : \ell_1
+  &
+  l_1 \sqcup \Gamma(\mathtt{pc}) \sqsubseteq \ell
+} {
+  \Gamma \vdash_\ell \pumod{x}{e}
+}
+\]
+Notice that we compare against $\ell$  rather than $\Gamma(x)$ in the rightmost premise.
+All that we wish to enforce in this case is that information above $\ell$ does not flow to state at or below $\ell$.
+The leftmost premise establishes that this is a possibility, because $x$'s label is below $\ell$.
+The remaining premises just make sure that both the $\mathtt{pc}$ context and label of $e$ are also below $\ell$, making the assignment safe with respect to the policy.
+
+\bibliography{bibliography}
+\end{document}
