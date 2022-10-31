@@ -117,14 +117,14 @@ schedule = [
 		"date": "10/25",
 		"topic": "Security types",
 		"pdf": "12-flowtypes.pdf",
-		"tex": "12-flowtypes.tex",
-		"comments": ""
+		"tex": "12-flowtypes.tex"
+,		"comments": ""
 	},
 	{
 		"date": "10/27",
-		"topic": "Memory side channels",
-		"pdf": "",
-		"tex": "",
+		"topic": "Simple Security, Confinement, &amp; Soundness",
+		"pdf": "13-flowsound.pdf",
+		"tex": "13-flowsound.tex",
 		"comments": ""
 	},
 	{
