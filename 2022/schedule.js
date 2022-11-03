@@ -129,16 +129,16 @@ schedule = [
 	},
 	{
 		"date": "11/1",
-		"topic": "Privacy policies",
-		"pdf": "",
-		"tex": "",
+		"topic": "Authorization, logically",
+		"pdf": "14-auth.pdf",
+		"tex": "14-auth.tex",
 		"comments": ""
 	},
 	{
 		"date": "11/3",
-		"topic": "Provable privacy",
-		"pdf": "",
-		"tex": "",
+		"topic": "Authorization, constructively",
+		"pdf": "14-auth.pdf",
+		"tex": "14-auth.tex",
 		"comments": ""
 	},
 	{
