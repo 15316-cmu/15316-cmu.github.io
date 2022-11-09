@@ -143,9 +143,9 @@ schedule = [
 	},
 	{
 		"date": "11/8",
-		"topic": "Privacy attacks",
-		"pdf": "",
-		"tex": "",
+		"topic": "Bootstrapping trust",
+		"pdf": "15-pki.pdf",
+		"tex": "15-pki.tex",
 		"comments": ""
 	},
 	{
