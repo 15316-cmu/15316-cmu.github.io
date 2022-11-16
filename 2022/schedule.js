@@ -150,21 +150,21 @@ schedule = [
 	},
 	{
 		"date": "11/10",
-		"topic": "Authorization, logically",
+		"topic": "Live coding for Lab 2",
 		"pdf": "",
 		"tex": "",
-		"comments": ""
+		"comments": "See the starter code and documentation for <a href=\"https://github.com/15316-cmu/lab2-2022\">lab 2</a>"
 	},
 	{
 		"date": "11/15",
-		"topic": "Bootstrapping trust",
-		"pdf": "",
-		"tex": "",
+		"topic": "Trusted computing",
+		"pdf": "16-tc.pdf",
+		"tex": "16-tc.tex",
 		"comments": ""
 	},
 	{
 		"date": "11/17",
-		"topic": "Trusted computing",
+		"topic": "Side channels",
 		"pdf": "",
 		"tex": "",
 		"comments": ""
