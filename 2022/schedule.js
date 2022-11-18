@@ -165,8 +165,8 @@ schedule = [
 	{
 		"date": "11/17",
 		"topic": "Side channels",
-		"pdf": "",
-		"tex": "",
+		"pdf": "17-sidechan.pdf",
+		"tex": "17-sidechan.tex",
 		"comments": ""
 	},
 	{
@@ -187,21 +187,21 @@ schedule = [
 	},
 	{
 		"date": "11/29",
-		"topic": "Special topics",
+		"topic": "Privacy vulnerabilities",
 		"pdf": "",
 		"tex": "",
 		"comments": "",
 	},
 	{
 		"date": "12/1",
-		"topic": "Special topics",
+		"topic": "Provable privacy",
 		"pdf": "",
 		"tex": "",
 		"comments": "",
 	},
 	{
 		"date": "12/6",
-		"topic": "Special topics",
+		"topic": "Guest lecture",
 		"pdf": "",
 		"tex": "",
 		"comments": "",
