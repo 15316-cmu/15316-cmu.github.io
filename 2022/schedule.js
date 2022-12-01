@@ -188,15 +188,15 @@ schedule = [
 	{
 		"date": "11/29",
 		"topic": "Privacy vulnerabilities",
-		"pdf": "",
-		"tex": "",
+		"pdf": "18-privacy.pdf",
+		"tex": "18-privacy.tex",
 		"comments": "",
 	},
 	{
 		"date": "12/1",
 		"topic": "Provable privacy",
-		"pdf": "",
-		"tex": "",
+		"pdf": "18-privacy.pdf",
+		"tex": "18-privacy.tex",
 		"comments": "",
 	},
 	{
