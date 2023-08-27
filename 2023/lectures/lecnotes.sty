@@ -1,0 +1,375 @@
+\ProvidesPackage{lecnotes}
+\NeedsTeXFormat{LaTeX2e}
+%%
+%% Copyright (c) 2010-2014 Andre Platzer
+%%
+
+\RequirePackage{fancyhdr}
+\pagestyle{fancyplain}
+\RequirePackage{ifthen}
+
+\RequirePackage{graphicx}
+\DeclareGraphicsExtensions{.pdf,.eps,.png,.jpg}
+\RequirePackage{xxcolor}
+
+% make the page layout not frantically cover the whole page at the expense of plenty of underfull vboxes. Rather, emulate what would happen with automatic \clearpage at the end of each page.
+\raggedbottom
+
+%% instruction to think before turning the page
+\newcommand*{\clearturnpage}[1][Before you read on, see if you can find the answer for yourself.]
+{\par
+#1
+\clearpage}
+
+\newcommand*{\ifteach}[1]{}
+\newcommand*{\teach}[1]{\ifteach{\textcolor{blue}{#1}}}
+\newcommand*{\noteach}[1]{#1}
+
+% [final] version released publicly
+\DeclareOption{final}{
+}
+% [teach] instructor's internal version
+\DeclareOption{teach}{
+\renewcommand*{\noteach}[1]{}%
+\renewcommand*{\ifteach}[1]{#1}%
+\chead[\textbf{\textit{\textcolor{red}{$\triangleright$RECOMPILE$\triangleleft$}}}\hspace{8cm}]{\hspace{8cm}\textbf{\textit{\textcolor{red}{$\triangleright$RECOMPILE$\triangleleft$}}}}
+\renewcommand*{\clearturnpage}[1][Before you read on, see if you can find the answer for yourself.]
+{\smallskip
+#1
+}
+}
+
+\DeclareOption*{\PackageError{lecnotes}{Unknown option `\CurrentOption'}}
+\ProcessOptions\relax
+
+% \bibliographystyle{alphaurl}
+
+%
+% makes bibliography bibitem spacing save trees
+%
+\let\oldbibliography\thebibliography
+\renewcommand{\thebibliography}[1]{%
+  \oldbibliography{#1}%
+  \addtolength{\itemsep}{-6pt}%
+}
+
+
+
+% ugly emulation of SVMult.cls
+\providecommand{\subfigures}{}
+\providecommand{\leftfigure}[1]{#1}
+\providecommand{\rightfigure}[1]{\hfill#1}
+\providecommand{\leftcaption}[1]{\edef\tmpleftcap{#1}}
+\providecommand{\rightcaption}[1]{\caption{\textbf{a} \tmpleftcap\hspace{2cm}\thefigure\textbf{b}: #1}}
+
+\providecommand*{\sidecaption}[1][]{}
+
+%\def\captionstyle{\normalfont\small}
+%\def\floatlegendstyle{\bfseries}
+%
+%\newdimen\figgap\figgap=1cc
+%\long\def\@makesidecaption#1#2{%
+%   \parbox[b]{\@tempdimb}{\captionstyle{\floatlegendstyle
+%                                         #1\floatcounterend}#2}}
+%\def\sidecaption#1\caption{%
+%\setbox\@tempboxa=\hbox{#1\unskip}%
+%\if@twocolumn
+% \ifdim\hsize<\textwidth\else
+%   \ifdim\wd\@tempboxa<\columnwidth
+%      \typeout{Double column float fits into single column -
+%            ^^Jyou'd better switch the environment. }%
+%   \fi
+% \fi
+%\fi
+%\@tempdimb=\hsize
+%\advance\@tempdimb by-\figgap
+%\advance\@tempdimb by-\wd\@tempboxa
+%\ifdim\@tempdimb<3cm
+%    \typeout{\string\sidecaption: No sufficient room for the legend;
+%             using normal \string\caption. }%
+%   \unhbox\@tempboxa
+%   \let\@capcommand=\@caption
+%\else
+%   \let\@capcommand=\@sidecaption
+%   \leavevmode
+%   \unhbox\@tempboxa
+%   \hfill
+%\fi
+%\refstepcounter\@captype
+%\@dblarg{\@capcommand\@captype}}
+%
+%\long\def\@sidecaption#1[#2]#3{\addcontentsline{\csname
+%  ext@#1\endcsname}{#1}{\protect\numberline{\csname
+%  the#1\endcsname}{\ignorespaces #2}}\begingroup
+%    \@parboxrestore
+%    \@makesidecaption{\csname fnum@#1\endcsname}{\ignorespaces #3}\par
+%  \endgroup}
+
+
+% begin palatino.sty
+% copied from palatino.sty, except left ttdefault as CMTT
+\renewcommand{\rmdefault}{ppl}
+\renewcommand{\sfdefault}{phv}
+% \renewcommand{\ttdefault}{pcr}
+% end palatino.sty
+
+\RequirePackage{amssymb}
+\RequirePackage{amsmath}
+\RequirePackage{amsthm}
+\RequirePackage{graphicx}
+
+% \usepackage{proof}
+% \setlength{\inferLineSkip}{4pt}
+
+% \usepackage{code}
+% For code environment
+% \newcommand{\blankline}{\mbox{}} % for \begin{code}...\end{code}
+% \renewcommand{\_}{\char`\_}
+% \renewcommand{\{}{\char`\{}
+% \renewcommand{\}}{\char`\}}
+
+%TODO undo commenting out for TeXShop crashes.
+\ifteach{%
+\newcommand{\href}[2]{#2}%
+\newcommand{\path}[1]{}%
+}%
+\noteach{%
+\RequirePackage[breaklinks=true,
+  colorlinks=true,
+  citecolor=blue,
+  linkcolor=blue,
+  urlcolor=blue,
+  pdfusetitle,
+%  pdfauthor={\lecturer},
+%  pdftitle={\lecid: \lectitle},
+  pdfsubject={\lecid: \leccourse}
+  ]{hyperref}
+}%
+
+%opening
+
+\@ifclassloaded{scrartcl}
+{\title{Lecture Notes on\\{\def\newline{\\}\lectitle}}
+%\subtitle{\lecid: \leccourse}
+\subject{\lecid: \href{\lecurl.html}{\leccourse}}
+\author{\lecturer}
+\date{Carnegie Mellon University\\Lecture~\lecnum}%{ \qquad~\lecdate}
+}
+{
+\@ifclassloaded{article}
+{\title{Lecture Notes on\\{\def\newline{\\}\lectitle}}
+\author{\lecid: \leccourse\\\lecturer}
+\date{Lecture \lecnum \\ \lecdate}
+}
+{\@ifclassloaded{amsart}
+\title{Lecture Notes on\\{\def\newline{\\}\lectitle}}
+\author[\lecturer]{\lecid: \leccourse\\\lecturer}
+%\date{Lecture \lecnum \\ \lecdate}
+\dedicatory{\upshape Carnegie Mellon University \\ Lecture \lecnum \lecdate}
+}}
+
+\setlength{\headheight}{14pt}
+\addtolength{\oddsidemargin}{30pt}
+\addtolength{\evensidemargin}{-22pt}
+
+\lhead[\fancyplain{}{\bfseries L\lecnum.\thepage}]%
+      {\fancyplain{}{\bfseries{\def\newline{}\lectitle}}}
+%\chead[]{}
+\rhead[\fancyplain{}{\bfseries{\def\newline{}\lectitle}}]%
+      {\fancyplain{}{\bfseries L\lecnum.\thepage}}
+\lfoot[{\small\scshape \lecid\ Lecture Notes}]{{\small\scshape \lecid\ Lecture Notes}}
+\cfoot[]{}
+\rfoot[{\def\and{,~}\small\scshape\lecturer}]{{\def\and{,~}\small\scshape\lecturer}}
+
+\cfoot{\ifthenelse{\value{page}=1}{\lecdate}}
+
+%\fancypagestyle{firststyle}
+%{
+%\fancyhf{}
+%%\fancyfoot[L]{\small\scshape \lecid\ Lecture Notes}
+%\fancyfoot[C]{\lecdate}
+%%\fancyfoot[R]{\small\scshape\lecturer}
+%}
+%
+%\AtBeginDocument{
+%\thispagestyle{firststyle}
+%}
+
+\RequirePackage{prettyref}
+\newcommand{\rref}[2][]{\prettyref{#2}}
+\newrefformat{sec}{Sect.\,\ref{#1}}
+\newrefformat{app}{Appendix\,\ref{#1}}
+\newrefformat{def}{Def.\,\ref{#1}}
+\newrefformat{thm}{Theorem\,\ref{#1}}
+\newrefformat{prop}{Proposition\,\ref{#1}}
+\newrefformat{lem}{Lemma\,\ref{#1}}
+\newrefformat{cor}{Corollary\,\ref{#1}}
+\newrefformat{ex}{Example\,\ref{#1}}
+\newrefformat{tab}{Table\,\ref{#1}}
+\newrefformat{fig}{Fig.\,\ref{#1}}
+\newrefformat{case}{case\,\ref{#1}}
+\newrefformat{exc}{Exercise\,\ref{#1}}
+\newrefformat{high}{Note\,\ref{#1}}
+\newrefformat{calculus}{Fig.\,\ref{#1}}
+\newrefformat{exp}{Expedition\,\ref{#1}}
+
+% -------------------------------------------------
+% Colors
+% -------------------------------------------------
+\RequirePackage{xcolor}
+\definecolor{vgreen}{rgb}{.1,.5,0}
+\definecolor{vred}{rgb}{.7,0,0}
+\definecolor{vblue}{rgb}{.1,.15,.62}
+
+% blueish, print well in grayscale
+\definecolor{lsblue}{HTML}{16303A}
+\definecolor{lslightblue}{HTML}{2E6579}
+\definecolor{lsverylightblue}{HTML}{4699B9}
+\definecolor{lsgreen}{HTML}{5ECEF9}
+\definecolor{lslightgreen}{HTML}{54B9DF}
+
+% red-ish
+\definecolor{lsred}{HTML}{B94D5D}
+\definecolor{lslightred}{HTML}{F16579}
+\definecolor{lsdarkred}{HTML}{3A181D}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Environments
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{exercise}{Exercise}
+
+%\newenvironment{proof}{\trivlist \item[\hskip \labelsep{\bf
+%Proof:}]}{\hfill$\Box$ \endtrivlist}
+%\newenvironment{attempt}{\trivlist \item[\hskip \labelsep{\bf
+%Proof attempt:}]}{\hfill$\Diamond$ \endtrivlist}
+
+\newcommand{\ednote}[1]{\footnote{\it #1}\message{ednote!}}
+\newenvironment{note}{\begin{quote}\message{note!}\it}{\end{quote}}
+\newcommand{\highlight}[1]{\par%\vspace{1ex}%
+\framebox{\addtolength{\linewidth}{-1em}\begin{minipage}{\linewidth}#1\end{minipage}}}
+%\vspace{1ex}
+
+% Answers to exercises
+\newcommand{\Answer}[1]{\ignorespaces}
+
+%%%%
+
+\RequirePackage[framemethod=TikZ]{mdframed}
+
+%%\newenvironment{highlighted}
+%%{\fcolorbox{black}{gray}\bgroup}
+%%{\egroup}
+%\newmdenv[%
+%  backgroundcolor=gray!20,
+%%	leftmargin=60,%
+%%	rightmargin=40,
+%%	backgroundcolor=gray!40,%
+%%	innertopmargin=\topskip,%
+%%	splittopskip=\topskip,%
+%%	skipabove=\baselineskip,%
+%%	skipbelow=\baselineskip%
+%  nobreak
+%	]
+%	{highlighted}
+
+\theoremstyle{plain}
+\newmdtheoremenv[%
+  backgroundcolor=blue!10,%
+  outerlinecolor=blue,%
+  outerlinewidth=1,%
+  roundcorner=10pt%
+	leftmargin=40,%
+	rightmargin=40,%
+	innertopmargin=0,%
+	%splittopskip=\topskip,%
+	skipabove=0.4\topskip,%
+	skipbelow=0,%0.1\topskip,%
+  nobreak=true,%
+	]
+	{highlighted}{Note}
+
+%\newenvironment{excursion}
+%{\fcolorbox{black}{gray}\bgroup}
+%{\egroup}
+
+\theoremstyle{remark}
+\newmdtheoremenv[%
+  backgroundcolor=orange!30,
+	leftmargin=40,%
+	rightmargin=40,%
+	innertopmargin=0,%
+	%splittopskip=\topskip,%
+	skipabove=0.4\topskip,%
+	skipbelow=0,%0.1\topskip,%
+%  needspace=3cm
+%         frametitlefont=\bfseries
+	]
+	{expedition}{\bf Expedition}
+
+%%
+%%
+%%
+
+%\lecref[labelwithinfile]{file.pdf}{Description to use}
+\newcommand*{\lecref}[3][]{\href{\lecurl/#2}{#3}}
+
+
+% from \usepackage{editingsupport}
+	
+\providecommand{\ignore}[1]{}
+
+%% \dfn[index entry]{defined word} mark as a defined word with boldface
+\providecommand{\dfn}[2][]{\ifthenelse{\equal{#1}{}}{\index{#2|textbf}}{\index{#1|textbf}}\emph{#2}}
+%% \indx[index entry]{defined word} index without boldface
+\providecommand{\indx}[2][]{\ifthenelse{\equal{#1}{}}{\index{#2}}{\index{#1}}\emph{#2}}
+% \dfnn[index entry]{defined notation} mark as defined notation
+\providecommand{\dfnn}[2][]{\ifthenelse{\equal{#1}{}}{\index{_@\ensuremath{#2}|textbf}}{\index{#1@\ensuremath{#2}|textbf}}\ensuremath{#2}}
+% \indexn[index entry]{defined notation} put notation to index without boldface
+\providecommand{\indexn}[2][]{\ifthenelse{\equal{#1}{}}{\index{_@\ensuremath{#2}}}{\index{#1@\ensuremath{#2}}}}
+
+%\usepackage{tikz}
+%\usetikzlibrary{shapes}
+\newcommand*{\mcancel}[2][thick]{\tikz[baseline] \node [strike out,draw=red,anchor=text,inner sep=0pt,text=black,#1]{\ensuremath{#2}};}  
+
+%% emphasize edited/changed math part
+\providecommand*{\medit}[1]{\boldsymbol{#1}}
+
+% \resourcepointer{file}{description}
+% \resourcepointer*{url}{description}
+
+\newcommand{\resourcepointer}{\@ifstar\resourcepointerStar\resourcepointerNoStar}
+\newcommand*{\resourcepointerStar}[2]{See $\ll$ \href{#1}{#2}$\gg$}
+\newcommand{\resourcepointerNoStar}[2]{See $\ll$\href{\lecurl/#1}{#2}$\gg$}
+
+\usepackage{xcolor}
+\usepackage{listings}
+
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{backgray}{gray}{0.95}
+\lstdefinestyle{customjava}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  language=C,
+  showstringspaces=false,
+  numbers=left,
+  xleftmargin=2em,
+  framexleftmargin=1.5em,
+  numbersep=5pt,
+  numberstyle=\tiny\color{mygray},
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\color{blue},
+  commentstyle=\itshape\color{purple!40!black},
+  tabsize=2,
+  backgroundcolor=\color{backgray},
+  escapechar=\#
+}
