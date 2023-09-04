@@ -1,0 +1,187 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath,amssymb,fullpage,graphicx}
+\let\hat\widehat
+\let\tilde\widetilde
+
+\usepackage{xcolor}
+\usepackage{stmaryrd}
+\usepackage{mathpartir}
+
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{listings} 
+\usepackage{graphicx}
+\usepackage{mathabx}
+\usepackage{multicol}
+% \usepackage{stix}
+%\usepackage{lsyntax}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newenvironment{proof}{\textbf{ Proof.}}{$\Box$}
+
+\newcommand{\answer}[1]{\text{{\it #1}}}
+\newcommand{\solution}[1]{\textbf{Solution:} #1}
+%\newcommand{\solution}[1]{}
+
+\usepackage[irlabel]{bugcatch}
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+%%%% new version of enumerate with less spacing
+\newenvironment{enum}{
+\begin{enumerate}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{enumerate}}
+
+\parskip 10pt
+\parindent 0pt
+\pagenumbering{gobble}
+\newcommand{\note}[1]{\ \\{\small\color{red}\emph{#1}}\\}
+
+\lstset{%
+  basicstyle=\ttfamily,
+  keywordstyle=\bfseries\color{green!60!black},
+  commentstyle=\itshape\color{purple!60!black},
+  stringstyle=\color{orange}
+}
+
+\begin{document}
+
+\begin{center}
+\textbf{ Assignment 1: Safety \& Proof\\15-316 Software Foundations of Security and Privacy}\\
+\end{center}
+Total Points: 50
+
+\vspace{-5mm}
+
+\begin{enumerate}
+
+\item \textbf{The least significant vulnerability (15 points)}
+In lecture we saw several examples of widely-used memory safety defenses that fall short of providing a rigorous guarantee.
+But even defenses that seem strong in principle can leave unprotected vulnerabilities if the defense itself is not implemented correctly.
+
+Consider a memory safety policy that aims to restrict an untrusted program from reading or writing outside the range $\mathtt{0x8000300}$--$\mathtt{0x8000400}$.
+Such a policy would be important on a platform that does not provide a virtual memory system, so all processes must share the same address space, and each is given a specific range to work with.
+To enforce this policy, a runtime monitor interprets each statement of a C-like language, keeping track of the values of variables and pointers.
+Whenever a statement would cause a pointer to be dereferenced, the monitor checks its state to determine the address that the pointer refers to, and terminates the untrusted program if executing the statement would violate the above policy.
+
+For example, suppose that a malicious program author knew that a variable $\mathtt{y}$ had been allocated at $\mathtt{0x80003F2}$, $\mathtt{0xF}$ bytes below the top of the policy region $\mathtt{0x8000400}$.
+The following attempt to violate the policy by reading as many bytes past $\mathtt{y}$ would fail.
+As shown on the right, the monitor keeps track of each variable's address and value, so before a statement executes the monitor can terminate the program, as it would do before the third line is executed: the monitor's state reflects that $\mathtt{x}$ points to $\mathtt{0x8000401}$, so dereferencing this pointer would violate the policy.
+\begin{figure}[h]
+\small
+\hspace*{3em}
+\begin{minipage}{0.35\textwidth}
+\begin{verbatim}
+
+
+int *x = &y;
+x += 0xF;
+printf("Secret is: %d\n", *x);
+\end{verbatim}
+\end{minipage}
+\begin{minipage}{0.45\textwidth}
+\begin{tabular}{lcccc}
+& \multicolumn{4}{c}{\emph{Monitor state}} \\
+& $\mathtt{x}$ & $\mathtt{\&x}$ & $\mathtt{y}$ & $\mathtt{\&y}$ \\
+\hline
+\emph{initial} & $\mathtt{0x0000000}$ & $\mathtt{0x8000300}$ & $\mathtt{0x0000000}$ & $\mathtt{0x80003F2}$ \\
+\emph{after line 1} &  $\mathtt{0x80003F2}$ & $\mathtt{0x8000300}$ & $\mathtt{0x0000000}$ & $\mathtt{0x80003F2}$ \\
+\emph{after line 2} &  $\mathtt{0x8000401}$ & $\mathtt{0x8000300}$ & $\mathtt{0x0000000}$ & $\mathtt{0x80003F2}$
+\end{tabular}
+\end{minipage}
+\end{figure}
+
+However, while the monitor was created to enforce this policy on programs that use 64-bit integers, it was accidentally compiled with a 32-bit compiler.
+This means that the monitor's state is stored in 32-bit words, and so the monitor's state for every variable and address is truncated to 32 bits.
+
+Show how this can be exploited by providing a program that will violate the policy  when executed alongside the buggy monitor, by writing to address $\mathtt{0x8000480}$.
+Remember to also explain in clear language how your program takes advantage of the bug, and why you think that it will violate the policy.
+If it clarifies your answer, please provide a statement-by-statement summary of the monitor's state as in the example above.
+
+% Write your solution here
+%
+\newpage
+
+\item \textbf{Peirce's arrow (25 points)}
+Peirce's arrow is a binary operation over propositions that is true exactly when both of its arguments are false. Formally, its semantics are:
+\[
+I \models \ausfml \downarrow \busfml~\text{iff}~I\nvDash P~\text{and}~I\nvDash Q
+\]
+First, provide inference rules for Peirce's arrow by filling the elided content below (5 points).
+\[
+\cinferenceRule[xorl|$\downarrow$\leftrule]{$\oplus$ left}
+{\linferenceRule[sequent]
+  {\ldots}
+  {\lsequent[L]{\asfml\downarrow\bsfml}{}}
+}{}
+\quad\quad
+\cinferenceRule[xorr|$\downarrow$\rightrule]{$\oplus$ right}
+{\linferenceRule[sequent]
+  {\ldots}
+  {\lsequent[L]{}{\asfml\downarrow\bsfml}}
+}{}
+\]
+Make sure that there are no propositional connectives like conjuction, disjunction, and negation in the premises of your rules.
+For example, the following rule would be invalid because it uses conjunction and negation in the premise:
+\[
+  \cinferenceRule[xorl|$\downarrow$\leftrule]{$\oplus$ left}
+  {\linferenceRule[sequent]
+    {
+      \lsequent[L]{\lnot\ausfml \land \lnot\busfml}{}
+    }
+    {\lsequent[L]{\asfml\downarrow\bsfml}{}}
+  }{}
+\]
+Then, prove that your rules are sound by arguing rigorously, and separately for each rule, that the validity of the premises implies the validity of the conclusion (20 points).
+
+\textbf{Solution.}
+
+% Write your solution here
+%
+
+\newpage
+
+\item \textbf{Functional completeness (10 points)}
+There is more to Peirce's arrow than initially meets the eye: it is one of only two propositional operators that is \emph{functionally complete}, so it plays an important role in several practical applications of logic.
+Functional completeness means that all possible operations over propositions can be defined in terms of Sheffer stroke.
+Thus, we would not lose anything essential if we were to insist that formulas only contain atomic propositions and $\downarrow$ connectives, and this would allow us to define semantics and proof rules for just this one operator.
+
+The following equivalences show how the propositional connectives covered in lecture can be expressed in this way.
+\[
+\begin{array}{ll}
+\mathit{negation}\ \lnot\ausfml \lbisubjunct \ausfml\downarrow\ausfml &
+\mathit{implication}\ \ausfml\limply\busfml \lbisubjunct \ausfml\downarrow(\busfml\downarrow\busfml)
+\\
+\mathit{conjunction}\ \ausfml\land\busfml \lbisubjunct (\ausfml\downarrow\ausfml)\downarrow(\busfml\downarrow\busfml)
+&
+\mathit{disjunction}\ \ausfml\lor\busfml \lbisubjunct (\ausfml\downarrow\busfml)\downarrow(\ausfml\downarrow\busfml)
+\end{array}
+\]
+First, show that the above equivalence for implication ($\limply$) is valid by using your rules from the previous question to write a sequent calculus proof (10 points).
+Note that it can be difficult to typeset proofs that use \irref{equivr}, so you may break your answer into two proofs instead, showing $\ausfml\limply\busfml \lbisubjunct \ausfml\downarrow(\busfml\downarrow\busfml)$ and $\ausfml\downarrow(\busfml\downarrow\busfml) \limply \ausfml\limply\busfml$ as separate trees.
+
+\textbf{Solution.}
+
+% Write your solution here
+%
+
+\newpage
+
+\end{enumerate}
+
+\end{document}
