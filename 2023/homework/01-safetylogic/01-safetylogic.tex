@@ -165,15 +165,17 @@ The following equivalences show how the propositional connectives covered in lec
 \[
 \begin{array}{ll}
 \mathit{negation}\ \lnot\ausfml \lbisubjunct \ausfml\downarrow\ausfml &
-\mathit{implication}\ \ausfml\limply\busfml \lbisubjunct \ausfml\downarrow(\busfml\downarrow\busfml)
+\mathit{implication}\ \ausfml\limply\busfml \lbisubjunct ((\ausfml \downarrow \ausfml) \downarrow \busfml) \downarrow ((\ausfml \downarrow \ausfml) \downarrow \busfml)
 \\
 \mathit{conjunction}\ \ausfml\land\busfml \lbisubjunct (\ausfml\downarrow\ausfml)\downarrow(\busfml\downarrow\busfml)
 &
 \mathit{disjunction}\ \ausfml\lor\busfml \lbisubjunct (\ausfml\downarrow\busfml)\downarrow(\ausfml\downarrow\busfml)
 \end{array}
 \]
-First, show that the above equivalence for implication ($\limply$) is valid by using your rules from the previous question to write a sequent calculus proof (10 points).
-Note that it can be difficult to typeset proofs that use \irref{equivr}, so you may break your answer into two proofs instead, showing $\ausfml\limply\busfml \lbisubjunct \ausfml\downarrow(\busfml\downarrow\busfml)$ and $\ausfml\downarrow(\busfml\downarrow\busfml) \limply \ausfml\limply\busfml$ as separate trees.
+Show that the above equivalence for disjunction ($\lor$) is valid by using your rules from the previous question to write a sequent calculus proof.
+Note that it can be difficult to typeset proofs that use \irref{equivr}, so you may break your answer into two proofs instead, 
+showing $\ausfml\lor\busfml \limply (\ausfml\downarrow\busfml)\downarrow(\ausfml\downarrow\busfml)$ and 
+$(\ausfml\downarrow\busfml)\downarrow(\ausfml\downarrow\busfml) \limply \ausfml\lor\busfml$ as separate trees.
 
 \textbf{Solution.}
 
