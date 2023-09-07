@@ -110,6 +110,7 @@ However, while the monitor was created to enforce this policy on programs that u
 This means that the monitor's state is stored in 32-bit words, and so the monitor's state for every variable and address is truncated to 32 bits.
 
 Show how this can be exploited by providing a program that will violate the policy  when executed alongside the buggy monitor, by writing to address $\mathtt{0x8000480}$.
+If your exploit cannot write to $\mathtt{0x8000480}$, but it can write to a different address that violates the policy, then identify the concrete address that it can write to.
 Remember to also explain in clear language how your program takes advantage of the bug, and why you think that it will violate the policy.
 If it clarifies your answer, please provide a statement-by-statement summary of the monitor's state as in the example above.
 
