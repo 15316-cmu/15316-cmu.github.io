@@ -23,8 +23,8 @@ schedule = [
 	{
 		"date": "9/7",
 		"topic": "Programs &amp; semantics",
-		"pdf": "",
-		"tex": "",
+		"pdf": "03-safety.pdf",
+		"tex": "03-safety.tex",
 		"comments": "",
 	},
 	{
