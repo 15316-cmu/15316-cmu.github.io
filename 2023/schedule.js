@@ -30,8 +30,8 @@ schedule = [
 	{
 		"date": "9/12",
 		"topic": "Dynamic logic",
-		"pdf": "04-dynamic.pdf",
-		"tex": "04-dynamic.tex",
+		"pdf": "04-safetyproofs.pdf",
+		"tex": "04-safetyproofs.tex",
 		"comments": "",
 	},
 	{
