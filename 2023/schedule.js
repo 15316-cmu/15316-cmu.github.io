@@ -29,14 +29,14 @@ schedule = [
 	},
 	{
 		"date": "9/12",
-		"topic": "Proving safety compositionally",
-		"tex": "03-safety.tex",
-		"tex": "",
+		"topic": "Dynamic logic",
+		"pdf": "04-dynamic.pdf",
+		"tex": "04-dynamic.tex",
 		"comments": "",
 	},
 	{
 		"date": "9/14",
-		"topic": "Dealing with repetition",
+		"topic": "Compositional safety",
 		"pdf": "",
 		"tex": "",
 		"comments": "",
