@@ -10,14 +10,14 @@ schedule = [
 		"date": "8/31",
 		"topic": "Safety &amp; logic",
 		"pdf": "02-prop.pdf",
-		"tex": "",
+		"tex": "02-prop.tex",
 		"comments": "<a href=\"lectures/02-safety-intro.pdf\">[slides]</a>"
 	},
 	{
 		"date": "9/5",
 		"topic": "Proof",
 		"pdf": "02-prop.pdf",
-		"tex": "",
+		"tex": "02-prop.tex",
 		"comments": "",
 	},
 	{
@@ -30,7 +30,7 @@ schedule = [
 	{
 		"date": "9/12",
 		"topic": "Proving safety compositionally",
-		"pdf": "",
+		"tex": "03-safety.tex",
 		"tex": "",
 		"comments": "",
 	},
