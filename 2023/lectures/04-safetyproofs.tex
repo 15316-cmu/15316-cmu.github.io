@@ -175,7 +175,7 @@ One thing that dynamic logic does is to make the meaning of contracts, and later
 Like in the semantics for arithmetic formulas, the truth value of a dynamic logic formula depends on a state $\iget[state]{\I}$ that maps variables to values that we will assume are integers. The semantics for terms in Dynamic Logic is the same as before, and so are the semantics for the predicate $\le,=$ and logical connectives $\land,\lor,\ldots$.
 
 \begin{definition}[Semantics of dynamic logic] \label{def:DL-semantics}
-The DL formula $\asfml$ is true in state $\iportray{\I}$, written \(\imodels{\I}{\asfml}\), as inductively defined by distinguishing the shape of formula $\asfml$:
+The DL formula $\asfml$ is true in state $\iportray{\I} \ne \Lambda$, written \(\imodels{\I}{\asfml}\), as inductively defined by distinguishing the shape of formula $\asfml$:
 \begin{enumerate}
 \item \(\imodels{\I}{\astrm=\bstrm}\) iff \(\ivaluation{\I}{\astrm}=\ivaluation{\I}{\bstrm}\)
 
@@ -200,6 +200,9 @@ The DL formula $\asfml$ is true in state $\iportray{\I}$, written \(\imodels{\I}
 \item \(\imodels{\I}{\ddiamond{\asprg}{\asfml}}\) iff there is at least one finite trace $\atrace$ of $\asprg$ starting in $\iget[state]{\I}$ where the final state $\atrace_n \models \ausfml$, i.e.\ there exists \((\atrace_0, \ldots, \atrace_n) \in \iac[\asprg]{\I}\) where \(\atrace_n \models \ausfml\) and \(\atrace_0 = \iget[state]{\I}\).
 \end{enumerate}
 \end{definition}
+
+\paragraph{Truth and $\Lambda$.} 
+There is one important issue that is easy to overlook at the top of definition~\ref{def:DL-semantics}: if the state that we are evaluating a formula in is $\Lambda$, then the formula is neither true nor false. In other words, we will never write either $\Lambda \models P$ or $\Lambda \not\models P$; rather, the meaning of $P$ in the error state $\Lambda$ is undefined. This may seem a bit strange at first, but on further consideration, there is no alternative: there is just \emph{one} error state, so if any formulas were true in $\Lambda$, then we would be forced to arbitrarily decide which ones, and pick equally arbitrary matching values for the variables. This does not serve an obvious purpose.
 
 \begin{lemma}[Determinism] \label{lem:determinism}
   The programs $\asprg$ from \rref{def:deterministic-program} are \dfn{deterministic}, that is, for every initial state $\iget[state]{\I}$ there is at most one trace $\atrace$ such that $\sigma \in \iac[\asprg]{\I}$ and $\sigma_0 = \iget[state]{\I}$.
@@ -330,10 +333,10 @@ Recall the semantics for assert commands:
 \]
 We must show that $\models \dbox{\passert{\ivr}}{\ausfml} \lbisubjunct \ivr \land \ausfml$, so consider any state $\omega$ and show that $\omega \models \dbox{\passert{\ivr}}{\ausfml} \lbisubjunct \ivr \land \ausfml$. We prove the biimplication by proving each implication seperately.
 \begin{enumerate}
-\item[``$\lylpmi$'']
+\item[``$\leftarrow$'']
 Assume the right side $\omega \models \ivr \land \ausfml$, and show that $\omega \models \dbox{\passert{\ivr}}{\ausfml}$. From this assumption, we know that $\omega \models \ivr$, and so by the semantics of assert the only trace in $\iac[\passert{\ivr}]{\I}$ whose initial state is $\omega$ is $(\omega,\omega)$. But our assumption also gives us that $\omega \models \ausfml$, so $\ausfml$ is also true in the final state. Thus, $\omega \models \dbox{\passert{\ivr}}{\ausfml}$.
 
-\item[``$\lylpmi$''] 
+\item[``$\rightarrow$''] 
 Conversely, assume that the left side $\omega \models \dbox{\passert{\ivr}}{\ausfml}$ holds, and show $\omega \models \ivr \land \ausfml$. By the semantics of the box modality in dynamic logic, all finite traces $\sigma \in \iac[\passert{\ivr}]{\I}$ have final states in which $\ausfml$ is true. By the semantics of assert commands, all traces in which $\omega \not\models \ivr$ have \errstate as the final state. So we know that $\omega \models \ivr$, in which case $\sigma = (\omega,\omega)$. We can thus conclude $\omega \models \ivr \land \ausfml$. 
 \qedhere
 \end{enumerate}
@@ -413,9 +416,40 @@ The proof of this axiom is left as an exercise.
 
 \paragraph{Assignments.}
 
-The next case to look into is what we need to prove in order to show the formula \m{\dbox{\pupdate{\umod{x}{\astrm}}}{p(x)}}, which expresses that the formula $p(x)$ holds after the assignment \m{\pupdate{\umod{x}{\astrm}}} that assigns the value of term $\astrm$ to variable $x$.
-How could we reduce this to another logical formula that is simpler?
+The next case to look into is what we need to prove in order to show the formula \m{\dbox{\pupdate{\umod{x}{\astrm}}}{p(x)}}, which expresses that the formula $p(x)$ holds after the assignment \m{\pupdate{\umod{x}{\astrm}}} that assigns the value of term $\astrm$ to variable $x$. The first instinct might be the following axiom for assignment:
+\[
+  [x \leftarrow e]P \leftrightarrow (x = e \rightarrow P) \qquad (\mbox{WRONG})
+\]
+However, this is \emph{not valid} and could therefore lead to unsound
+reasoning. For example, the following is certainly not
+valid
+\[
+  \not\models x = 3 \rightarrow [x \leftarrow x+1] (x = 17)
+\]
+since computing $x \leftarrow x+1$ will set $x$ to $4$ but the
+postcondition requires $x$ to be $17$.  With the wrong axiom we could
+prove:
+\[
+  (x = 3 \rightarrow [x \leftarrow x+1] x = 17) \leftrightarrow
+  (x = 3 \rightarrow ((x = x+1) \rightarrow x = 17))
+\]
+and the right-hand side is true since $x = x+1$ is contradictory.
 
+One approach is to
+\emph{rename} the variable $x$, something we also did when generating
+a verification condition for a loop.  This is handled by
+quantification over a fresh variable that does not occur in $P$.  We
+write $P(x)$ for a formula $P$ with (possible) occurrences of $x$, and
+then $P(x')$ for the result of renaming all occurrences of $x$ to
+$x'$.  Then our axiom becomes
+\[
+  [x \leftarrow e]P(x) \leftrightarrow (\forall x'.\, x' = e \rightarrow P(x'))
+\]
+It is important for soundness that $x'$ is a variable that does not
+already occur in $e$ or $P(x)$.  We often refer to this as a ``fresh
+variable''.
+
+An equivalent way to express this axiom, without needing to a quantifier for each variable, is to use \emph{uniform substitution}.
 If we want to show that the formula $p(x)$ holds after assigning the new value $\astrm$ to variable $x$ then we might as well show $p(\astrm)$ right away.
 And, in fact, $p$ is true of $x$ after assigning $\astrm$ to $x$ if and only if $p$ is true of its new value $\astrm$.
 That is, the formula \m{\dbox{\pupdate{\umod{x}{\astrm}}}{p(x)}} is equivalent to the formula \m{p(\astrm)}.
@@ -441,8 +475,7 @@ If we were to attempt replacing $x$ with a fresh variable $z$ in $x < 10$, then 
 \[
 [x := y](z < 10)
 \]
-The other type of construct that is able to bind variables are the quantifiers $\exists x. p(x)$ and $\forall x. p(x)$.
-Replace the assignment box with a quantifier in the example above to confirm that this is really the case!
+The fact that we need to exercise care in this manner when using the uniform substitution axiom is its primary drawback compared to the version that uses a universal quantifier. In the latter, we only need to quickly scan the formula to find a variable that isn't used \emph{anywhere}, i.e., is fresh, and then use that variable in the quantifier. If we perform a substitution incorrectly and capture a non-free variable, then we may end up with a formula that is not equivalent to the one we started with.
 
 \paragraph{More about variable binding.}
 When substituting free variables in formulas as the assignment axiom tells us to do, we never replace the variables bound by other assignments and quantifiers.

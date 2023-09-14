@@ -37,8 +37,8 @@ schedule = [
 	{
 		"date": "9/14",
 		"topic": "Compositional safety",
-		"pdf": "",
-		"tex": "",
+		"pdf": "04-safetyproofs.pdf",
+		"tex": "04-safetyproofs.tex",
 		"comments": "",
 	},
 	{
