@@ -51,8 +51,8 @@ schedule = [
 	{
 		"date": "9/21",
 		"topic": "Software fault isolation",
-		"pdf": "",
-		"tex": "",
+		"pdf": "06-sfi.pdf",
+		"tex": "06-sfi.tex",
 		"comments": "",
 	},
 	{
