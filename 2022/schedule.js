@@ -81,14 +81,14 @@ schedule = [
 		"topic": "Inline reference monitoring",
 		"pdf": "08-automata.pdf",
 		"tex": "08-automata.tex",
-		"comments": "<a href=\"lectures/09-316-z3-live.html\">[live code html]</a><a href=\"lectures/09-316-z3-live.ipynb\">[live code notebook]</a>"
+		"comments": ""
 	},
 	{
 		"date": "10/11",
 		"topic": "Lab 1 intro &amp; live coding",
 		"pdf": "",
 		"tex": "",
-		"comments": "<a href=\"lectures/10-lab1-live.html\">[live code html]</a><a href=\"lectures/10-lab1-live.ipynb\">[live code notebook]</a>"
+		"comments": ""
 	},
 	{
 		"date": "10/13",
