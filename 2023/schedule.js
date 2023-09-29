@@ -67,7 +67,7 @@ schedule = [
 		"topic": "Lab 1: Intro &amp; demo",
 		"pdf": "",
 		"tex": "",
-		"comments": "See <a href=\"https://github.com/15316-cmu/lab1-2023\">lab handout</a>",
+		"comments": "See <a href=\"https://github.com/15316-cmu/lab1-2023\">lab handout</a>. <a href=\"lectures/07-lab1-live.ipynb\">[notebook]</a> <a href=\"lectures/07-lab1-live.html\">[html]</a>",
 	},
 	{
 		"date": "10/3",
