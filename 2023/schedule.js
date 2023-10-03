@@ -72,8 +72,8 @@ schedule = [
 	{
 		"date": "10/3",
 		"topic": "Security automata",
-		"pdf": "",
-		"tex": "",
+		"pdf": "08-automata.pdf",
+		"tex": "08-automata.tex",
 		"comments": "",
 	},
 	{
