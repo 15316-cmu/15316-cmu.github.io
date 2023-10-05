@@ -78,9 +78,9 @@ schedule = [
 	},
 	{
 		"date": "10/5",
-		"topic": "Control flow integrity",
-		"pdf": "",
-		"tex": "",
+		"topic": "Enforcing any safety property",
+		"pdf": "08-automata.pdf",
+		"tex": "08-automata.tex",
 		"comments": "",
 	},
 	{
