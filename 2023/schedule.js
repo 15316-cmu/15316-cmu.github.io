@@ -116,8 +116,8 @@ schedule = [
 	{
 		"date": "10/24",
 		"topic": "Authorization, logically",
-		"pdf": "",
-		"tex": "",
+		"pdf": "09-auth.pdf",
+		"tex": "09-auth.tex",
 		"comments": "",
 	},
 	{

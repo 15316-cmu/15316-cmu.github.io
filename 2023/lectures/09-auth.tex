@@ -1,0 +1,568 @@
+\documentclass[11pt,twoside]{scrartcl}
+%\documentclass[11pt,twoside]{article}
+
+%opening
+\newcommand{\lecid}{15-316}
+\newcommand{\leccourse}{Software Foundations of Security and Privacy}
+\newcommand{\lecdate}{} %e.g. {October 21, 2013}
+\newcommand{\lecnum}{9}
+\newcommand{\lectitle}{Authorization, Logically}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecurl}{https://15316-cmu.github.io/index}
+
+\usepackage{varwidth}
+\usepackage{lecnotes}
+\usepackage[irlabel]{bugcatch}
+
+\usepackage{tikz}
+\usetikzlibrary{automata,shapes,positioning,matrix,shapes.callouts,decorations.text,patterns,decorations.pathreplacing,matrix,arrows,chains,calc}
+
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\sqsubseteqftrule{L}%
+% \def\rightrule{R}%
+
+\begin{document}
+
+\newcommand{\atrace}{\omega}%
+%% the standard interpretation naming conventions
+\newcommand{\stdI}{\dTLint[state=\omega]}%
+\newcommand{\Ip}{\dTLint[trace=\atrace]}%
+\newcommand{\ws}{\omega}\newcommand{\wt}{\nu}% 
+
+\newcommand{\aff}[2]{\ensuremath{#1~\keywordfont{aff}~#2}}
+\newcommand{\ownsr}{\ensuremath{\keywordfont{owns}}}
+\newcommand{\isfac}{\ensuremath{\keywordfont{isFaculty}}}
+\newcommand{\studof}{\ensuremath{\keywordfont{studentOf}}}
+\newcommand{\canopen}{\ensuremath{\keywordfont{canOpen}}}
+\newcommand{\matt}{\ensuremath{\keywordfont{mfredrik}}\xspace}
+\newcommand{\tli}{\ensuremath{\keywordfont{alice}}\xspace}
+\newcommand{\admin}{\ensuremath{\keywordfont{admin}}\xspace}
+\newcommand{\office}{\ensuremath{\keywordfont{cic2126}}\xspace}
+
+\newdimen{\linferenceRulehskipamount}
+\linferenceRulehskipamount=2em
+  \linferenceRulevskipamount=0.6em
+
+% \newcommand{\lowt}{\lowsec}
+% \newcommand{\hight}{\hisec}
+
+\lstdefinestyle{customc}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  language=C,
+  showstringspaces=false,
+  numbers=none,
+  % xleftmargin=1ex,
+  framexleftmargin=1ex,
+  % numbersep=5pt,
+  % numberstyle=\tiny\color{mygray},
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\color{blue},
+  commentstyle=\itshape\color{purple!40!black},  
+  stringstyle=\color{orange},
+  morekeywords={output,assume,observe,input,bool,then,fun,match,in,val,list,type,of,string,unit,let,bytes,mov,imul,add,sar,shr,function,forall,nat,requires,ensures,method,returns,assert,new,array,modifies,reads,old,predicate,lemma,seq,calc,nan,var,exists,invariant,decreases,datatype,declassify,uint8},
+  tabsize=2,
+  deletestring=[b]',
+  backgroundcolor=\color{gray!15},
+  frame=tb
+}
+\lstset{escapechar=@,style=customc}
+
+\maketitle
+\thispagestyle{empty}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+
+We have discussed several mechanisms for ensuring that programs and the principals who use them do not violate security goals. Starting with safety policies, we discussed a general approach for describing such goals using security automata that monitor the execution of a system to ensure that ``bad things'' that violate the policy never happen. 
+Then we moved on to information flow policies, which can be enforced by type systems or verified using composition techniques. We saw how they are useful in preventing unwanted leakage of secret data or the incursion of untrusted data into critical parts of the system.
+
+In both cases, we implicitly worked under a sort of \emph{closed-world} assumption that allows both policy author and enforcement mechanism to assume knowledge of who will use the program (and thus who the target of enforcement is), and what the entire global policy to enforce will be. A centralized enforcement mechanism---be it a reference monitor or type checker---can then uniformly apply the policy when needed.
+
+In many settings it is unrealistic to make such assumptions. In particular when the system in question is distributed among multiple autonomous locations and used by principals who trust eachother to varying degrees, decisions about which principals are authorized to carry out actions become complicated. The enforcement mechanism must solve two problems: learn the true identity of the requesting party (i.e., \emph{authentication}), and determine whether they are allowed to make the request (i.e., \emph{authorization}).
+
+Today we will begin discussing a logical formulation of the authorization problem. The type of formalism that we will cover was pioneered by Lampson, Abadi, Burrows, and Wobber in the early 1990's~\cite{Lampson1992}, and is an instance of what is known as \emph{authorization logic}. We will learn how to express security policies for distributed systems using authorization logic, and to reason about policy decisions using formal proof.
+
+\section{A motivating example}
+
+The doors in the CyLab portion of the CIC building are controlled by a system called Grey, which allows CyLab faculty, students, and staff to unlock rooms from a mobile app or via Bluetooth sensors on their phones. This makes it easy for CyLab to provision access to rooms in a flexible manner without having to copy and distribute physical keys. For example, each faculty member has an office, which from the perspective of the access control policy that member ``owns'' and should be given unconditional access to. Some faculty are given additional space for lab equipment and experimental setup, and in general CyLab may want to institute a policy where students of such faculty are given access to the lab.
+
+If we were to formalize this, we might define several predicates: $\ownsr(A,R)$ denotes that $A$ owns room $R$; $\studof(B,A)$ denotes that $B$ is a student of $A$; and $\canopen(A,R)$ denotes that $A$ can open room $R$. 
+Then the most basic rule of CyLab's policy might read as shown in Equation~\ref{eq:ac1}.
+\begin{equation}
+\label{eq:ac1}
+P_1 \equiv \forall A.\forall R. \ownsr(A,R) \limply \canopen(A,R)
+\end{equation}
+Going further, we could define a second component of CyLab's policy as shown in Equation~\ref{eq:ac2}.
+\begin{equation}
+\label{eq:ac2}
+P_2 \equiv \forall A.\forall B.\forall R. \ownsr(A,R) \limply \studof(B,A) \limply \canopen(B,R)
+\end{equation}
+Then if student $B$ of professor $A$ wants to access the lab in room $R$, the device controlling the lock on $R$ should decide whether to grant $B$ access by constructing a proof of the judgement in Equation~\ref{eq:acjudge1}.
+\begin{equation}
+\label{eq:acjudge1}
+\lsequent{P_1,P_2,\ownsr(A,R),\studof(B,A)}{\canopen(B,R)}
+\end{equation}
+The assumptions on the left of the sequent contain CyLab's policy $P_1,P_2$, as well as the basic facts $\ownsr(A,R),\studof(B,A)$. You should be able to check that this will work as intended using the rules of first-order sequent calculus.
+
+Perhaps the most important question to ask at this point is, who provides and maintains the basic facts like $\studof(B,A)$? The most obvious answer would be the system administrator who is charged with making sure that Grey functions securely and appropriately for the CyLab residents. But is it reasonable to ask the sysadmin to keep track of who each of the approximately 100 CyLab graduate students are, and which rooms they should be granted access to? Keep in mind that students routinely join CyLab, switch advisors, and leave after graduation. This solution also requires the sysadmin to keep track of undergraduate students who help with faculty research projects for a semester, summer interns, and visiting researchers, so in a typical month the sysadmin may need to deal with adding and removing dozens of entries from the policy assumptions.
+
+Even for an organization as small as CyLab it seems that tasking the sysadmin with full responsibility of managing authorization and identity will not scale. Needless to say, if Grey were scaled up to a larger organization, such as the entire university, then the unfortunate sysadmin's job would quickly become untenable.
+
+\section{Formalizing policy intent: $\says{A}{\ausfml}$}
+
+Rather than leaving the administrator to sort all this out and make sure that it is maintained up-to-date, we will extend our logical reasoning with a new construct that expresses the intent of various principals. We use the syntax shown in (\ref{eq:says}), which represents that principal $A$ makes statement $\ausfml$.
+\begin{equation}
+\label{eq:says}
+\says{A}{\ausfml}
+\end{equation}
+In (\ref{eq:says}), $\ausfml$ is a predicate that denotes some fact relevant to the authorization policy. For example, we might write $\says{\mathtt{admin}}{\keywordfont{canModify}(\mathtt{Bob},\mathtt{/etc/passwd},\mathtt{modify})}$ to denote the fact that principal \verb'admin' states that \verb'Bob' is allowed to modify \verb'/etc/passwd'. Going back to our example from before, we would re-write Equation~\ref{eq:ac1} using \verb'says' as shown in Equation~\ref{eq:ac3}.
+\begin{equation}
+\label{eq:ac3}
+P_1 \equiv \says{\mathtt{admin}}{(\forall A.\forall R. \ownsr(A,R) \limply \canopen(A,R))}
+\end{equation}
+Eq.~\ref{eq:ac3} denotes a statement of policy made by the \verb'admin' principal. Other principals can make statements as well, and indeed this was one of our motivations for introducing \verb'says' was to distribute the job of managing priveleges among users to other trusted principals. So if Professor $A$ wishes to allow their student $B$ access to lab facilities owned by them, they can make the appropriate statement as shown in Eq.~\ref{eq:ac4}.
+\begin{equation}
+\label{eq:ac4}
+\says{A}{\studof(B,A)}
+\end{equation}
+Now if \verb'admin' trusts professors, who are the only principals allowed to ``own'' rooms in this hypothetical scenario, to make honest statements about who their students are, then the policy line from Eq.~\ref{eq:ac2} can be updated as shown in Eq.~\ref{eq:ac5}.
+\begin{multline}
+\label{eq:ac5}
+P_2 \equiv \says{\mathtt{admin}}{(\forall A.\forall B.\forall R. \ownsr(A,R) \\ \limply (\says{A}{\studof(B,A)}) \limply \canopen(B,R))}
+\end{multline}
+The \verb'says' construct is surprisingly powerful in its simplicity. For example, suppose that \verb'admin' decided to allow those with access to a room the ability to grant others access. This can be accomplished with,
+\begin{multline}
+\says{\mathtt{admin}}{((\says{A}{\canopen(B,R)}) \limply \canopen(A,R) \limply \canopen(B,R))}
+\end{multline}
+This policy says the following: \verb'admin' states that if $A$ says $B$ can unlock $R$, then if $A$ can unlock $R$, then $B$ is allowed to unlock $R$.
+
+In short, \verb'says' allows us to write formulas that express the security-relevent intentions of various principals. This allows us to consider situations where there is no global authorization policy, but there are instead pre-existing trust relationships between the various principals. 
+
+In our running example, the endpoint devices responsible for unlocking doors in CyLab would be configured to only trust statements made by \verb'admin'. As we will see in the rest of the lecture, we can formulate reasoning principals for deriving such statements in the form of \verb'says' formulas from policy formulas taken as assumptions. So when principal $A$ attempts to unlock door $R$, $A$'s phone will send a message to the device controlling the lock, to the effect of ``on the authority of \verb'admin', I (user $A$) am allowed to open door $R$''. Formally,
+\begin{equation}
+\says{\mathtt{admin}}{\canopen(A,R)}
+\end{equation}
+The endpoint device controlling the lock will then attempt to verify this claim against its policy $\Gamma$, by a process tantamount to closing out a sequent calculus proof of the judgement shown in Equation~\ref{eq:acjudge2}.
+\begin{equation}
+\label{eq:acjudge2}
+\lsequent{\Gamma}{\says{\mathtt{admin}}{\canopen(A,R)}}
+\end{equation}
+
+We'll finish this section by pointing out that it need not be the job of the endpoint to construct a proof of Eq.~\ref{eq:acjudge2}. In fact, the way that the actual Grey implementation works~\cite{Bauer2005} is an instance of \emph{proof-carrying authorization}~\cite{ChaudhuriG09}, wherein the principal who wishes to gain access is responsible for constructing a proof that they are authorized to do so. This is an overall ``win'' in terms of performance, because the party can often cache proofs for accesses that they are likely to require often, and all that the endpoint needs to do is check the proof which can be done efficiently.
+
+\begin{figure}
+\fbox{
+\begin{minipage}{\textwidth}
+{\large \textbf{\emph{Aside}}: \textbf{When to trust \keywordfont{says}}}
+\\[1ex]
+Access control is about \emph{authentication} and \emph{authorization}. Authentication addresses the problem of identifying principals, whereas authorization deals with the question of which actions principals are allowed to take. The logic that we are discussing in today's lecture is a formal system for describing and reasoning about authorization decisions, and leaves the matter of authentication unaddressed.
+\\[1ex]
+It may be helpful to think of \keywordfont{says} as abstracting away the details of authentication, and when working with a formula $\says{A}{\ausfml}$ to simply assume that whatever the system in question may be, it has a reliable way of determining that $A$ did in fact make statement $\ausfml$. In practice, there are a number of ways to establish such a fact. For example, the system might run on an operating system that required $A$ to login using a password, after which $A$ stated $\ausfml$ on a local channel within the trusted OS. Alternatively, $A$ may be using trusted hardware that identifies them, and is connected to a physically-secure channel between two machines.
+\\[1ex]
+Perhaps the most common way in which this trust is established uses cryptographic digital signatures. The details of how digital signatures work is outside the scope of this class (interested readers are referred to Chapter 12 of Katz \& Lindell~\cite{Katz2014}), but for the purposes of this material it suffices to say that there are algorithms for constructing messages that \emph{1)} cannot be forged by those who do not posess a secret key; and \emph{2)} can be efficiently attributed to their originator, who holds the secret key. Such schemes can be used to sign statements like $\says{A}{\ausfml}$, so that if $A$'s secret key was used to construct the signature then others can verify that $A$ did indeed make statement $\ausfml$.
+\end{minipage}
+}
+\end{figure}
+
+\section{Reasoning principles}
+
+Now that we have seen how to formalize a few basic access control policies using the \verb'says' construct, we turn to the matter of reasoning about when access to a resource should be granted under such a policy. 
+We will develop formal reasoning principles that allow us to construct proofs of judgements like the one in Eq.~\ref{eq:acjudge2}, with the understanding that \textbf{access is to be granted exactly when one can construct a proof of an authorization statement}.
+
+In the past when we have developed proof rules and conducted proofs, our goal was concerned with the truth of propositions, and eventually the validity of formulas. 
+When reasoning about authorization, we still need to reason about the ultimate truth of propositions, but we are also concerned with what various principals intend to \emph{affirm}.
+Note that there is a subtle difference between what is \textbf{objectively true} and what an individual may be willing to affirm.
+While we may expect any reasonable individual to affirm any true fact, it may be problematic if we also expect individuals to refuse affirmation of facts that are not true, or at the very least cannot be supported rigorously.
+If we were to equate principal's affirmations with true propositions, taking them to be one and the same, we might find ourselves in the uncomfortable position of accepting absurd, contradictory propositions at face value!
+Needless to say, we want to be a bit more cautious when reasoning about authorization decisions.
+
+To account for this shift in our goals, we will introduce a new type of judgement into the logic, as shown in Equation~\ref{eq:affirm}.
+\begin{equation}
+\label{eq:affirm}
+\lsequent{\Gamma}{\aff{A}{\ausfml}}
+\end{equation}
+The judgement in (\ref{eq:affirm}) reads, ``from assumptions $\Gamma$, it follows that principal $A$ affirms $\ausfml$.'' The logic that we will study includes rules for proving such judgements, in addition to the normal type of judgement that concerns the truth of a formula given assumptions. 
+Although we simply wrote $\lsequent{\Gamma}{\ausfml}$ for such judgements before, we will now disambiguate them by appending the syntax $\strue$, as shown in Equation~\ref{eq:std}.
+\begin{equation}
+\label{eq:std}
+\lsequent{\Gamma}{\ausfml~\strue}
+\end{equation}
+Eq.~\ref{eq:std} is read as ``from assumptions $\Gamma$, the proposition $\ausfml$ logically follows.'' This is distinct from (\ref{eq:affirm}), which is a statement about what can be concluded about what a principal will affirm from a set of assumptions. 
+In simple terms, (\ref{eq:std}) is a statement that is independent of the beliefs, statements, or perspective of any principal.
+
+It is also important to note that $\aff{A}{\ausfml}$ is not a proposition itself, but rather a judgement that can be supported by virtue of a proof. 
+So for example, it does not necessarily make sense to write something like Equation~\ref{eq:affirm-nonsense}, which says that if principal $A$ affirms proposition $P$ then principal $B$ does as well.
+\begin{equation}
+\label{eq:affirm-nonsense}
+\aff{A}{\ausfml} \limply \aff{B}{\ausfml}
+\end{equation} 
+However, $\says{A}{\ausfml}$ \emph{is} a proposition--a statement that is either true or false--that we would very much like to reason about, because when making authorization decisions it is essential to know what statements principals are willing to make.
+Thinking back to our running example from (\ref{eq:acjudge2}), we would ultimately like to reason about whether \verb'admin' is willing to state that $A$ can open $R$.
+
+\subsection{Relating \says{}{} and \aff{}{}}
+So how do we relate the judgements $(\says{A}{\ausfml})~\strue$ and $\aff{A}{\ausfml}$? 
+The first rule \irref{saysr} that we introduce for doing so lets us reason that if $A$ affirms $\ausfml$ under assumptions $\Gamma$, then $A$ is willing to state $A$ under those assumptions.
+\[
+\cinferenceRule[saysr|SaysR]{saysr}
+{\linferenceRule[sequent]
+  {
+    \lsequent{\Gamma}{\aff{A}{\ausfml}}
+  }
+  {\lsequent{\Gamma}{(\says{A}{\ausfml})~\strue}}
+}{}%
+\]
+The rule \irref{saysr} tells us how to reason when $\says{A}{\ausfml}$ is on the right side of a sequent, and our goal is to prove the truth of such a statement. 
+The reasoning principle embodied in this rule requires that in order to prove $\says{A}{\ausfml}$ under $\Gamma$, we must be able to prove $\aff{A}{\ausfml}$ under $\Gamma$.
+In other words, \textbf{principals are willing to state anything that they affirm.}
+
+How do we make use of \says{}{} formulas, i.e., what do we do when $\says{A}{\ausfml}$ appears on the left side of a sequent? 
+One possibility is simply to conclude that if $A$ states $\ausfml$, then $\ausfml~\strue$. 
+But after some thought, this rule is not satisfactory, because it allows principals to fabricate truth from statements, which we determined earlier would be problematic. 
+What would happen if our policy context had principals that stated contradictory things? For example, this could happen if one were to assume (\ref{eq:contassump}) in addition to the Grey policies $P_1,P_2$ from Eqs.~\ref{eq:ac3},\ref{eq:ac5}.
+\begin{equation}
+\label{eq:contassump}
+\studof(B,A),\ownsr(A,R),\canopen(B,R)\limply\lfalse
+\end{equation}
+We certainly do not want to admit proofs of $\lfalse~\strue$, and requiring that principals \emph{only} say true things seems difficult to enforce, to say the least. 
+Instead, if we have the assumption $(\says{A}{\ausfml})~\strue$, then perhaps we can more reasonably use it to conclude that $A$ affirms some other proposition $\busfml$, $\aff{A}{\busfml}$. 
+But when should we be able to conclude that $\aff{A}{\busfml}$ from assumption $(\says{A}{\ausfml})~\strue$? We can reason that if $A$ is willing to affirm $\busfml$ assuming that $A$ is willing to state $\ausfml$, then requiring a proof of $\ausfml~\strue$ to justify $A$'s statement is the logical requirement. This is captured in the rule \irref{saysl} below.
+\[
+\cinferenceRule[saysl|SaysL]{saysl}
+{\linferenceRule[sequent]
+  {
+    \lsequent{\Gamma,\ausfml~\strue}{\aff{A}{\busfml}}
+  }
+  {\lsequent{\Gamma,(\says{A}{\ausfml})~\strue}{\aff{A}{\busfml}}}
+}{}%
+\]
+Now we have left and right rules for \verb'says' formulas. Looking at them together, we can see that their premises work together in a useful way that lets us reason about the affirmations of a principal. Namely, if $\lsequent{\Gamma}{\aff{A}{\ausfml}}$ and $\lsequent{\Gamma,A~\strue}{\aff{A}{\busfml}}$, then the rules let us reason that $\lsequent{\Gamma}{\aff{A}{\busfml}}$. This should remind you of the \irref{cut} rule from propositional sequent calculus earlier in the semester, as it captures similar reasoning for affirmations.
+
+Finally, we must address the question of when it is appropriate to conclude that $A$ affirms a statement $\ausfml$ in the first place. Note that \irref{saysl} doesn't quite solve this problem, as the obligation that it introduces itself contains an affirmation judgement. The rule \irref{aff} below says that any principal is willing to affirm true propositions.
+\[
+\cinferenceRule[aff|Aff]{aff}
+{\linferenceRule[sequent]
+  {
+    \lsequent{\Gamma}{\ausfml~\strue}
+  }
+  {\lsequent{\Gamma}{\aff{A}{\ausfml}}}
+}{}%
+\]
+Together with \irref{saysl} and \irref{saysr}, \irref{aff} gives us everything necessary to reason about authorization formulas.
+
+\subsection{Revisiting connectives}
+We could add the term $\says{A}{\ausfml}$ to first-order predicate calculus, and use the rules from the previous section along with all the others that we learned earlier in the semester. But consider the judgement in Equation~\ref{eq:badthm}, which says that if $A$ says $\ausfml$, then either $\ausfml$ must be true or $A$ is willing to state $\lfalse$.
+\begin{equation}
+\label{eq:badthm}
+((\says{A}{\ausfml}) \limply (\lnot\ausfml \limply (\says{A}{\lfalse})))~\strue
+\end{equation}
+This seems like a bad theorem to have in our logic, because it places a strong burden on principals: either they must always say true things, or if they don't then we must conclude that they are willing to say \emph{anything}---even $\lfalse$! But is this a theorem? Let's see if we can derive a proof.
+\begin{sequentdeduction}[array]
+\linfer[implyr+implyr] {
+  \linfer[saysr] {
+    \linfer[saysl] {
+      \linfer[notl] {
+        \linfer[id] {\lclose} {
+          \lsequent{\ausfml~\strue}{\ausfml~\strue,\aff{A}{\lfalse}}
+        }
+      } {
+        \lsequent{\ausfml~\strue,\lnot\ausfml~\strue}{\aff{A}{\lfalse}}
+      }
+    } {
+      \lsequent{(\says{A}{\ausfml})~\strue,\lnot\ausfml~\strue}{\aff{A}{\lfalse}}
+    }
+  } {
+    \lsequent{(\says{A}{\ausfml})~\strue,\lnot\ausfml~\strue}{(\says{A}{\lfalse})~\strue}
+  }
+} {
+  \lsequent{}{((\says{A}{\ausfml}) \limply (\lnot\ausfml \limply (\says{A}{\lfalse})))~\strue}
+}
+\end{sequentdeduction}
+Indeed we are able to derive a proof, so it seems that if we allow our rules from before, or at the very least \irref{implyr}, \irref{notl}, then we would have to accept this consequence.
+
+An alternative was proposed by Garg and Pfenning in 2006~\cite{Garg06}. They pointed out that the above is actually a consequence of admitting the \emph{law of excluded middle} (LEM) into the logic, which says that $\ausfml \lor \lnot\ausfml$. In particular, LEM is a consequence of our right negation and implication rules, and the fact that sequents can contain multiple formulas on the right as a disjunction.
+They proposed a \emph{constructive} authorization logic, in which LEM is not a theorem. The syntax of their logic is shown in (\ref{eq:consyntax}), and the proof rules are given in Figure~\ref{fig:rules}.
+Note that each of the sequents can have multiple assumptions, reflected in $\Gamma$ as before, but is restricted to having exactly one consequent.
+\begin{equation}
+\label{eq:consyntax}
+\ausfml,\busfml \bebecomes
+p(\astrm_1,\ldots,\astrm_n) \alternative
+\ltrue \alternative
+\lfalse \alternative
+\ausfml \limply \busfml \alternative
+\forall x.\ausfml \alternative
+\says{A}{\ausfml}
+\end{equation}
+
+\begin{figure}
+\fbox{
+\begin{minipage}{0.99\textwidth}
+\centering
+\begin{calculus}
+\cinferenceRule[falsel|$\perp$\leftrule]{false left}
+{\linferenceRule[sequent]
+  {\ }
+  {\lsequent{\Gamma,\perp~\strue}{\ausfml~\strue}}
+}{}%
+\end{calculus}
+\quad\quad\quad\quad
+\begin{calculus}
+\cinferenceRule[id|id]{identity}
+{\linferenceRule[sequent]
+  {}
+  {\lsequent{\Gamma,\asfml~\strue}{\asfml~\strue}}
+}{}%
+\end{calculus}
+\\[1em]
+\begin{calculus}
+\cinferenceRule[implyl|$\limply$\leftrule]{$\limply$ left}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma}{\asfml~\strue}
+    & \lsequent{\Gamma,\bsfml~\strue}{\csfml~\strue}}
+  {\lsequent{\Gamma,(\asfml \limply \bsfml)~\strue}{\csfml~\strue}}
+}{}%
+\\
+\cinferenceRule[alll|$\forall$\leftrule]{forall left}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma,F(\astrm)~\strue}{\asfml~\strue}}
+  {\lsequent{\Gamma,\forall x.F(x)~\strue}{\asfml~\strue}}
+}{}
+\\
+\cinferenceRule[saysl|SaysL]{saysl}
+{\linferenceRule[sequent]
+  {
+    \lsequent{\Gamma,\ausfml~\strue}{\aff{A}{\busfml}}
+  }
+  {\lsequent{\Gamma,(\says{A}{\ausfml})~\strue}{\aff{A}{\busfml}}}
+}{}%
+\end{calculus}
+\quad\quad\quad\quad
+\begin{calculus}
+\cinferenceRule[implyr|$\limply$\rightrule]{$\limply$ right}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma,\asfml~\strue}{\bsfml~\strue}}
+  {\lsequent{\Gamma}{(\asfml \limply \bsfml)~\strue}}
+}{}%
+\\
+\cinferenceRule[allr|$\forall$\rightrule]{forall right}
+{\linferenceRule[sequent]
+  {\lsequent{\Gamma}{{}F(y)~\strue}}
+  {\lsequent{\Gamma}{{}\forall x.F(x)~\strue}}
+}{\text{$y$ new}}
+\\
+\cinferenceRule[saysr|SaysR]{saysr}
+{\linferenceRule[sequent]
+  {
+    \lsequent{\Gamma}{\aff{A}{\ausfml}}
+  }
+  {\lsequent{\Gamma}{(\says{A}{\ausfml})~\strue}}
+}{}%
+\end{calculus}
+\\[1em]
+\cinferenceRule[aff|Aff]{aff}
+{\linferenceRule[sequent]
+  {
+    \lsequent{\Gamma}{\ausfml~\strue}
+  }
+  {\lsequent{\Gamma}{\aff{A}{\ausfml}}}
+}{}%
+\end{minipage}
+}
+\caption{\label{fig:rules} Proof rules for authorization logic of Garg and Pfenning~\cite{Garg06}.}
+\end{figure}
+
+\subsection{Back to the example}
+
+Now that we have proof rules to reason about authorization decisions, let us return to our example about CyLab's Grey system. To keep our judgements less cluttered, we will now drop the $\strue$ notation from standard judgements of truth whenever no confusion will arise between them and affirmation judgements.
+
+Recall that our system-wide policy was comprised of two formulas of authorization logic. The first $P_1$ reflects that the administrator states that anyone who owns a room is allowed to unlock it.
+\[
+P_1 \equiv \says{\mathtt{admin}}{(\forall A.\forall R. \ownsr(A,R) \limply \canopen(A,R))}
+\]
+The second says that students of faculty who own a room are also allowed to unlock that room.
+\begin{multline*}
+P_2 \equiv \says{\mathtt{admin}}{(\forall A.\forall B.\forall R. \ownsr(A,R) \\ \limply (\says{A}{\studof(B,A)}) \limply \canopen(B,R))}
+\end{multline*}
+We'll label a few more subformulas just to keep the proof uncluttered.
+\begin{align*}
+P_3 &\equiv \forall A.\forall B.\forall R. \ownsr(A,R) \limply (\says{A}{\studof(B,A)}) \limply \canopen(B,R) \\
+P_4(A,B,R) &\equiv \ownsr(A,R) \limply (\says{A}{\studof(B,A)}) \limply \canopen(B,R) \\
+P_5(A,B,R) &\equiv (\says{A}{\studof(B,A)}) \limply \canopen(B,R)
+\end{align*}
+% Now to make things interesting, suppose that we populate the policy with some ground facts about the professor with ID \matt, his student Alice (id \tli), and his office (identified by \office).
+% \begin{align*}
+% Q_1 &\equiv \ownsr(\matt,\office) \\
+% Q_2 &\equiv \says{\matt}{\studof(\tli,\matt)}
+% \end{align*}
+So putting this all together, the context from which Grey will attempt to conduct authorization proofs is shown in Eq.~\ref{eq:greyctx}.
+\begin{equation}
+\label{eq:greyctx}
+\Gamma \equiv P_1,P_2
+\end{equation}
+We also denote the following formulas $Q_1, Q_2$ which are needed in this example.
+\begin{align*}
+Q_1 &\equiv \ownsr(\matt,\office) \\
+Q_2 &\equiv \says{\matt}{\studof(\tli,\matt)}
+\end{align*}
+Suppose that Alice needs to access \office to pick up the final exams before class. Alice has Grey installed on her phone, so she should be able to do this as long as her phone is able to construct a proof of $\says{\admin}{\canopen(\tli,\office)}$. Let's begin constructing this proof. 
+
+The first step is rather obvious, as we want to prove a \verb'says' formula on the right of the sequent, so \irref{saysr} is our only option.
+\begin{sequentdeduction}
+\linfer[saysr] {
+  \lsequent{P_1,P_2}{\aff{\admin}{\canopen(\tli,\office)}}
+} {
+  \lsequent{P_1,P_2}{\says{\admin}{\canopen(\tli,\office)}}
+}
+\end{sequentdeduction}
+But after this we need to think a bit before deciding which rule to apply next. Because the principal attempting to open the door is \tli, who is using the fact that \matt owns it to do so, it seems that $P_2$ is the relevant policy to operate on. To access it, we need to first apply \irref{saysl} to eliminate the \verb'admin'~\verb'says' around it, followed by \irref{alll} using $A\mapsto\matt,B\mapsto\tli,R\mapsto\office$. Continuing from where we left off before, this gives us the following deduction.
+\begin{sequentdeduction}[array]
+\linfer[saysl] {
+  \linfer[alll] {
+    \lsequent{P_1,P_4(\matt,\tli,\office)}{\aff{\admin}{\canopen(\tli,\office)}}
+  } {
+    \lsequent{P_1,P_3}{\aff{\admin}{\canopen(\tli,\office)}}
+  }
+} {
+  \lsequent{P_1,P_2}{\aff{\admin}{\canopen(\tli,\office)}}
+}
+\end{sequentdeduction}
+Now $P_4(\matt,\tli,\office)$ corresponds to the formula in (\ref{eq:p4}).
+\begin{multline}
+\label{eq:p4}
+\ownsr(\matt,\office) \\ \limply (\says{\matt}{\studof(\tli,\matt)}) \limply \canopen(\tli,\office)
+\end{multline}
+We want to get at the final conclusion of this implication chain. 
+We apply \irref{implyl} twice on $P_4$. 
+After the first application, we have the following, where the elided formula is $\aff{\admin}{\canopen(\tli,\office)}$.
+\begin{sequentdeduction}
+\linfer[implyl] {
+  \lsequent{P_1}{\ownsr(\matt,\office)}
+  &\lsequent{P_1,P_5(\matt,\tli,\office)}{\ldots}
+} {
+  \lsequent{P_1,P_4(\matt,\tli,\office)}{\aff{\admin}{\canopen(\tli,\office)}}
+}
+\end{sequentdeduction}
+The second \irref{implyl} is applied to $P_5$, where the elided formula is the same as above.
+\begin{sequentdeduction}
+\linfer[implyl] {
+  \lsequent{P_1}{\says{\matt}{\studof(\tli,\matt)}}
+  &\lsequent{P_1,\canopen(\tli,\office)}{\ldots}
+} {
+  \lsequent{P_1,P_5(\matt,\tli,\office)}{\aff{\admin}{\canopen(\tli,\office)}}
+}
+\end{sequentdeduction}
+Before continuing on to close out this proof, let's first take a moment to deal with the unfinished branches that we have accumulated.
+The first requires that we prove $\ownsr(\matt,\office)$ from $P_1$, which does not follow.
+However, this is a fact that we can reasonably expect the system checking authorization to recognize, and have populated in its memory at the time the policy is applied.
+Thus, we could have included this fact in our assumptions $\Gamma$ from the beginning, and closed this branch out with identity.
+
+The second requires a proof of $\says{\matt}{\studof(\tli,\matt)}$.
+As with the previous fact, we might assume that Grey is maintained to keep track of who each faculty claims as their student at any given time.
+Alternatively, \matt could provide \tli with a cryptographically-signed statement during enrollment, so that \tli is able to provide evidence to support the claim $\says{\matt}{\studof(\tli,\matt)}$ when needed.
+The Grey system could interactively prompt \tli's device for this evidence at this stage of the proof, and discharge the obligation is \tli is able to produce an appropriately signed certificate. 
+
+Continuing on, we can close by applying \irref{aff}, which says that principals will affirm true things. We know that $\canopen(\tli,\office)$ is true because it is an assumption in the present context, so we apply \irref{id}.
+\begin{sequentdeduction}[array]
+\linfer[aff] {
+  \linfer[id]{\lclose}{\lsequent{P_1,\canopen(\tli,\office)}{\canopen(\tli,\office)}}
+} {
+  \lsequent{P_1,\canopen(\tli,\office)}{\aff{\admin}{\canopen(\tli,\office)}}
+}
+\end{sequentdeduction}
+This finishes the proof of $(\says{\admin}{\canopen(\tli,\office)})~\strue$. To summarize the general ``flow'' of the proof, we began by reducing our proof of what \admin says to a proof about what \admin will affirm. We then used the policy that \admin has previously stated, in particular $P_2$ wherein \admin said that if a professor states that someone is their student, and the professor owns a room, then the student is authorized to unlock that room. We used a combination of propositional rules from before and \irref{saysl} to reduce this policy statement into a final confirmation that \admin affirms $\canopen(\tli,\office)$.
+
+\section{Useful theorems}
+
+Now that we've seen how to apply the authorization logic of Figure~\ref{fig:rules} to a realistic problem, let's take a look at some general theorems of the logic itself. The first one that we will consider is sometimes called ``Unit'', and says that principals are willing to say all true things.
+
+\begin{theorem}[Unit]
+The formula
+\[
+\ausfml \limply (\says{A}{\ausfml})
+\]
+is provable from the rules in Figure~\ref{fig:rules}.
+\end{theorem}
+\begin{proof}
+Consider the following deduction.
+\begin{sequentdeduction}[array]
+\linfer[implyr] {
+  \linfer[saysr] {
+    \linfer[aff] {
+      \linfer[id]{\lclose}{\lsequent{\ausfml}{\ausfml}}
+    } {
+      \lsequent{\ausfml}{\aff{A}{\ausfml}}
+    }
+  } {
+    \lsequent{\ausfml}{\says{A}{\ausfml}}
+  }
+} {
+  \lsequent{}{\ausfml \limply (\says{A}{\ausfml})}
+}
+\end{sequentdeduction}
+\end{proof}
+
+The next useful theorem tells us that \verb'says' is closed under consequence. That is, if $A$ says that one formula $\ausfml$ implies another formula $\busfml$, then it follows that if $A$ says $\ausfml$, $A$ must also be willing to say $\busfml$.
+
+\begin{theorem}[Closure under consequence]
+The formula 
+\[
+(\says{A}{(\ausfml \limply \busfml)}) \limply (\says{A}{\ausfml}) \limply (\says{A}{\busfml})
+\] 
+is provable from the rules in Figure~\ref{fig:rules}.
+\end{theorem}
+\begin{proof}
+Consider the following deduction.
+\begin{sequentdeduction}[array]
+\linfer[implyr] {
+  \linfer[implyr] {
+    \linfer[saysr] {
+      \linfer[saysl+saysl] {
+        \linfer[aff] {
+          \linfer[implyl] {
+            \linfer[id]{\lclose}{\lsequent{\ausfml}{\ausfml,\busfml}}
+            !\linfer[id]{\lclose}{\lsequent{\ausfml,\busfml}{\busfml}}
+          } {
+            \lsequent{\ausfml \limply \busfml, \ausfml}{\busfml}
+          }
+        } {
+          \lsequent{\ausfml \limply \busfml, \ausfml}{\aff{A}{\busfml}}
+        }
+      } {
+        \lsequent{\says{A}{(\ausfml \limply \busfml)}, \says{A}{\ausfml}}{\aff{A}{\busfml}}
+      }
+    } {
+      \lsequent{\says{A}{(\ausfml \limply \busfml)}, \says{A}{\ausfml}}{\says{A}{\busfml}}
+    }
+  } {
+    \lsequent{\says{A}{(\ausfml \limply \busfml)}}{(\says{A}{\ausfml}) \limply (\says{A}{\busfml})}
+  }
+} {
+  \lsequent{}{(\says{A}{(\ausfml \limply \busfml)}) \limply (\says{A}{\ausfml}) \limply (\says{A}{\busfml})}
+}
+\end{sequentdeduction}
+\end{proof}
+
+The last theorem that we will consider tells us that \verb'says' is idempotent. That is, if a principal says that they will say something (i.e., $\says{A}{(\says{A}{\ausfml})}$), then we conclude that they are willing to just say that something to begin with.
+
+\begin{theorem}[\keywordfont{says} idempotence]
+The formula
+\[
+(\says{A}{(\says{A}{\ausfml})}) \limply (\says{A}{\ausfml})
+\]
+is provable from the rules in Figure~\ref{fig:rules}.
+\end{theorem}
+\begin{proof}
+This proof is left as an exercise.
+\end{proof}
+
+\bibliographystyle{abbrv}
+\bibliography{bibliography}
+\end{document}
