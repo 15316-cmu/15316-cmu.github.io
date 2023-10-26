@@ -88,7 +88,7 @@ schedule = [
 		"topic": "End-to-end safety analysis",
 		"pdf": "",
 		"tex": "",
-		"comments": "",
+		"comments": "See presentation in Piazza resources.",
 	},
 	{
 		"date": "10/12",
