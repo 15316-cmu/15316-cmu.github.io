@@ -122,14 +122,14 @@ schedule = [
 	},
 	{
 		"date": "10/26",
-		"topic": "Bootstrapping Trust",
+		"topic": "Bootstrapping trust",
 		"pdf": "10-pki.pdf",
 		"tex": "10-pki.tex",
 		"comments": "",
 	},
 	{
 		"date": "10/31",
-		"topic": "Bootstrapping trust",
+		"topic": "Trusted computing",
 		"pdf": "",
 		"tex": "",
 		"comments": "",
