@@ -122,9 +122,9 @@ schedule = [
 	},
 	{
 		"date": "10/26",
-		"topic": "Making authorization work",
-		"pdf": "",
-		"tex": "",
+		"topic": "Bootstrapping Trust",
+		"pdf": "10-pki.pdf",
+		"tex": "10-pki.tex",
 		"comments": "",
 	},
 	{
