@@ -130,8 +130,8 @@ schedule = [
 	{
 		"date": "10/31",
 		"topic": "Trusted computing",
-		"pdf": "",
-		"tex": "",
+		"pdf": "11-tc.pdf",
+		"tex": "11-tc.tex",
 		"comments": "",
 	},
 	{
