@@ -6,7 +6,7 @@
 \newcommand{\leccourse}{Software Foundations of Security and Privacy}
 \newcommand{\lecdate}{} %e.g. {October 21, 2013}
 \newcommand{\lecnum}{11}
-\newcommand{\lectitle}{Trusted Computing}
+\newcommand{\lectitle}{Truste Computing}
 \newcommand{\lecturer}{Matt Fredrikson}
 \newcommand{\lecurl}{https://15316-cmu.github.io/index}
 
@@ -283,7 +283,7 @@ In particular, when used in combination with the TPM's CA-issued certificate, (\
 But the usefulness of this fact is rather limited, and many of the applications that trusted platform enables need more. In particular, remote systems often want to verify that they are communicating with an uncompromised host before giving them access to sensitive resources.
 \begin{enumerate}
 \item Client system completes authenticated boot, storing measurements in TPM's PCRs.
-\item User (on client) wishes to use an application that consumes protected resources on remote server. User's application initiates a connection to the remote server, and sends a signed statement such as (\ref{eq:pcrval}).
+\item User (on client) wishes  to use an application that consumes protected resources on remote server. User's application initiates a connection to the remote server, and sends a signed statement such as (\ref{eq:pcrval}).
 \item The remote server checks the signed PCR values and validates \pktpm, in an attempt to establish that the client is in a secure state.
 \item If successful, the server gives the client application access to the protected resources.
 \end{enumerate}
