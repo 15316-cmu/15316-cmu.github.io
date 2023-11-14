@@ -10,3 +10,7 @@
 *.vrb
 solutions/*
 exams/*
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls

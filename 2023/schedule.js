@@ -139,7 +139,7 @@ schedule = [
 		"topic": "Lab 2: Intro &amp; demo",
 		"pdf": "",
 		"tex": "",
-		"comments": "",
+		"comments": "See lab handout, starter code",
 	},
 	{
 		"date": "11/7",
@@ -152,15 +152,15 @@ schedule = [
 	{
 		"date": "11/9",
 		"topic": "Information Flow",
-		"pdf": "",
-		"tex": "",
-		"comments": "",
+		"pdf": "12-infoflow.pdf",
+		"tex": "12-infoflow.tex",
+		"comments": "Slides available on Canvas",
 	},
 	{
 		"date": "11/14",
 		"topic": "Security types",
-		"pdf": "",
-		"tex": "",
+		"pdf": "13-flowtypes.pdf",
+		"tex": "13-flowtypes.tex",
 		"comments": "",
 	},
 	{
