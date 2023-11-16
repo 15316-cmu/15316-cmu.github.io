@@ -166,8 +166,8 @@ schedule = [
 	{
 		"date": "11/16",
 		"topic": "Simple Security, Confinement, &amp; Soundness",
-		"pdf": "",
-		"tex": "",
+		"pdf": "14-flowsoundness.pdf",
+		"tex": "14-flowsoundness.tex",
 		"comments": "",
 	},	
 	{
