@@ -1,0 +1,286 @@
+\ProvidesPackage{bugcatch}
+\NeedsTeXFormat{LaTeX2e}
+
+%%
+%% Copyright (c) 2013-2017 Andre Platzer
+%%
+
+\RequirePackage{stmaryrd} % or \usepackage{wasysym} for \lightning
+
+%\usepackage[prefixflatinterpret,bracketmodalinterpret,silentconst,sidenotecalculus,longseqcontext]{logic}
+%\usepackage[prefixflatinterpret,bracketmodalinterpret,silentconst,differentialdL,simplenames]{dL}
+%,seqarrow or ,seqinfers,seqoptional
+\PassOptionsToPackage{sidenotecalculus}{logic}
+\PassOptionsToPackage{longseqcontext}{logic}
+\PassOptionsToPackage{prefixflatinterpret}{logic}
+\PassOptionsToPackage{prefixflatinterpret}{dL}
+\PassOptionsToPackage{bracketmodalinterpret}{logic}
+\PassOptionsToPackage{bracketmodalinterpret}{dL}
+\PassOptionsToPackage{silentconst}{logic}
+\PassOptionsToPackage{silentconst}{dL}
+\PassOptionsToPackage{differentialdL}{dL}
+\PassOptionsToPackage{simplenames}{dL}
+
+\newcommand{\bebecomes}{\mathrel{::=}}
+\newcommand{\alternative}{~|~}
+\def\leftrule{L}%
+\def\rightrule{R}%
+\def\globalrule{g}%
+
+
+%[irlabel] provide inference rule labels
+\DeclareOption{irlabel}{
+  \AtBeginDocument{
+\newsavebox{\Zval}%
+\newsavebox{\Zmval}%
+\sbox{\Zval}{$\scriptstyle\mathbb{Z}$}
+\irlabel{qear|\usebox{\Zval}}
+\sbox{\Zmval}{$\scriptstyle\mathbb{Z}_M$}
+\irlabel{qmear|\usebox{\Zmval}}
+\newsavebox{\Lightningval}%
+\sbox{\Lightningval}{$\scriptstyle\textcolor{red}{\lightning}$}
+\irlabel{unsound|\usebox{\Lightningval}}
+\irlabel{clash|clash\usebox{\Lightningval}} %%\irref{US} not applicable since it produces a clash
+     % propositional rule
+     \irlabel{notr|$\lnot$\rightrule}
+     \irlabel{notl|$\lnot$\leftrule}
+     \irlabel{orr|$\lor$\rightrule}
+     \irlabel{orl|$\lor$\leftrule}
+     \irlabel{andr|$\land$\rightrule}
+     \irlabel{andl|$\land$\leftrule}
+     \irlabel{implyr|$\limply$\rightrule}
+     \irlabel{implyl|$\limply$\leftrule}
+     \irlabel{equivr|$\lbisubjunct$\rightrule}
+     \irlabel{equivl|$\lbisubjunct$\leftrule}
+     \irlabel{id|id}
+     \irlabel{cut|cut}
+     % structural rules
+     \irlabel{weakenr|W\rightrule}
+     \irlabel{weakenl|W\leftrule}
+     % axioms
+     \irlabel{diamond|$\didia{\cdot}$}
+     \irlabel{box|$\dibox{\cdot}$}
+     \irlabel{composed|$\didia{{;}}$}
+     \irlabel{composeb|$\dibox{{;}}$}
+     \irlabel{choiced|$\didia{\cup}$}
+     \irlabel{choiceb|$\dibox{\cup}$}
+     \irlabel{iterated|$\didia{*}$}
+     \irlabel{iterateb|$\dibox{*}$}
+     \irlabel{testd|$\didia{?}$}
+     \irlabel{testb|$\dibox{?}$}
+     \irlabel{assertd|$\didia{\text{assert}}$}
+     \irlabel{assertb|$\dibox{\text{assert}}$}     
+     \irlabel{assignd|$\didia{:=}$}
+     \irlabel{assignb|$\dibox{:=}$}
+     \irlabel{assignbeqr|$\dibox{:=}_=$}
+     \irlabel{assigndeqr|$\didia{:=}_=$}
+     %
+     \irlabel{unfold|$\dibox{\text{unfold}}$}
+     %
+     \irlabel{K|K}
+     \irlabel{I|I}
+     %
+     \irlabel{loop|loop}
+     \irlabel{M|M}
+     \irlabel{Mb|M${\dibox{\cdot}}$}
+     \irlabel{Mbr|M\rightrule}
+     \irlabel{Mbl|M\leftrule}
+     \irlabel{V|V}
+     \irlabel{B|B}
+     \irlabel{Kd|K${\langle}{\rangle}$}
+     \irlabel{G|G}
+     \irlabel{Gr|G}
+     \irlabel{CT|CT}
+     \irlabel{CQ|CQ}
+     \irlabel{CE|CE}
+     \irlabel{CTr|CT\rightrule}
+     \irlabel{CTl|CT\leftrule}
+     \irlabel{CQr|CQ\rightrule}
+     \irlabel{CQl|CQ\leftrule}
+     \irlabel{CEr|CE\rightrule}
+     \irlabel{CEl|CE\leftrule}
+     %\irlabel{genb|$\dibox{}gen$}
+     %\irlabel{gend|$\didia{}gen$}
+     \irlabel{invind|ind}
+     %\irlabel{invindgen|$ind'$} %[loop]
+     \irlabel{con|$con$}
+     \irlabel{congen|$con'$}
+     %
+     % quantifier rules
+     \irlabel{existsr|$\exists$\rightrule}
+     \irlabel{existsrinst|$\exists$\rightrule}
+     \irlabel{alll|$\forall$\leftrule}
+     \irlabel{alllinst|$\forall$\leftrule}
+     \irlabel{allr|$\forall$\rightrule}
+     \irlabel{existsl|$\exists$\leftrule}
+     \irlabel{iallr|i$\forall$}
+     \irlabel{iexistsr|i$\exists$}
+     % derived
+     \irlabel{ifb|$\dibox{\text{if}}$}
+     \irlabel{ifd|$\didia{\text{if}}$}
+%     \irlabel{genbcut|$\dibox{}gen'$}
+     % equality
+     \irlabel{applyeqr|=\rightrule}
+     \irlabel{applyeql|=\leftrule}
+     % derived rules
+     \irlabel{band|${[]\land}$}
+     %
+     \irlabel{whileloop|loop}
+     \irlabel{varwhile|var}
+     %
+     \irlabel{closeTrue|$\top$\rightrule}
+     \irlabel{closeFalse|$\bot$\leftrule}
+     %
+     \irlabel{inlineb|$\dibox{\text{inl}}$}
+     \irlabel{callb|$\dibox{\text{call}}$}
+     \irlabel{recb|$\dibox{\text{rec}}$}
+     \irlabel{inlined|$\didia{\text{inl}}$}
+     \irlabel{calld|$\didia{\text{call}}$}
+     \irlabel{recd|$\didia{\text{rec}}$}     
+     %
+     \irlabel{invandvar|inv$\land$var}
+     \irlabel{iassign|\text{IA}}
+
+     \irlabel{V|V}
+     %
+
+     \irlabel{mwrite|$\dibox{*}_{=}$}
+     \irlabel{mreadeq|$\dibox{*}_{1}$}
+     \irlabel{mreadneq|$\dibox{*}_{2}$}
+
+     \irlabel{saysl|SaysL}
+     \irlabel{saysr|SaysR}
+     \irlabel{aff|Aff}
+     \irlabel{sign|Sign}
+     \irlabel{cert|Cert} 
+}
+}
+
+\DeclareOption*{\PackageWarning{bugcatch}{Unknown option `\CurrentOption'}}
+\ProcessOptions\relax
+
+
+% from dL.sty
+% \dbox variant for \index
+\def\dibox#1{[#1]}
+% \ddiamond variant for \index
+\def\didia#1{\protect\langle#1\protect\rangle}
+
+
+\RequirePackage{logic}
+\RequirePackage{progreg}
+\RequirePackage{dL}
+
+\newcommand{\says}[2]{\ensuremath{#1~\keywordfont{says}~#2}\xspace}
+
+\renewcommand{\linferenceRuleNameSeparation}{~~}
+
+\newcommand{\I}{\dLint[const=I,state=\omega]}
+\newcommand{\It}{\dLint[const=I,state=\nu]}
+\newcommand{\Iz}[1][]{\dLint[const=I,state=\mu_{#1}]}
+
+\newcommand{\pcall}[2]{\keywordfont{#1}(#2)}
+\newcommand{\pcallnoarg}[1]{\keywordfont{#1}()}
+\newcommand{\pcallbound}[4]{\pumod{#1}{\keywordfont{#2}^{#4}(#3)}}
+\newcommand{\rvar}{\ensuremath{\mathtt{rv}}\xspace}
+\newcommand{\recunfold}[2]{\ensuremath{#1^{(#2)}}\xspace}
+\newcommand{\subs}[3]{\ensuremath{#1[#2/#3]}\xspace}
+
+
+\newcommand{\passert}[1]{\keywordfont{assert}(#1)}
+\newcommand{\pderef}[1]{\keywordfont{*}(#1)}
+\newcommand{\pderefop}{\keywordfont{*}\xspace}
+\newcommand{\phalt}{\keywordfont{halt}\xspace}
+\newcommand{\pifjump}[2]{\ensuremath{\keywordfont{if}(#1)\,\keywordfont{jump}\,#2}\xspace}
+\newcommand{\pmatch}[2]{\keywordfont{match}(#1,#2)}
+\newcommand{\pdeclass}[1]{\keywordfont{declassify}(#1)}
+
+\newcommand{\eval}[2]{\xspace\ensuremath{\mathsf{Ev}(#1,#2)}\xspace}
+\newcommand{\ev}{\xspace\ensuremath{\mathsf{Ev}}\xspace}
+
+\newcommand{\smallstep}{\ensuremath{\rightsquigarrow}\xspace}
+
+\newcommand{\stepto}{\curvearrowright}
+
+\newcommand{\dusfml}{D}
+
+\newcommand{\atoms}[1]{\ensuremath{\mathrm{Atoms}(#1)}\xspace}
+
+\newcommand{\errstate}{\ensuremath{\Lambda}\xspace}
+
+\newcommand{\maxmem}{\ensuremath{U}\xspace}
+\newcommand{\memupd}[3]{\ensuremath{#1\{#2\mapsto#3\}}}
+\newcommand{\pc}{\ensuremath{\keywordfont{pc}}\xspace}
+\newcommand{\pcderef}{\ensuremath{\keywordfont{*pc}}\xspace}
+\newcommand{\precv}{\ensuremath{\keywordfont{recv}}\xspace}
+\newcommand{\psend}{\ensuremath{\keywordfont{send}}\xspace}
+\newcommand{\pread}{\ensuremath{\keywordfont{read}}\xspace}
+
+% statistical privacy
+\newcommand{\san}{\ensuremath{\asprg}\xspace}
+\newcommand{\user}{\ensuremath{\mathsf{A}}\xspace}
+\newcommand{\simu}{\ensuremath{\mathsf{Sim}}\xspace}
+% \newcommand{\hash}{\ensuremath{\mathsf{Hash}}\xspace}
+\newcommand{\enc}{\ensuremath{\mathsf{Encrypt}}\xspace}
+\newcommand{\dec}{\ensuremath{\mathsf{Decrypt}}\xspace}
+\newcommand{\lap}{\ensuremath{\mathsf{Lap}}\xspace}
+\newcommand{\strue}{\ensuremath{\mathsf{true}}\xspace}
+\newcommand{\sfalse}{\ensuremath{\mathsf{false}}\xspace}
+\newcommand{\flip}{\ensuremath{\mathsf{flip}}\xspace}
+\newcommand{\psan}{\ensuremath{\widehat{\asprg}}\xspace}
+\newcommand{\pr}{\ensuremath{\mathrm{Pr}}\xspace}
+
+\newcommand{\taint}{\ensuremath{\keywordfont{T}}\xspace}
+\newcommand{\lowsec}{\ensuremath{\keywordfont{L}}\xspace}
+\newcommand{\medsec}{\ensuremath{\keywordfont{M}}\xspace}
+\newcommand{\hisec}{\ensuremath{\keywordfont{H}}\xspace}
+\newcommand{\hight}{\ensuremath{\keywordfont{H}}\xspace}
+\newcommand{\lowt}{\ensuremath{\keywordfont{L}}\xspace}
+\newcommand{\usec}{\ensuremath{\keywordfont{U}}\xspace}
+\newcommand{\posetleq}{\ensuremath{\sqsubseteq}\xspace}
+\newcommand{\lub}{\ensuremath{\sqcup}\xspace}
+
+\DeclareMathOperator{\bitand}{\keywordfont{\&}}
+\DeclareMathOperator{\bitor}{\keywordfont{|}}
+\DeclareMathOperator{\bigstep}{\ensuremath{\Downarrow}\xspace}
+\DeclareMathOperator{\bigstepa}{\ensuremath{\Downarrow_{\mathbb{Z}}\xspace}}
+\DeclareMathOperator{\bigstepb}{\ensuremath{\Downarrow_{\mathbb{B}}\xspace}}
+
+% LTL
+\newcommand{\ltnext}[1]{{\circ}#1}
+\newcommand{\ltuntil}[3][]{{#2}\mathbf{U}_{#1}{#3}}
+\newcommand{\ltwuntil}[3][]{{#2}\mathbf{W}_{#1}{#3}}
+\newcommand{\ltrelease}[3][]{{#2}\mathbf{R}_{#1}{#3}}
+\newcommand{\ltdiamond}{\ldiamond}
+\newcommand{\ltbox}{\lbox}
+
+% CTL
+\newcommand{\allpath}[1]{\mathbf{A}#1}
+\newcommand{\somepath}[1]{\mathbf{E}#1}
+\newcommand{\ctnext}[1]{\mathbf{X}#1}
+\newcommand{\ctuntil}[3][]{{#2}\mathbf{U}_{#1}{#3}}
+\newcommand{\ctdiamond}{\mathbf{F}}
+\newcommand{\ctbox}{\mathbf{G}}
+
+\newcommand{\tnext}[1]{\ltnext{#1}}
+\newcommand{\tuntil}[3][]{\ltuntil{#1}{#2}{#3}}
+\newcommand{\twuntil}[3][]{\ltwuntil{#1}{#2}{#3}}
+\newcommand{\trelease}[3][]{\ltrelease{#1}{#2}{#3}}
+\newcommand{\tdiamond}{\ltdiamond}
+\newcommand{\tbox}{\ltbox}
+
+% Traces
+\newcommand{\flang}[1]{\mathcal{L}(#1)}
+\newcommand{\ttraces}[1]{\mathit{Traces}(#1)}
+\newcommand{\plocs}[1]{\mathit{locs}(#1)}
+\newcommand{\ilocs}[1]{\iota(#1)}
+\newcommand{\flocs}[1]{\kappa(#1)}
+\newcommand{\terms}{\mathit{terms}}
+\newcommand{\progs}{\mathit{progs}}
+
+% LTL checking
+\newcommand{\cl}[1]{\mathit{cl}(#1)}
+\newcommand{\cs}[1]{\mathit{cs}(#1)}
+\newcommand{\old}{\ensuremath{\mathit{\mathbf{old}}}\xspace}
+\newcommand{\now}{\ensuremath{\mathit{\mathbf{now}}}\xspace}
+\newcommand{\future}{\ensuremath{\mathit{\mathbf{next}}}\xspace}

@@ -1,0 +1,169 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath,amssymb,fullpage,graphicx}
+\let\hat\widehat
+\let\tilde\widetilde
+
+\usepackage{xcolor}
+\usepackage{stmaryrd}
+\usepackage{mathpartir}
+
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{mathabx}
+%\usepackage{lsyntax}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newenvironment{proof}{\textbf{ Proof.}}{$\Box$}
+
+\newcommand{\answer}[1]{\text{{\it #1}}}
+\newcommand{\solution}[1]{\textbf{Solution:} #1}
+%\newcommand{\solution}[1]{}
+
+\usepackage[irlabel]{bugcatch}
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+%%%% new version of enumerate with less spacing
+\newenvironment{enum}{
+\begin{enumerate}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{enumerate}}
+
+\parskip 10pt
+\parindent 0pt
+\pagenumbering{gobble}
+\newcommand{\note}[1]{\ \\{\small\color{red}\emph{#1}}\\}
+
+\lstset{%
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries\color{green!60!black},
+  commentstyle=\itshape\color{purple!60!black},
+  stringstyle=\color{orange}
+}
+
+\newcommand{\pand}[2]{\keywordfont{and}(#1, #2)}
+\newcommand{\por}[2]{\keywordfont{or}(#1, #2)}
+
+\begin{document}
+
+\begin{center}
+\textbf{ Assignment 5: The Highs and Lows of Information Flow\\15-316 Software Foundations of Security and Privacy}\\
+\end{center}
+
+\vspace{-5mm}
+
+\begin{enumerate}
+
+\item \textbf{Flow through abort (25 points).}
+
+In lecture, we defined non-interference in terms of a language that contains assignment, composition, conditional statements, and while loops.
+\begin{equation}
+\label{eq:noninterference}
+\forall \omega_1,\omega_2 . \omega_1 \approx_{\Gamma,\lowsec} \omega_2 \land 
+\langle \omega_1, \asprg\rangle \bigstep \omega_1' \land 
+\langle \omega_2, \asprg\rangle \bigstep \omega_2'
+\limply
+\omega_1' \approx_{\Gamma,\lowsec} \omega_2'
+\end{equation}
+This definition depends on the relation $\approx_{\lowsec}$, which says that two states are ``low equivalent'' whenever their low-variables are the same.
+\begin{equation}
+\label{eq:loweq}
+\omega_1 \approx_\lowsec \omega_2
+~\text{if and only if}~
+\forall x.\,\Gamma(x) = \lowsec \limply \omega_1(x) = \omega_2(x)
+\end{equation}
+This question will develop an extention to this notion of noninterference that accounts for $\passert{\ausfml}$ commands.
+
+If our threat model allows an attacker to detect whether a trace of this program aborts, then the attacker can learn information about the value of $x$ by observing whether the final state is $\Lambda$ or not.
+\[
+  \linferenceRule{
+    \langle\omega,\ausfml\rangle \bigstep_\mathbb{B} \ltrue
+  }{
+    \langle\omega,\passert{\ausfml}\rangle \bigstep_\mathbb{B} \omega
+  }
+  \quad
+  \linferenceRule{
+    \langle\omega,\ausfml\rangle \bigstep_\mathbb{B} \lfalse
+  }{
+    \langle\omega,\passert{\ausfml}\rangle \bigstep_\mathbb{B} \Lambda
+  }
+\]
+
+\paragraph{Part 1 (5 points).}
+Show how the following program leaks information labeled \hisec to an observer who can see whether the final state is $\Lambda$, as well as the initial and final values of \lowsec variables.
+You should assume that the policy is $\Gamma(x) = \hisec, \Gamma(y) = \lowsec$.
+\[
+\pif{y \ne 0}{\{\pumod{x}{2}\}}{\{\passert{x = 2}\}}
+\]
+Your solution should provide two initial \lowsec-equivalent states, and explain how the observer learns information about the \hisec variables of the initial states from their observations.
+
+%%
+%% Write your solution here
+%%
+
+\newpage
+
+\paragraph{Part 2 (10 points).}
+Modify Equations~\ref{eq:noninterference} and \ref{eq:loweq} above to arrive at a formal definition of ``abort-sensitive non-interference'', which characterizes programs that do not leak information about \hisec variables through the \lowsec variables in final states, or through the program's termination status (i.e., whether the final state is $\Lambda$).
+
+\noindent
+\emph{Note: depending on your solution, you may only need to modify one of Eqs~\ref{eq:noninterference} and \ref{eq:loweq}. If so, just state that the other equation is unchanged.}
+
+
+%%
+%% Write your solution here
+%%
+
+\vspace*{25em}
+
+\paragraph{Part 3 (10 points).}
+Design a typing rule for $\mathtt{assert}(Q)$ commands, and explain why it is sound with respect to your answer to Part 2. You do not need to provide a proof, but if you wish to, then be sure to first define the big-step semantics of $\mathtt{assert}$.
+
+%%
+%% Write your solution here
+%%
+
+\newpage
+
+\item \textbf{Dynamic pitfalls (15 points).}
+While the static type system studied in class may reject some programs that satisfy noninterference, it is sound: it will never accept a program that violates the policy.
+An often-raised proposal for mitigating some of the ``false'' rejections, i.e., cases where the type system unnecessarily rejects a program, is to track information flow \emph{dynamically} at runtime while still preserving soundness.
+
+One such approach resembles taint analysis.
+The runtime monitor keeps track of the security label of each variable, raising and lowering variables' labels depending on what is assigned to them as the program executes.
+It also tracks the label of the program counter, to make sure that implicit flows can be prevented.
+When an assignment occurs inside of a conditional or loop, the label of the target variable is set to the least upper-bound of the program counter's label and the label of the assignments right hand side.
+When the program finishes executing, we assume that an attacker can see the values only of variables that are tracked with label $\mathtt{L}$ when the program terminates.
+
+So for example, under the initial policy $\Gamma = [x : \mathtt{L}, y : \mathtt{H}]$, the following program would terminate with both $x$ and $y$ marked as label $\mathtt{L}$ because $y$ is overwritten by a constant:
+\[
+y := 0; x := y
+\]
+Accordingly, both of their final values would be observable by an attacker, because the monitor labels them as $\mathtt{L}$ when the program terminates.
+
+\noindent
+Show why this enforcement mechanism is unsound by giving an example of a program that violates the policy $\Gamma = [x : \mathtt{L}, y : \mathtt{H}]$ by leaking information about $y$ when it is run under this mechanism.
+
+%%
+%% Write your solution here
+%%
+
+\end{enumerate}
+
+\end{document}
