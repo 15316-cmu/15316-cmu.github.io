@@ -188,15 +188,15 @@ schedule = [
 	{
 		"date": "11/28",
 		"topic": "Defining privacy",
-		"pdf": "",
-		"tex": "",
+		"pdf": "15-privacy.pdf",
+		"tex": "15-privacy.tex",
 		"comments": "",
 	},
 	{
 		"date": "11/30",
 		"topic": "Provable privacy",
-		"pdf": "",
-		"tex": "",
+		"pdf": "15-privacy.pdf",
+		"tex": "15-privacy.tex",
 		"comments": "",
 	},
 	{
