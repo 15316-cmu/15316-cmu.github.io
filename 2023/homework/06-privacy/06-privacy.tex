@@ -1,0 +1,122 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath,amssymb,fullpage,graphicx}
+\let\hat\widehat
+\let\tilde\widetilde
+
+\usepackage{xcolor}
+\usepackage{stmaryrd}
+\usepackage{mathpartir}
+
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{mathabx}
+%\usepackage{lsyntax}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newenvironment{proof}{\textbf{ Proof.}}{$\Box$}
+
+\newcommand{\answer}[1]{\text{{\it #1}}}
+\newcommand{\solution}[1]{\textbf{Solution:} #1}
+%\newcommand{\solution}[1]{}
+
+\usepackage[irlabel]{bugcatch}
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+%%%% new version of enumerate with less spacing
+\newenvironment{enum}{
+\begin{enumerate}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{enumerate}}
+
+\parskip 10pt
+\parindent 0pt
+\pagenumbering{gobble}
+\newcommand{\note}[1]{\ \\{\small\color{red}\emph{#1}}\\}
+
+\lstset{%
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries\color{green!60!black},
+  commentstyle=\itshape\color{purple!60!black},
+  stringstyle=\color{orange}
+}
+
+\newcommand{\pand}[2]{\keywordfont{and}(#1, #2)}
+\newcommand{\por}[2]{\keywordfont{or}(#1, #2)}
+\newcommand{\pin}{\keywordfont{pin}\xspace}
+\newcommand{\guess}{\keywordfont{guess}\xspace}
+\newcommand{\match}{\keywordfont{match}\xspace}
+\newcommand{\gt}{\keywordfont{gt}\xspace}
+\newcommand{\ecm}{\keywordfont{ecm}\xspace}
+\newcommand{\prefix}{\keywordfont{pref}\xspace}
+\newcommand{\poly}{\ensuremath{\mathbf{poly}}\xspace}
+
+\begin{document}
+
+\begin{center}
+\textbf{ Assignment 6: Privacy\\15-316 Software Foundations of Security and Privacy}\\
+\end{center}
+Total Points: 30
+
+\vspace{-5mm}
+
+\begin{enumerate}
+
+\item \textbf{An attack (15 points).} 
+
+Suppose that you are tasked with releasing statistics about a dataset with the following schema.
+
+\begin{center}
+\begin{tabular}{l|ccccc}
+Feature & \emph{age} & \emph{gender} & \emph{marital\_status} & \emph{college\_education} & \emph{salary} \\
+\hline
+Encoding & $\mathtt{int} \in [0, 100]$ & $\mathtt{int} \in \{0, 1\}$ & $\mathtt{int} \in \{0, 1\}$ & $\mathtt{int} \in \{0, 1\}$ & $\mathtt{int} \in [0, 10^6]$
+\end{tabular}
+\end{center}
+
+Show that if you are allowed to query the dataset by counting the number of entries with a particular set of values, then it is possible to learn a person's salary.
+In particular, you have access to the following function, which you can query as many times as you like:
+\[
+\mathtt{count}(\mathit{age}, \mathit{gender}, \mathit{education}, \mathit{marital}, \mathit{salary}) = 
+|\{\#~\text{database rows matching given values}\}|
+\]
+Your aim is to learn the salary of a particular individual for whom you know all attributes \emph{except} salary, and you may assume knowledge of the rest of the dataset as described in lecture for the differential privacy threat model.
+
+Your solution should describe (pseudocode is fine) a general procedure for learning the salary from the given information, regardless of the particular contents of the database.
+
+\newpage
+
+\item \textbf{A fix (15 points).}
+Now your goal is to provide statistics about the average salary across gender and education level while satisfying $\epsilon$-differential privacy.
+\begin{itemize}
+\item You have access to the database through variable $X$, which you should assume is an array containing $N$ dictionaries that you can index by attribute name; i.e., \verb'X[0]["salary"]' returns the salary of the first row of the database.
+\item You may call a function \verb'Laplace(b)', which returns a single random sample from the zero-centered Laplace distribution with scale parameter $b$; and a function \verb'Uniform(a, b)' which returns a uniform random real number between $a$ and $b$, inclusive. Note that your solution need not necessarily call both of these functions.
+\item You may assume that the breakdown of $X$ by gender and education level is not private information.
+\end{itemize}
+Explain how to implement a 1-differentially private function $\mathtt{mean\_by\_gender\_and\_edu}$, which returns a 4-tuple of floats containing the mean salary for each gender and education level in $X$. That is, this function privately computes the following statistics:
+\[
+\mathtt{mean\_by\_gender\_and\_edu} = (\mathrm{mean}(\mathit{women}), \mathrm{mean}(\mathit{men}), \mathrm{mean}(\mathit{college}), \mathrm{mean}(\mathit{no college}))
+\]
+Be sure to state which composition principles your solution uses, if any.
+If it is easiest to present your solution as pseudocode then please do so, but you should explain how it works in words as well.
+
+\end{enumerate}
+
+\end{document}
