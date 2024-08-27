@@ -25,25 +25,209 @@
       </button>
       <div  class="collapse navbar-collapse" id="navbarCollapse">
         <ul class="navbar-nav mr-auto">
-          <li class="dropdown bg-dark"><a class="navbar-brand dropdown-toggle" data-toggle="dropdown" href="#">15316 Fall 2021 <b class="caret"></b></a>
-            <ul class="dropdown-menu bg-dark">
-              <li class="nav-item bg-dark"><a class="dropdown-item nav-link bg-dark" href="../2020/syllabus.html">Fall 2020</a></li>
-              <li class="nav-item bg-dark"><a class="dropdown-item nav-link bg-dark" href="../2019/syllabus.html">Fall 2019</a></li>
-              <li class="nav-item bg-dark"><a class="dropdown-item nav-link bg-dark" href="../2018/syllabus.html">Spring 2018</a></li>
-            </ul>
-          </li>
+          <li class="dropdown bg-dark"><a class="navbar-brand dropdown-toggle" data-toggle="dropdown" href="#">15316 Fall 2024 <b class="caret"></b></a>
+          <ul class="dropdown-menu bg-dark">
+            <li class="nav-item bg-dark"><a class="dropdown-item nav-link bg-dark" href="../2023/index.html">Fall 2023</a></li>
+            <li class="nav-item bg-dark"><a class="dropdown-item nav-link bg-dark" href="../2022/index.html">Fall 2022</a></li>
+            <li class="nav-item bg-dark"><a class="dropdown-item nav-link bg-dark" href="../2021/index.html">Fall 2021</a></li>
+            <li class="nav-item bg-dark"><a class="dropdown-item nav-link bg-dark" href="../2020/index.html">Fall 2020</a></li>
+            <li class="nav-item bg-dark"><a class="dropdown-item nav-link bg-dark" href="../2019/index.html">Fall 2019</a></li>
+            <li class="nav-item bg-dark"><a class="dropdown-item nav-link bg-dark" href="../2018/index.html">Spring 2018</a></li>
+          </ul>
+        </li>
           <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
-          <li class="nav-item active"><a class="nav-link" href="syllabus.html">Syllabus</a></li>
           <li class="nav-item"><a class="nav-link" href="schedule.html">Schedule</a></li>
           <li class="nav-item"><a class="nav-link" href="assignments.html">Assignments</a></li>
+          <li class="nav-item active"><a class="nav-link" href="syllabus.html">Syllabus</a></li>
+          <li class="nav-item"><a class="nav-link" href="https://piazza.com/cmu/fall2024/15316">Piazza</a></li>
+          <li class="nav-item"><a class="nav-link" href="https://www.gradescope.com/courses/839619">Gradescope</a></li>
         </ul>
       </div><!--/.nav-collapse -->
     </nav>
 
     <div class="container theme-showcase  w-75 p-3 mx-auto" role="main">
 
-        Check the <a href="https://canvas.cmu.edu/courses/31582">course syllabus on Canvas</a> for an up-to-date version.
-    </div>
+      <h3>Overview</h3>
+
+    <p class="text-justify">
+      Security and privacy issues in computer systems continue to be a
+      pervasive issue in technology and society. Understanding the security
+      and privacy needs of software, and being able to rigorously demonstrate
+      that those needs are met, is key to eliminating vulnerabilities that
+      cause these issues. Students who take this course will learn the
+      principles needed to make these assurances about software, and some of
+      the key strategies used to make sure that they are correctly implemented
+      in practice. Topics include: policy models and mechanisms for
+      confidentiality, integrity, and availability, language-based techniques
+      for detecting and preventing security threats, mechanisms for enforcing
+      privacy guarantees, and the interaction between software and underlying
+      systems that can give rise to practical security threats. Students will
+      also gain experience applying many of these techniques to write code
+      that is secure by construction.
+    </p>
+
+    <h3>Learning goals</h3>
+
+    <p class="text-justify">
+      The philosophy underpinning this course seeks to bridge formal
+      principles with their practical application to enhancing security and
+      privacy in software implementations. On the “principles” side, there are
+      several key learning objectives.
+    </p>
+
+    <p class="text-justify">
+      <b>Identify and formalize security and privacy policies.</b> In order to
+      reason about vulnerabilities in software, and ultimately demonstrate
+      their absence, we need to agree on what it means for the code to satisfy
+      security and privacy requirements. Students will learn how to formalize
+      these policies using logical specifications, types, and mathematical
+      definitions that give precise meaning to policies.
+    </p>
+
+    <p class="text-justify">
+      <b>Understand formal proof and deductive systems.</b> One of the key
+      benefits of formalizing policies is that it becomes possible to conduct
+      formal proof of a program's adherence to policy. Formal proofs can be
+      checked by automated procedures, and in many cases can be derived
+      automatically or with substantial assistance from automated tools.
+      Students will understand the properties of deductive systems that lead
+      to their useful application in software security, be able to establish
+      these properties for novel deductive systems, and be able to conduct a
+      formal proof that a piece of software adheres to a security policy.
+    </p>
+
+    <p class="text-justify">
+      <b>Understand how automated software security tools work.</b> Most of
+      the tools and techniques that are discussed in this class are not
+      perfect, and will never be able to meet all security needs in all
+      settings. Understanding the principles and techniques that these tools
+      use is necessary for evaluating when it is appropriate to use then, and
+      for addressing their limitations in practice.
+    </p>
+
+    <p class="text-justify">
+      However, this is not a "pure" theory course, and much of the intended
+      focus is on applying the above principles to real, practical problems
+      that arise in software security and privacy.
+    </p>
+
+    <p class="text-justify">
+      <b>Apply rigorous techniques to achieve security and privacy.</b> The
+      course will cover numerous techniques for translating the objectives of
+      formal policies into practical implementations that meet these
+      objectives. Students will learn how to use reference monitors, type
+      systems, authorization logic, and state space exploration to ensure that
+      implemented code satisfies a given policy.
+    </p>
+
+    <p class="text-justify">
+      <b>Understand trusted computing technologies.</b> Trusted computing and
+      related technologies are widely used in practice, and continue to show
+      promise in emerging "killer" applications. Students will understand how
+      the formal principles underpinning this technology yield practical,
+      scalable results through the use of hardware protections and software
+      techniques that build on them.
+    </p>
+
+    <p class="text-justify">
+      At all times, the interplay between attack and defense is central to the
+      topics covered in this course. We will not spend much time is this
+      course writing exploits for known vulnerabilities, but it is often the
+      case that in order to design an appropriate defense, intimate knowledge
+      of the attacker's design space and toolbox is necessary. Conversely,
+      students will learn that once one has formalized a security policy and
+      semantics for the system, it becomes easy to identify potential
+      vulnerabilities, or to rule out entire classes of potential
+      vulnerability. In short, students will not learn specific hacking
+      techniques in this course, but will understand how to identify and
+      analyze software vulnerabilities for the purpose of designing
+      mitigations.
+    </p>
+
+    <h3>Pre-requisites</h3>
+    <p>15-213 (Introduction to Computer Systems) or 15-150 (Principles of Functional Programming).</p>
+
+    <h3>Credits</h3>
+
+    <p>This is a 9 unit elective course that fulfills the <emph>Logic &amp;
+    Languages</emph> requirement.</p>
+
+<h3>Assignment Policies</h3>
+
+<p>Please refer to the page on <a href="assignments.html">Assignments</a>.
+
+    <h3>Grading</h3>
+
+    <p>Your final grade will be calculated using the following components:</p>
+
+    <table class="table table-sm">
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Written Homework (40%)</td>
+          <td>
+            <p>
+              Written homework will be assigned more frequently, and should
+              not require as much time to complete as the labs. The goal of
+              the written homework is to help you refine the fundamental
+              skills, and better understand the theoretical underpinnings,
+              that you will need in order to do well on the labs and exam.
+              Grading for these assignments is based on the correctness of
+              your answer, and the presentation of your reasoning. You should
+              strive for clarity and conciseness, while making sure to show
+              each step of your reasoning. Categorical answers with no
+              explanation will not even receive partial credit, but lucid
+              explanations of your attempt to find the answer will.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td>Labs (40%)</td>
+          <td>
+            <p>
+              The lab assignments are designed to give you hands-on experience
+              writing secure software or finding vulnerabilities.
+              The most important criterion with respect to grading the labs is
+              correctness, and your justification for believing that your
+              solution is correct. An ideal lab attempt contains a concise,
+              correct security policy, and a correct implementation of an
+              apparatus that enforces that policy or sufficient documentation of
+              the steps you took to ensure compliance. While largely autograded,
+              testing is not a guarantee of correctness so there is a human
+              component to grading even labs.  It is therefore important that
+              the code you hand in be clean and well-commented, as course staff
+              cannot assign points to solutions that they do not understand.
+              </p>
+          </td>
+        </tr>
+        <tr>
+          <td>Midterm Exam (20%)</td>
+          <td>
+            <p> We will have only a midterm exam (no final), with the third lab
+            taking on added significance. The content of these exams will more
+            closely resemble the written homework than the labs, but some
+            questions may rely on, or make reference to, key parts of the
+            labs. The midterm will take place during the normal class meeting
+            time, in the same room used for lectures. The exam is "closed book"
+            (i.e., you may not reference our lecture notes or your own notes),
+            but we will provide a reference sheet with relevant rules and
+            definitions.  </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>An Invitation to Students with Learning Disabilities</h3>
+
+    <p> The course staff will work with the <a
+    href="https://www.cmu.edu/disability-resources/">Office of Disability
+    Resources</a>.  Please make any requests through that office in a timely
+    manner so the course staff can provide approved accommodations.
 
     <!-- Bootstrap core JavaScript
         ================================================== -->
