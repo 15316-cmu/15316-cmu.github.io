@@ -8,8 +8,8 @@ schedule = [
     },
     {
 	"date": "Thu 08/29",
-	"topic": "",
-	"pdf": "",
+	"topic": "Propositional Logic and Proof",
+	"pdf": "02-prop.pdf",
 	"tex": "",
 	"comments": "",
     },
