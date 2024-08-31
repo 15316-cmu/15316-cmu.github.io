@@ -4,7 +4,7 @@ schedule = [
 	"topic": "Introduction",
 	"pdf": "01-intro.pdf",
 	"tex": "",
-	"comments": "(slides only for now)",
+	"comments": "(slides only)",
     },
     {
 	"date": "Thu 08/29",
