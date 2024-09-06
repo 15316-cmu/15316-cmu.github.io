@@ -15,8 +15,8 @@ schedule = [
     },
     {
 	"date": "Tue 09/03",
-	"topic": "",
-	"pdf": "",
+	"topic": "Dynamic Logic",
+	"pdf": "03-dynamiclogic.pdf",
 	"tex": "",
 	"comments": "",
     },
