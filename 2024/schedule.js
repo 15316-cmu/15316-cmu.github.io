@@ -22,8 +22,8 @@ schedule = [
     },
     {
 	"date": "Thu 09/05",
-	"topic": "",
-	"pdf": "",
+	"topic": "Semantics of Programs",
+	"pdf": "04-semantics.pdf",
 	"tex": "",
 	"comments": "",
     },
