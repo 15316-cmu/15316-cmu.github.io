@@ -29,14 +29,14 @@ schedule = [
     },
     {
 	"date": "Tue 09/10",
-	"topic": "",
-	"pdf": "",
+	"topic": "Proving Safety",
+	"pdf": "05-safety.pdf",
 	"tex": "",
 	"comments": "Asst 1 due",
     },
     {
 	"date": "Thu 09/12",
-	"topic": "",
+	"topic": "Memory Safety",
 	"pdf": "",
 	"tex": "",
 	"comments": "",
