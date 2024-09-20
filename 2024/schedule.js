@@ -43,8 +43,8 @@ schedule = [
     },
     {
 	"date": "Tue 09/17",
-	"topic": "",
-	"pdf": "",
+	"topic": "Generating Verification Conditions",
+	"pdf": "07-vcgen.pdf",
 	"tex": "",
 	"comments": "Asst 2 due",
     },
