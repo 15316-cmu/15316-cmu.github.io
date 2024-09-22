@@ -50,8 +50,8 @@ schedule = [
     },
     {
 	"date": "Thu 09/19",
-	"topic": "",
-	"pdf": "",
+	"topic": "Symbolic Evaluation",
+	"pdf": "08-symeval.pdf",
 	"tex": "",
 	"comments": "",
     },
