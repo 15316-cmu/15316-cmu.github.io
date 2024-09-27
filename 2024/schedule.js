@@ -57,8 +57,8 @@ schedule = [
     },
     {
 	"date": "Tue 09/24",
-	"topic": "",
-	"pdf": "",
+	"topic": "Program Analysis",
+	"pdf": "09-analysis.pdf",
 	"tex": "",
 	"comments": "Asst 3 due",
     },
