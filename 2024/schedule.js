@@ -64,8 +64,8 @@ schedule = [
     },
     {
 	"date": "Thu 09/26",
-	"topic": "",
-	"pdf": "",
+	"topic": "Beyond Safety Properties",
+	"pdf": "10-beyondsafety.pdf",
 	"tex": "",
 	"comments": "",
     },
