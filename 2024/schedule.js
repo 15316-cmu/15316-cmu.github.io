@@ -71,8 +71,8 @@ schedule = [
     },
     {
 	"date": "Tue 10/01",
-	"topic": "",
-	"pdf": "",
+	"topic": "Information Flow",
+	"pdf": "11-infoflow.pdf",
 	"tex": "",
 	"comments": "",
     },
