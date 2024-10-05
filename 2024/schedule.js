@@ -78,8 +78,8 @@ schedule = [
     },
     {
 	"date": "Thu 10/03",
-	"topic": "",
-	"pdf": "",
+	"topic": "Declassification",
+	"pdf": "12-declassification.pdf",
 	"tex": "",
 	"comments": "",
     },
