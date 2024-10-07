@@ -86,14 +86,14 @@ schedule = [
     {
 	"date": "Tue 10/08",
 	"topic": "Midterm Review",
-	"pdf": "",
+	"pdf": "pracmidterm.pdf",
 	"tex": "",
 	"comments": "Lab 1 due",
     },
     {
 	"date": "Thu 10/10",
 	"topic": "Midterm Exam",
-	"pdf": "pracmidterm.pdf",
+	"pdf": "",
 	"tex": "",
 	"comments": "",
         "color": "danger",
