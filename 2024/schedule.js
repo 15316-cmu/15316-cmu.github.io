@@ -85,8 +85,8 @@ schedule = [
     },
     {
 	"date": "Tue 10/08",
-	"topic": "Midterm Review",
-	"pdf": "pracmidterm.pdf",
+	"topic": "Midterm Review (<a href=\"lectures/pracmidterm.pdf\">practice midterm</a>)",
+	"pdf": "pracmidterm-solutions.pdf",
 	"tex": "",
 	"comments": "Lab 1 due",
     },
