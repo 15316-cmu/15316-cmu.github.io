@@ -116,14 +116,14 @@ schedule = [
     },
     {
 	"date": "Tue 10/22",
-	"topic": "",
-	"pdf": "",
+	"topic": "Termination-Sensitive Noninterference",
+	"pdf": "13-termination.pdf",
 	"tex": "",
 	"comments": "",
     },
     {
 	"date": "Thu 10/24",
-	"topic": "",
+	"topic": "Timing Attacks",
 	"pdf": "",
 	"tex": "",
 	"comments": "",
