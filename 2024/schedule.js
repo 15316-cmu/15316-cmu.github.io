@@ -124,7 +124,7 @@ schedule = [
     {
 	"date": "Thu 10/24",
 	"topic": "Timing Attacks",
-	"pdf": "",
+	"pdf": "14-timing.pdf",
 	"tex": "",
 	"comments": "",
     },
