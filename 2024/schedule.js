@@ -130,14 +130,14 @@ schedule = [
     },
     {
 	"date": "Tue 10/29",
-	"topic": "",
-	"pdf": "",
+	"topic": "Authorization Logic",
+	"pdf": "15-authlogic.pdf",
 	"tex": "",
 	"comments": "Asst 4 due",
     },
     {
 	"date": "Thu 10/31",
-	"topic": "",
+	"topic": "Proof Search",
 	"pdf": "",
 	"tex": "",
 	"comments": "",
@@ -152,7 +152,7 @@ schedule = [
     },
     {
 	"date": "Thu 11/07",
-	"topic": "",
+	"topic": "Proof Representation",
 	"pdf": "",
 	"tex": "",
 	"comments": "",
