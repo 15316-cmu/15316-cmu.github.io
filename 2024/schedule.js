@@ -153,7 +153,7 @@ schedule = [
     {
 	"date": "Thu 11/07",
 	"topic": "Proof Representation",
-	"pdf": "",
+	"pdf": "17-proofrep.pdf",
 	"tex": "",
 	"comments": "",
     },
