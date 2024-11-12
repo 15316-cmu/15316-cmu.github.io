@@ -159,7 +159,7 @@ schedule = [
     },
     {
 	"date": "Tue 11/12",
-	"topic": "",
+	"topic": "<em>Cancelled</em>",
 	"pdf": "",
 	"tex": "",
 	"comments": "Lab 2 due",
