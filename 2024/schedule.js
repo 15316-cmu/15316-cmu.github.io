@@ -167,7 +167,7 @@ schedule = [
     {
 	"date": "Thu 11/14",
 	"topic": "Bootstrapping Trust",
-	"pdf": "",
+	"pdf": "18-pki.pdf",
 	"tex": "",
 	"comments": "(<a href=\"lectures/18-pki-slides.pdf\">slides</a>)",
     },
