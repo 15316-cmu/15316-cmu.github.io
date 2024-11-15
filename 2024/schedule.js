@@ -166,10 +166,10 @@ schedule = [
     },
     {
 	"date": "Thu 11/14",
-	"topic": "",
+	"topic": "Bootstrapping Trust",
 	"pdf": "",
 	"tex": "",
-	"comments": "",
+	"comments": "(<a href=\"lectures/18-pki-slides.pdf\">slides</a>)",
     },
     {
 	"date": "Tue 11/19",
