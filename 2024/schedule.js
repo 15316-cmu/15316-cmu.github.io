@@ -144,7 +144,7 @@ schedule = [
     },
     {
 	"date": "Tue 11/05",
-	"topic": "Democracy Day",
+	"topic": "Democracy Day (no lecture)",
 	"pdf": "",
 	"tex": "",
 	"comments": "",
@@ -173,24 +173,24 @@ schedule = [
     },
     {
 	"date": "Tue 11/19",
-	"topic": "",
+	"topic": "Lab 3 Preview",
 	"pdf": "",
 	"tex": "",
 	"comments": "Asst 5 due",
     },
     {
 	"date": "Thu 11/21",
-	"topic": "",
+	"topic": "Functional Information Flow",
 	"pdf": "",
 	"tex": "",
 	"comments": "",
     },
     {
 	"date": "Tue 11/26",
-	"topic": "",
+	"topic": "Project Day",
 	"pdf": "",
 	"tex": "",
-	"comments": "",
+	"comments": "(no lecture)",
     },
     {
 	"date": "Thu 11/28",
