@@ -180,10 +180,10 @@ schedule = [
     },
     {
 	"date": "Thu 11/21",
-	"topic": "Functional Information Flow",
-	"pdf": "",
+	"topic": "Functional and Higher-Order Information Flow",
+	"pdf": "20-functional.pdf",
 	"tex": "",
-	"comments": "",
+	"comments": "(by Hemant Gouni)",
     },
     {
 	"date": "Tue 11/26",
