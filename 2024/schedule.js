@@ -202,10 +202,10 @@ schedule = [
     },
     {
 	"date": "Tue 12/03",
-	"topic": "",
-	"pdf": "",
+	"topic": "Intermittent Computing",
+	"pdf": "21-intermittent.pdf",
 	"tex": "",
-	"comments": "",
+	"comments": "(by Myra Dotzel)",
     },
     {
 	"date": "Thu 12/05",
