@@ -209,8 +209,8 @@ schedule = [
     },
     {
 	"date": "Thu 12/05",
-	"topic": "",
-	"pdf": "",
+	"topic": "Differential Privacy",
+	"pdf": "22-diffprivacy.pdf",
 	"tex": "",
 	"comments": "Lab 3 due",
     },
