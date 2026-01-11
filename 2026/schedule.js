@@ -164,7 +164,7 @@ schedule = [
 	},
 	{
 		"date": "Thu 04/02",
-		"topic": "Functional and Higher-Order Information Flow",
+		"topic": "Trusted Computing",
 		"pdf": "",
 		"tex": "",
 		"comments": "",
@@ -186,7 +186,7 @@ schedule = [
 	},
 	{
 		"date": "Tue 04/14",
-		"topic": "Intermittent Computing",
+		"topic": "Verifiable Computing",
 		"pdf": "",
 		"tex": "",
 		"comments": "",
