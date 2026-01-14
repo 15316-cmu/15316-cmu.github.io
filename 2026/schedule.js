@@ -2,7 +2,7 @@ schedule = [
 	{
 		"date": "Tue 01/13",
 		"topic": "Introduction",
-		"pdf": "",
+		"pdf": "01-intro.pdf",
 		"tex": "",
 		"comments": "(slides only)",
 	},
