@@ -1,0 +1,309 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.5in]{geometry}
+\usepackage{lecnotes}
+% \usepackage{mpass}
+% \lstset{style=verb,language=mpass}
+\input{lmacros}
+
+\let\m\mb
+
+\newcommand{\course}{15-316: Software Foundations of Security \& Privacy}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecdate}{January 20, 2026}
+\newcommand{\lecnum}{2}
+\newcommand{\lectitle}{Formal Proof}
+\newcommand{\courseurl}{https://15316-cmu.github.io/2026/}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+We begin by talking about safety, and in particular one important class of safety
+properties: memory safety. Mistakes that programmers make having to do with memory
+safety have been responsible for a lot of security vulnerabilities over the years,
+and we will discuss some of the different types of memory safety errors that lead
+to vulnerabilities in common programs.
+
+Our goal is to write code that does not have these vulnerabilities. There are
+many ways that have been proposed to avoid memory safety errors: type systems
+that ensure that memory is always used correctly, tools that check for memory
+safety errors at compile time, runtime systems that detect and prevent errors,
+and many others at various parts of the software and hardware stack. To understand
+how these work, and what their limitations and tradeoffs are, we need to understand
+how memory safety materializes in programs at the level of precise semantics.
+
+In the second part of this lecture, we will go into detail to understand the
+semantics of programs and how they relate to proving things about how programs
+will behave when run. We won't yet define exactly what memory safety means
+at this level, but we will have laid the essential groundwork to do this,
+as well as to start reasoning about the safety of programs in more systematic
+ways.
+
+\section{Review: Program Semantics}
+
+In the previous lecture we described the smantics of a small imperative
+programming language. For the sake of simplicity we assumed that
+variables range of the integers $\mathbb{Z}$.
+Arithmetic expressions, denoted by placeholder $e$, were given by a
+simple grammar.
+\[
+  \begin{array}{llcl}
+    \mbox{Arithmetic Expressions} & e & ::=
+    & c \mid x \mid e_1 + e_2 \mid e_1 - e_2 \mid e_1 * e_2 \mid \ldots
+  \end{array}
+\]
+Their meaning is determined with
+respect to a \emph{state} ($\omega, \mu, \nu$) that assigns integers to 
+variables. We write $\omega(x) = c$ if $\omega$ maps
+$x$ to $c$. Then we saw how to define the value of expression $e$ in state 
+$\omega$, written as $\omega \lbb e\rbb = c$, in a  straightforward fashion.
+\[
+  \begin{array}{lcl}
+    \omega \lbb c\rbb & = & c \\
+    \omega \lbb x\rbb & = & \omega(x) \\
+    \omega \lbb e_1 + e_2\rbb & = & \omega\lbb e_1\rbb + \omega\lbb e_2\rbb \\
+    \omega \lbb e_1 - e_2\rbb & = & \omega\lbb e_1\rbb - \omega\lbb e_2\rbb \\
+    \ldots
+  \end{array}
+\]
+The meaning of a program is a \emph{relation} between the
+\emph{prestate} and \emph{poststate} of its execution, and we write
+\[
+  \omega \lbb \alpha\rbb \nu
+\]
+if the meaning of the program $\alpha$ relates prestate $\omega$ to
+poststate $\nu$.
+With these conventions in place, defining the semantics of assignment, sequential
+composition, and conditional statements is a matter being unambiguous about
+which pre and post states are related.
+\[
+  \begin{array}{lcl}
+    \omega\lbb x := e\rbb \nu
+    & \mbox{iff}
+    & \omega[x \mapsto c] = \nu \;\mbox{where}\; \omega \lbb e\rbb = c
+    \\[1ex]
+    \omega\lbb \alpha \semi \beta\rbb \nu
+    & \mbox{iff}
+    & \omega\lbb \alpha\rbb \mu \;\mbox{and}\; \mu\lbb \beta \rbb \nu\; \mbox{for some state $\mu$}
+    \\[1ex]
+    \omega \lbb \mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta \rbb \nu
+    & \mbox{iff}
+    & \omega \models P\; \mbox{and}\; \omega\lbb \alpha\rbb \nu \quad \mbox{or} \\
+    & & \omega \not\models P\; \mbox{and}\; \omega \lbb \beta\rbb \nu
+  \end{array}
+\]
+Loops take a bit more care. There are several ways we might approach loops,
+because there are several possibilities about what can happen when going to
+execute a loop: the guard might be immediately false; or the body of the loop
+itself might not terminate; or the guard might never become false.
+Note that in all of these cases but the first, the loop doesn't terminate, so
+there is no post-state to relate to the pre state in question.
+
+A concise way to navigate all this is to define a second relation between pre
+and post states, which is defined only for loops, and which is indexed on the
+number of iterations that the loop executes for.
+\[
+  \begin{array}{lcl}
+    \omega \lbb \mb{while}\; P\; \alpha\rbb \nu
+    & \mbox{iff} & \omega \lbb \mb{while}\; P\; \alpha\rbb^n\nu \quad \mbox{for some $n \in \mathbb{N}$} \\[1em]
+    \omega \lbb \mb{while}\; P\; \alpha\rbb^{n+1} \nu
+    & \mbox{iff} & \omega \models P \;\mbox{and}\; \omega\lbb \alpha\rbb \mu\;
+                    \mbox{and}\; \mu \lbb \mb{while}\; P\; \alpha\rbb^n \nu \\
+    \omega \lbb \mb{while}\; P\; \alpha\rbb^0 \nu
+    & \mbox{iff} & \omega \not\models P \;\mbox{and}\; \omega = \nu
+  \end{array}
+\]
+Although we might not ourselves know for a given program what precise value
+of $n$ will satisfy this definition, or even whether such an an $n$ exists, 
+it does not matter for our purposes here. What matters is that the definition
+matches our understanding of how an imperative loop should behave: if a
+loop terminates in some final state $\nu$, then there must be some number
+of iterations that can reach $\nu$ from the initial state $\omega$, with
+$n - 1$ intermediate states related by the body $\alpha$.
+
+\section{A Program Proof}
+
+Now that we have precise semantics to work with, let's apply them towards proving
+something about how a particular program behaves. We'll prove that the program
+\[
+  x := x + y \semi y := x - y \semi x := x - y
+\]
+swaps the values of $x$ and $y$. We'll approach this by working backwards,
+supposing that the program ends in a final state where $x$ and $y$ are mapped
+to arbitrary constants, assuming nothing else. We'll show that given the
+semantics from Lecture 2, any initial state related to this final state
+must map $x$ and $y$ to these constants, but swapped.
+
+So suppose we have an arbitrary initial state $\omega$ and an arbitrary final
+state $\nu$ such that
+\[
+  \omega \lbb x := x + y \semi y := x - y \semi x := x - y \rbb \nu
+\]
+and in the final state $\nu(x) = a$ and $\nu(y) = b$ for some arbitrary
+constants $a$ and $b$.  We will show that necessarily $\omega(x) = b$ and
+$\omega(y) = a$.
+
+We set up the proof:
+\begin{tabbing}
+  $\omega \lbb x := x + y \semi y := x - y \semi x := x - y \rbb \nu$
+  \` (1, assumption) \\
+  $\nu(x) = a$ and $\nu(y) = b$
+  \` (2, assumption) \\
+  $\ldots$
+  \\
+  $\omega(x) = b$ and $\omega(y) = a$
+  \` (to show)
+\end{tabbing}
+
+By definition of sequential composition, assumption 1 tells us that there must
+be intermediate states $\mu_1$ and $\mu_2$ such that the three assignments relate
+the states in sequence.
+\begin{tabbing}
+  $\omega \lbb x := x + y \rbb \mu_1$
+       and $\mu_1 \lbb y := x - y \semi x := x - y \rbb \nu$
+  \` (3, from 1 by defn.\ of $\lbb{-}\rbb$) \\
+  $\mu_1 \lbb y := x - y \rbb \mu_2$
+       and $\mu_2 \lbb x := x - y \rbb \nu$ for some $\mu_2$
+  \` (4, from 3(b) by defn.\ of $\lbb{-}\rbb$) 
+\end{tabbing}
+
+Now we start working backwards from the last assignment.  By definition of
+assignment, $\mu_2 \lbb x := x-y \rbb \nu$ means that $\nu$ is obtained
+from $\mu_2$ by updating $x$ to the value of $x-y$ evaluated in $\mu_2$.
+\begin{tabbing}
+  $\nu = \mu_2[x \mapsto c_3]$ where $c_3 = \mu_2 \lbb x - y\rbb$
+  \` (5, from 4(b) by defn.\ of $\lbb{-}\rbb$) \\
+  $\mu_2(y) = \nu(y) = b$
+  \` (6, from 2, 5 by defn.\ of update) \\
+  $\nu(x) = \mu_2 \lbb x - y\rbb$
+  \` (7, from 5 by defn.\ of state update) \\
+  $\mu_2(x) - \mu_2(y) = a$
+  \` (8, from 2 and 7 by defn.\ of $\lbb{-}\rbb$) \\
+  $\mu_2(x) = a + b$
+  \` (9, from 6 and 8)
+\end{tabbing}
+
+Next we unwind the second assignment $y := x-y$.  This relates $\mu_1$
+to $\mu_2$ by updating only $y$, so $x$ stays the same from $\mu_1$ to $\mu_2$.
+\begin{tabbing}
+  $\mu_2 = \mu_1[y \mapsto c_2]$ where $c_2 = \mu_1 \lbb x - y\rbb$
+  \` (10, from 4(a) by defn.\ of $\lbb{-}\rbb$) \\
+  $\mu_1(x) = \mu_2(x) = a + b$
+  \` (12, from 10 by defn.\ of state update) \\
+  $\mu_2(y) = \mu_1 \lbb x - y\rbb = \mu_1(x) - \mu_1(y) = b$
+  \` (13, from 12 by defn.\ of state update) \\
+  $\mu_1(y) = a$
+  \` (14, from 12 and 13)
+\end{tabbing}
+
+Finally we unwind the first assignment $x := x+y$ to relate $\omega$ to
+$\mu_1$.  This assignment updates only $x$, so $y$ stays the same from $\omega$
+to $\mu_1$.
+\begin{tabbing}
+  $\mu_1 = \omega[x \mapsto c_1]$ where $c_1 = \omega \lbb x + y\rbb$
+  \` (15, from 3(a) by defn.\ of $\lbb{-}\rbb$) \\
+  $\omega(y) = \mu_1(y) = a$
+  \` (16, from 15 by defn.\ of state update) \\
+  $\mu_1(x) = \omega \lbb x + y\rbb = \omega(x) + \omega(y) = a + b$
+  \` (17, from 15 by defn.\ of state update) \\
+  $\omega(x) = b$
+  \` (18, from 16 and 17)
+\end{tabbing}
+
+We have now shown $\omega(x) = b$ and $\omega(y) = a$, as desired.
+Since $a$ and $b$ were arbitrary, we have shown that in every execution of this
+program the final value of $x$ is the initial value of $y$ and the final value
+of $y$ is the initial value of $x$.
+
+\subsection{A Look Ahead}
+
+We've now seen how defining precise semantics for our programming language makes
+it possible to prove conclusive facts about what will happen when a program 
+runs. Although the property that we proved was simple, following from the simplicity
+of the program, it's not difficult to see how we could apply a similar process to,
+for example, proving that the expression used to index into an allocated array is
+within its bounds; or that a pointer is not null prior to dereferencing it.
+The semantics of the language would be more complex, as would the program in
+question in nearly all cases, but the underlying approach would be very similar.
+
+However, given the effort involved in the reasoning we just did, despite the
+simplicity of the language and program, it would quickly become daunting to
+imagine following through with this each and every time we needed to reason
+about safety. In the next lecture, we will develop a more streamlined and
+systematic approach for coming to conclusions about program safety. We will
+introduce a logic with primitives that let us express safety properties,
+and straightforward rules for manipulating formulas to make inferences.
+Eventually we'll see how the whole approach can in large part be automated,
+reducing the burden of demonstrating safety while at the same time removing
+the risk of human error in conducting the detailed, often tedious reasoning
+that is involved.
+
+\section{Summary}
+
+\begin{figure}[ht]
+  \[
+    \begin{array}{lcl}
+      \omega \lbb c\rbb & = & c \\
+      \omega \lbb x\rbb & = & \omega(x) \\
+      \omega \lbb e_1 + e_2\rbb & = & \omega \lbb e_1\rbb + \omega \lbb e_2\rbb \\
+      \omega \lbb e_1 * e_2\rbb & = & \omega \lbb e_1\rbb \times \omega \lbb e_2\rbb
+    \end{array}
+  \]
+  \caption{Semantics of Expressions}
+  \label{fig:exps}
+\end{figure}
+
+\begin{figure}[ht]
+  \[
+    \begin{array}{lcl}
+      \omega\lbb x := e\rbb \nu
+      & \mbox{iff}
+      & \omega[x \mapsto c] = \nu \;\mbox{where}\; \omega \lbb e\rbb = c
+      \\[1ex]
+      \omega\lbb \alpha \semi \beta\rbb \nu
+      & \mbox{iff}
+      & \omega\lbb \alpha\rbb \mu \;\mbox{and}\; \mu\lbb \beta \rbb \nu\; \mbox{for some state $\mu$}
+      \\[1ex]
+      \omega \lbb \mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta \rbb \nu
+      & \mbox{iff}
+      & \omega \models P\; \mbox{and}\; \omega\lbb \alpha\rbb \nu \quad \mbox{or} \\
+      & & \omega \not\models P\; \mbox{and}\; \omega \lbb \beta\rbb \nu
+      \\[1ex]
+      \omega \lbb \mb{while}\; P\; \alpha\rbb \nu
+      & \mbox{iff} & \omega \lbb \mb{while}\; P\; \alpha\rbb^n\nu \quad \mbox{for some $n \in \mathbb{N}$} \\[1em]
+      \omega \lbb \mb{while}\; P\; \alpha\rbb^{n+1} \nu
+      & \mbox{iff} & \omega \models P \;\mbox{and}\; \omega\lbb \alpha\rbb \mu\;
+                     \mbox{and}\; \mu \lbb \mb{while}\; P\; \alpha\rbb^n \nu \\
+      \omega \lbb \mb{while}\; P\; \alpha\rbb^0 \nu
+      & \mbox{iff} & \omega \not\models P \;\mbox{and}\; \omega = \nu
+    \end{array}
+  \]
+  \caption{Semantics of Programs}
+  \label{fig:progs}
+\end{figure}
+
+\begin{figure}[h]
+  \[
+    \begin{array}{lcl}
+      \omega \models e_1 \leq e_2 & \mbox{iff} & \omega \lbb e_1\rbb \leq \omega \lbb e_2\rbb \\
+      \omega \models e_1 = e_2 & \mbox{iff} & \omega \lbb e_1\rbb = \omega \lbb e_2\rbb
+      \\[1em]
+      \omega \models P \land Q & \mbox{iff} & \omega \models P \quad\mbox{and}\quad \omega \models Q \\
+      \omega \models P \lor Q & \mbox{iff} & \omega \models P \quad\mbox{or}\quad \omega \models Q \\
+      \omega \models P \arrow Q & \mbox{iff} & \omega \models P \quad\mbox{implies}\quad \omega \models Q \\
+      \omega \models \lnot P & \mbox{iff} & \omega \not\models P \\
+      \omega \models P \leftrightarrow Q & \mbox{iff} & \omega \models P \quad\mbox{iff}\quad \omega \models Q
+    \end{array}
+  \]
+  \caption{Semantics of Formulas}
+  \label{fig:forms}
+\end{figure}
+
+% \clearpage
+% \bibliographystyle{plainnat}
+% \bibliography{bibliography}
+
+\end{document}

@@ -1,0 +1,427 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.5in]{geometry}
+\usepackage{lecnotes}
+% \usepackage{mpass}
+% \lstset{style=verb,language=mpass}
+\input{lmacros}
+
+\let\m\mb
+
+\newcommand{\course}{15-316: Software Foundations of Security \& Privacy}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecdate}{January 15, 2026}
+\newcommand{\lecnum}{2}
+\newcommand{\lectitle}{Safety \& Semantics}
+\newcommand{\courseurl}{https://15316-cmu.github.io/2026/}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+We begin by talking about safety, and in particular one important class of safety
+properties: memory safety. Mistakes that programmers make having to do with memory
+safety have been responsible for a lot of security vulnerabilities over the years,
+and we will discuss some of the different types of memory safety errors that lead
+to vulnerabilities in common programs.
+
+Our goal is to write code that does not have these vulnerabilities. There are
+many ways that have been proposed to avoid memory safety errors: type systems
+that ensure that memory is always used correctly, tools that check for memory
+safety errors at compile time, runtime systems that detect and prevent errors,
+and many others at various parts of the software and hardware stack. To understand
+how these work, and what their limitations and tradeoffs are, we need to understand
+how memory safety materializes in programs at the level of precise semantics.
+
+In the second part of this lecture, we will go into detail to understand the
+semantics of programs and how they relate to proving things about how programs
+will behave when run. We won't yet define exactly what memory safety means
+at this level, but we will have laid the essential groundwork to do this,
+as well as to start reasoning about the safety of programs in more systematic
+ways.
+
+\section{Safety \& Liveness}
+
+Our goal in this course is to reason about security properties of programs so we
+can prevent vulnerabilities and fend off attacks.  There are different kinds of
+such properties, and they require different techniques to enforce them.  One way
+to classify them is to think about them as properties of \emph{traces} of a
+program, that is, the (possibly infinite) sequence of states or events that take
+place when a program executes.
+\begin{description}
+\item[Safety Properties] Intuitively, a safety property means that
+  ``\emph{nothing bad happens}'' during a computation.  So every finite prefix
+  of a trace should satisfy some specification that excludes ``bad'' states or
+  events.  Common examples of ``bad'' are programs that, in C, have undefined
+  behavior.  This includes division by zero, integer overflow, double free, or
+  accessing memory whose value is undefined.  The latter is exploited in
+  so-called \emph{buffer overflow attacks}.  An example from concurrency are
+  race conditions between threads.  Another example is a policy that requires
+  that a principal is authorized before giving them access to a resource, in
+  which case the ``bad'' thing is unauthorized access.
+\item[Liveness Properties] Intuitively, a liveness property captures that
+  ``\emph{something good happens}'' during an execution.  For example, a server
+  should eventually respond to a request, or a deleted file should actually
+  disappear and be no longer recoverable.
+\end{description}
+Liveness properties are more intrinsically more difficult to reason about and
+enforce than safety properties.
+There are also security properties that can not be captured as properties of a
+single trace.  We will consider such a property, namely \emph{information flow},
+in the second part of the course. For now, we'll work towards an understanding
+of a type of safety property, memory safety, that plays an important role in
+secure coding.
+
+\subsection{Memory Safety}
+
+Informally, a program is \emph{memory safe} if every memory access it performs is
+well-defined: it only reads from and writes to memory that it is allowed to
+access, and it interprets that memory consistently with the way it was allocated
+and initialized. In low-level languages like C and C++, violations of memory
+safety often fall into ``undefined behavior'', meaning that the language does not
+prescribe what happens next. This is where security comes into the picture,
+because it is often possible to shape what happens next into something useful
+for an attacker.
+
+We'll refer to memory safety \emph{vulnerabilities} as the security-relevant
+instances of memory safety errors: situations where an attacker can influence
+program behavior or observe secrets by triggering an invalid memory access. Let's
+take a quick look at some of the ways that this can arise in programs.
+
+\begin{description}
+\item[Out-of-bounds] Out-of-bounds vulnerabilities are a very broad class of
+  errors that occur when a program reads or writes outside the bounds of an
+  allocated object. They commonly arise from unsafe array indexing, pointer
+  arithmetic errors, or integer overflows that miscompute sizes or offsets.
+  There are numerous ways that they can be exploited, from control hijacking
+  (e.g. via overwritten control data such as return addresses or function
+  pointers) to reading sensitive data from neighboring memory.
+\item[Use-after-free] Use-after-free vulnerabilities arise, as the name
+  suggests, when a program continues to access memory after it has been
+  deallocated. They typically result from confusion about ownership patterns or
+  aliasing where one part of the program frees an object while another still
+  holds a pointer to it. A typical exploitation pattern for UAF errors involve
+  forcing the freed memory to be reallocated with attacker-controlled data, so
+  that subsequent accesses operate on maliciously crafted contents.
+\item[Uninitialized memory use] When a program reads memory that has been
+  allocated but not fully initialized with defined values, then stack variables,
+  partially initialized structs, or reused heap allocations may leak sensitive
+  information or lead to control hijacking via attacker-controlled residual
+  data. Although compilers, libraries, and widely-used runtime environments have
+  done a lot to mitigate the frequency and severity of these errors, they remain
+  a true security problem.
+\item[Race conditions] These vulnerabilities occur when concurrent threads or
+  processes access and modify shared memory without proper synchronization,
+  leading to inconsistent views of object state or lifetime. They often manifest
+  as use-after-free or out-of-bounds accesses when one thread frees or resizes
+  an object while another is using it. Attackers exploit timing windows to
+  trigger invalid memory accesses in a controlled way. The consequences include
+  memory corruption, data leakage, and arbitrary code execution.
+\end{description}
+
+Each of these types of memory safety errors can manifest in countless ways.
+Our goal is to guarantee that none of them exist in programs that we write,
+but first we will need to find a way to define what memory safety is, so that
+we can be sure that we have addressed every possible case that falls into
+the scope described in this section.
+
+\section{Straight-Line Programs}
+
+We now present our small imperative programming language in stages.
+The development is inherently open-ended in the sense that we will
+introduce more constructs as our study goes on.
+
+For the sake of simplicity we assume that all
+variables range of the integers $\mathbb{Z}$.  We have a simple
+language of \emph{arithmetic expressions} $e$, with the usual
+conventions that we do not detail here.  We use $a$, $b$, $c$ for
+integer constants and $x$ to stand for variables.
+\[
+  \begin{array}{llcl}
+    \mbox{Arithmetic Expressions} & e & ::=
+    & c \mid x \mid e_1 + e_2 \mid e_1 - e_2 \mid e_1 * e_2 \mid \ldots
+  \end{array}
+\]
+Since expressions contains variables, their meaning is determined with
+respect to a \emph{state} that assigns integers to variables.  We use
+$\omega$, $\mu$, $\nu$ to range over states and assume that they are
+defined on all variables.  We write $\omega(x) = c$ if $\omega$ maps
+$x$ to $c$.  Then the value of expression $e$ in state $\omega$ is
+written as
+\[
+  \omega \lbb e\rbb = c
+\]
+and is easily defined based on the structure of $e$.  For example:
+\[
+  \begin{array}{lcl}
+    \omega \lbb c\rbb & = & c \\
+    \omega \lbb x\rbb & = & \omega(x) \\
+    \omega \lbb e_1 + e_2\rbb & = & \omega\lbb e_1\rbb + \omega\lbb e_2\rbb \\
+    \omega \lbb e_1 - e_2\rbb & = & \omega\lbb e_1\rbb - \omega\lbb e_2\rbb \\
+    \ldots
+  \end{array}
+\]
+The last two equations may look somewhat odd---we have to keep in mind
+that `$+$' and `$-$' on the left-hand side are pieces of syntax that
+form expressions while `$+$' and `$-$' on the right-hand side are the
+mathematical operations on integers.  Other operations are defined
+analogously.
+
+Programs are denoted by $\alpha$ and $\beta$ and we start here with
+two simple constructs: \emph{assignment} $x := e$ and
+\emph{sequential composition} $\alpha \semi \beta$.
+\[
+  \begin{array}{llcl}
+    \mbox{Programs} & \alpha, \beta & ::=
+    & x := e \mid \alpha \semi \beta \mid \ldots
+  \end{array}
+\]
+The meaning of a program is a \emph{relation} between the
+\emph{prestate} and \emph{poststate} of its execution.  It is a
+relation instead of a function because we would like to accommodate
+nonterminating programs (no possible poststate) and also
+nondeterministic programs (multiple possible poststates).  We write
+\[
+  \omega \lbb \alpha\rbb \nu
+\]
+if the meaning of the program $\alpha$ relates prestate $\omega$ to
+poststate $\nu$.
+
+We define the meaning of assignment $x := e$ to evaluate
+$e$ in the current state to $c$ and then update the state to map $x$
+to $c$.  In symbols:
+\[
+  \omega \lbb x := e\rbb \nu \quad\mbox{iff}\quad
+  \mbox{$\nu = \omega[x \mapsto c]$ where $c = \omega\lbb e\rbb$}
+\]
+Here we use the notation $\omega[x \mapsto c]$ for the result of
+updating the state $\omega$ by mapping $x$ to $c$ (no matter what it
+was before).
+
+The meaning of sequential composition $\alpha \semi \beta$ is to
+execute first $\alpha$ and then $\beta$ from the resulting state.
+That is:
+\[
+  \omega \lbb \alpha \semi \beta\rbb \nu
+  \quad\mbox{iff}\quad
+  \mbox{there is a $\mu$ such that $\omega \lbb \alpha \rbb \mu$
+    and $\mu \lbb \beta \rbb \nu$}
+\]
+In other words, the relation denoted by $\alpha \semi \beta$ is the
+\emph{composition} of the relations denoted by $\alpha$ and $\beta$.
+
+As an example, let's compute
+\[
+  (\omega[x \mapsto a]) \lbb x := x + 2\rbb \nu
+\]
+and we find
+$\nu = (\omega[x \mapsto a])[x\mapsto a+2] = \omega[x \mapsto a+2]$
+Slightly more complicated is
+\[
+  (\omega[x \mapsto a]) \lbb x := x + 1 \semi x := x + 1\rbb \nu
+\]
+We determine that there is an intermediate state
+$\mu = \omega[x \mapsto a+1]$ and a final state
+$\nu = \omega[x \mapsto a+2]$.
+
+So, both of these programs define the same relation between
+$\omega[x\mapsto a]$ and $\omega[x \mapsto a+2]$ Therefore we can
+state that these two programs are semantically equivalent
+\[
+  \lbb x := x+2\rbb = \lbb x := x+1 \semi x := x+1 \rbb
+\]
+They have the same meaning because they have the same effects
+on the state.  This, by the way, might fail to be true if the language
+were extended to allow shared memory concurrency because another
+process can intervene after the first assignment on the right, while
+the left atomically increments $x$ by two.  Lesson: we always have to
+be careful about the extent of the language when we reason about it,
+be it semantically (as here) or logically (as in the next lecture).
+
+\section{Conditionals}
+
+We now add conditionals $\m{if}\, P\, \alpha\, \beta$ to our language,
+read as ``\emph{if $P$ then $\alpha$ else $\beta$}''.  A
+characteristic of our setup is that formulas $P$ do double duty: on one
+hand they serve as conditions in if-then-else programs and (shortly)
+guards on while loops.  On the other hand we also use them to
+\emph{reason} about programs as shown in the next lectures.
+\[
+  \begin{array}{llcl}
+    \mbox{Programs} & \alpha, \beta & ::=
+    & x := e \mid \alpha \semi \beta \mid \m{if}\, P\, \alpha\, \beta \mid \ldots \\
+    \mbox{Formulas} & P, Q & ::=
+    & e_1 = e_2 \mid e_1 \leq e_2 \mid \top \mid \bot \mid P \land Q \mid P \lor Q
+      \mid P \rightarrow Q
+      \mid \lnot P \mid \ldots
+  \end{array}
+\]
+In concrete syntax we usually write $\top$ (top) as ``$\m{true}$'', $\bot$
+(bottom) as ``$\m{false}$'', and $\lnot$ as ``$\m{not}$''.
+
+In order to define the meaning of the conditional, we first need to
+define the meaning of the formulas, in mathematical terms.  Because
+variables range just over integers, the
+language of formulas we are concerned with is that of \emph{integer
+  arithmetic}.  We define their meaning relative to an assignment
+$\omega$ of values to variables
+\[
+  \mbox{$\omega \models P$ \qquad \emph{$P$ is true in state $\omega$}}
+\]
+It is defined on the structure of $P$.
+\[
+  \begin{array}{ll}
+    \omega \models \top & \mbox{always} \\
+    \omega \models \bot & \mbox{never} \\
+    \omega \models e_1 = e_2 & \mbox{iff $\omega\lbb e_1\rbb = \omega\lbb e_2\rbb$} \\
+	    \omega \models e_1 \leq e_2 & \mbox{iff $\omega\lbb e_1\rbb \leq \omega\lbb e_2\rbb$} \\
+	    \omega \models P \land Q & \mbox{iff $\omega \models P$ and $\omega \models Q$} \\
+	    \omega \models P \lor Q & \mbox{iff $\omega \models P$ or $\omega \models Q$} \\
+	    \omega \models \lnot P & \mbox{iff $\omega \not\models P$} \\
+	    \omega \models P \rightarrow Q & \mbox{iff whenever $\omega \models P$ then also $\omega \models Q$}
+	  \end{array}
+\]
+For the fragment of formulas above, the truth of a formula in a state is
+straightforward to decide by evaluating expressions in that state and then
+computing the Boolean connectives.
+
+With this out of the way, we can now define the meaning of the conditional
+by cases on the truth of $P$.
+\[
+  \begin{array}{lcl}
+    \omega \lbb \m{if}\, P\, \alpha\, \beta \rbb \nu
+    & \mbox{iff}
+    & \mbox{$\omega \lbb \alpha\rbb \nu$ when $\omega \models P$} \\
+    & & \mbox{$\omega \lbb \beta\rbb \nu$ when $\omega \not\models P$}
+  \end{array}
+\]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{While Loops}
+
+The abstract syntax for while loops is $\m{while}\, P\, \alpha$ which
+should somehow be the same as
+$\m{if}\, P\, (\alpha \semi \m{while}\, P\, \alpha)\, \m{skip}$, where
+$\m{skip}$ is a program that has no effect. Although it is
+perfectly possible to make this work as a so-called \emph{inductive
+  definition}, it has the issue that $\m{while}\, P\, \alpha$ appears
+on both sides.  So we break it down by ``guessing'' the number of
+iterations of the loop, using an auxiliary relation $\lbb \m{while}\, P\, \alpha \rbb^n$
+indexed by an $n \geq 0$.  If $n = 0$ we must exit the loop so $P$ should
+be false, and if $n > 0$ we should go around the loop once, followed by $n-1$
+more iterations.
+\[
+  \begin{array}{lcl}
+    \omega \lbb \m{while}\, P\, \alpha\rbb \nu
+    & \mbox{iff} & \mbox{there exists an $n \geq 0$ such that $\omega \lbb \m{while}\, P\,\alpha\rbb^n \nu$}
+                   \\[1ex]
+    \omega \lbb \m{while}\, P\, \alpha\rbb^0 \nu 
+    & \mbox{iff} & \mbox{$\omega \not\models P$ and $\omega = \nu$} \\
+    \omega \lbb \m{while}\, P\, \alpha\rbb^{n+1} \nu
+    & \mbox{iff} & \mbox{$\omega \models P$ and
+                   there exists a $\mu$ such that $\omega \lbb \alpha\rbb \mu$
+                   and $\mu \lbb \m{while}\, P\, \alpha\rbb^n \nu$} \\
+  \end{array}
+\]
+
+
+We can appeal to this definition to compute the meaning of a few
+simple programs.  Actually, we will look at whole families of programs
+because it doesn't matter what some of the components are.  For
+example, any program $\m{while}\; \m{false}\; \alpha$ will behave the
+same, regardless of $\alpha$.  Instead of looking up the answer
+immediately, we suggest solving these yourself first with careful
+reference to the definitions.
+\[
+  \begin{array}{ll}
+    \omega\lbb \m{while}\, \m{true}\, \alpha\rbb \nu \\
+    \omega\lbb \m{while}\, \m{false}\, \alpha\rbb \nu \\
+    \omega\lbb x := x\rbb \nu \\
+  \end{array}
+\]
+% You can find the answers on the next page.
+% \clearpage
+We calculate
+\[
+  \begin{array}{ll}
+    \omega\lbb \m{while}\, \m{true}\, \alpha\rbb \nu & \mbox{never} \\
+    \omega\lbb \m{while}\, \m{false}\, \alpha\rbb \nu & \mbox{iff $\nu = \omega$} \\
+    \omega\lbb x := x\rbb \nu & \mbox{iff $\nu = \omega$}
+  \end{array}
+\]
+We see, for example, that
+\[
+  \lbb \m{while}\, \m{false}\, \alpha\rbb = \lbb x := x\rbb
+\]
+where the equality here denotes an equality between two
+relations. Further examples in the next section.
+
+\section{Summary}
+
+\begin{figure}[ht]
+  \[
+    \begin{array}{lcl}
+      \omega \lbb c\rbb & = & c \\
+      \omega \lbb x\rbb & = & \omega(x) \\
+      \omega \lbb e_1 + e_2\rbb & = & \omega \lbb e_1\rbb + \omega \lbb e_2\rbb \\
+      \omega \lbb e_1 * e_2\rbb & = & \omega \lbb e_1\rbb \times \omega \lbb e_2\rbb
+    \end{array}
+  \]
+  \caption{Semantics of Expressions}
+  \label{fig:exps}
+\end{figure}
+
+\begin{figure}[ht]
+  \[
+    \begin{array}{lcl}
+      \omega\lbb x := e\rbb \nu
+      & \mbox{iff}
+      & \omega[x \mapsto c] = \nu \;\mbox{where}\; \omega \lbb e\rbb = c
+      \\[1ex]
+      \omega\lbb \alpha \semi \beta\rbb \nu
+      & \mbox{iff}
+      & \omega\lbb \alpha\rbb \mu \;\mbox{and}\; \mu\lbb \beta \rbb \nu\; \mbox{for some state $\mu$}
+      \\[1ex]
+      \omega \lbb \mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta \rbb \nu
+      & \mbox{iff}
+      & \omega \models P\; \mbox{and}\; \omega\lbb \alpha\rbb \nu \quad \mbox{or} \\
+      & & \omega \not\models P\; \mbox{and}\; \omega \lbb \beta\rbb \nu
+      \\[1ex]
+      \omega \lbb \mb{while}\; P\; \alpha\rbb \nu
+      & \mbox{iff} & \omega \lbb \mb{while}\; P\; \alpha\rbb^n\nu \quad \mbox{for some $n \in \mathbb{N}$} \\[1em]
+      \omega \lbb \mb{while}\; P\; \alpha\rbb^{n+1} \nu
+      & \mbox{iff} & \omega \models P \;\mbox{and}\; \omega\lbb \alpha\rbb \mu\;
+                     \mbox{and}\; \mu \lbb \mb{while}\; P\; \alpha\rbb^n \nu \\
+      \omega \lbb \mb{while}\; P\; \alpha\rbb^0 \nu
+      & \mbox{iff} & \omega \not\models P \;\mbox{and}\; \omega = \nu
+    \end{array}
+  \]
+  \caption{Semantics of Programs}
+  \label{fig:progs}
+\end{figure}
+
+\begin{figure}[h]
+  \[
+    \begin{array}{lcl}
+      \omega \models e_1 \leq e_2 & \mbox{iff} & \omega \lbb e_1\rbb \leq \omega \lbb e_2\rbb \\
+      \omega \models e_1 = e_2 & \mbox{iff} & \omega \lbb e_1\rbb = \omega \lbb e_2\rbb
+      \\[1em]
+      \omega \models P \land Q & \mbox{iff} & \omega \models P \quad\mbox{and}\quad \omega \models Q \\
+      \omega \models P \lor Q & \mbox{iff} & \omega \models P \quad\mbox{or}\quad \omega \models Q \\
+      \omega \models P \arrow Q & \mbox{iff} & \omega \models P \quad\mbox{implies}\quad \omega \models Q \\
+      \omega \models \lnot P & \mbox{iff} & \omega \not\models P \\
+      \omega \models P \leftrightarrow Q & \mbox{iff} & \omega \models P \quad\mbox{iff}\quad \omega \models Q
+    \end{array}
+  \]
+  \caption{Semantics of Formulas}
+  \label{fig:forms}
+\end{figure}
+
+% \clearpage
+% \bibliographystyle{plainnat}
+% \bibliography{bibliography}
+
+\end{document}
