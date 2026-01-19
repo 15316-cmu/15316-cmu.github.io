@@ -253,9 +253,8 @@ guards on while loops.  On the other hand we also use them to
     \mbox{Programs} & \alpha, \beta & ::=
     & x := e \mid \alpha \semi \beta \mid \m{if}\, P\, \alpha\, \beta \mid \ldots \\
     \mbox{Formulas} & P, Q & ::=
-    & e_1 = e_2 \mid e_1 \leq e_2 \mid \top \mid \bot \mid P \land Q \mid P \lor Q
-      \mid P \rightarrow Q
-      \mid \lnot P \mid \ldots
+    & e_1 = e_2 \mid e_1 \leq e_2 \mid \top \mid \bot \mid P \land Q \mid P \lor Q \\
+                    & & \mid & P \rightarrow Q \mid \lnot P \mid \ldots
   \end{array}
 \]
 In concrete syntax we usually write $\top$ (top) as ``$\m{true}$'', $\bot$
@@ -316,14 +315,21 @@ more iterations.
 \[
   \begin{array}{lcl}
     \omega \lbb \m{while}\, P\, \alpha\rbb \nu
-    & \mbox{iff} & \mbox{there exists an $n \geq 0$ such that $\omega \lbb \m{while}\, P\,\alpha\rbb^n \nu$}
+    & \mbox{iff} &
+    \begin{array}[t]{l}
+      \omega \lbb \m{while}\, P\,\alpha\rbb^n \nu \\
+      \mbox{for some $n \geq 0$}
+    \end{array}
                    \\[1ex]
     \omega \lbb \m{while}\, P\, \alpha\rbb^0 \nu 
     & \mbox{iff} & \mbox{$\omega \not\models P$ and $\omega = \nu$} \\
     \omega \lbb \m{while}\, P\, \alpha\rbb^{n+1} \nu
-    & \mbox{iff} & \mbox{$\omega \models P$ and
-                   there exists a $\mu$ such that $\omega \lbb \alpha\rbb \mu$
-                   and $\mu \lbb \m{while}\, P\, \alpha\rbb^n \nu$} \\
+    & \mbox{iff} &
+    \begin{array}[t]{l}
+      \mbox{$\omega \models P$ and $\omega \lbb \alpha\rbb \mu$ for some $\mu$} \\
+      \mbox{and $\mu \lbb \m{while}\, P\, \alpha\rbb^n \nu$}
+    \end{array}
+    \\
   \end{array}
 \]
 
@@ -403,7 +409,7 @@ relations. Further examples in the next section.
   \label{fig:progs}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[ht]
   \[
     \begin{array}{lcl}
       \omega \models e_1 \leq e_2 & \mbox{iff} & \omega \lbb e_1\rbb \leq \omega \lbb e_2\rbb \\

@@ -1,0 +1,623 @@
+\ProvidesPackage{lsemantics}
+\NeedsTeXFormat{LaTeX2e}
+%%
+%% Copyright (c) 2003-2016 Andre Platzer
+%%
+%% The logic package provides very useful tools for writing logical formulas.
+%% This submodule provides semantics for logic and meta-language
+%% for model theory.
+%% Especially, it provides support for flexible notation of semantics
+%% of multiple logical systems in parallel.
+%%
+%%?\RequirePackage{amsmath,amssymb} %%,amsthm
+\RequirePackage{oTeX}
+\RequirePackage{ifthen}
+\RequirePackage{msymb}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% optional parameters to this package
+%%
+%%\@modelsinterpretationformatfix[L]{\I}{\phi} prints that \I is a model of \phi in logic L
+\newcommand*{\@modelsinterpretationformatfix}[3][]{\iportray{#2}\models_{#1}#3}
+\newcommand*{\@nonmodelsinterpretationformatfix}[3][]{\iportray{#2}\nonmodels_{#1}#3}
+%% Use set notation for interpretations s\in[[...]] or s\in(...)
+\newif\if@modelsinterpretationset
+\@modelsinterpretationsetfalse
+
+\newif\if@interpretationabbreviated
+\@interpretationabbreviatedfalse
+\newif\if@interpretationusesformatfix
+\@interpretationusesformatfixfalse
+%%\@interpretationformatfix{const,alg}{state,assign}{\phi}
+\newcommand*{\@interpretationformatfix}[3]{#2^{#1}(#3)}
+%% Whether to use abbreviated interpretation notation whenever possible
+%% Use long verbose interpretation notation val_I(s,...)
+\DeclareOption{longinterpret}{\global\@interpretationabbreviatedfalse}
+%% Use abbreviated interpretation notation I(...) whenever possible
+\DeclareOption{abbrinterpret}{\global\@interpretationabbreviatedtrue}
+%% Use bracket interpretation notation [[...]]_{I,s}
+\DeclareOption{bracketinterpret}{\global\@interpretationusesformatfixtrue
+\renewcommand*{\@interpretationformatfix}[3]{{\lenvelope#3\renvelope}^{#1}_{#2}}}
+%% Use superscript interpretation notation [[...]]^{I,s}
+\DeclareOption{superinterpret}{\global\@interpretationusesformatfixtrue
+\renewcommand*{\@interpretationformatfix}[3]{{\lenvelope#3\renvelope}_{#1}^{#2}}}
+%% Use prefix notation for interpretations I[[...]] or I(...)
+\DeclareOption{prefixinterpret}{\global\@interpretationusesformatfixtrue
+\renewcommand*{\@interpretationformatfix}[3]{#2^{#1}\lenvelope#3\renvelope}}
+%% Use prefix flat line notation for interpretations I,s[[...]] or I,s(...)
+\DeclareOption{prefixflatinterpret}{\global\@interpretationusesformatfixtrue
+\renewcommand*{\@interpretationformatfix}[3]{{#1}#2\lenvelope#3\renvelope}}
+%% Use postfix notation for interpretations [[...]]^I or (...)^I
+\DeclareOption{postfixinterpret}{\global\@interpretationusesformatfixtrue
+\renewcommand*{\@interpretationformatfix}[3]{\lenvelope#3\renvelope^{#1}#2}}
+%% Use postfix flat line notation for interpretations [[...]]I,s or (...)I,s
+\DeclareOption{postfixflatinterpret}{\global\@interpretationusesformatfixtrue
+\renewcommand*{\@interpretationformatfix}[3]{\lenvelope#3\renvelope{#1}#2}}
+
+\DeclareOption{setfixinterpret}{\global\@modelsinterpretationsettrue%
+\renewcommand*{\@modelsinterpretationformatfix}[3][]{\iget[state]{#2}\in
+{\@interpretationformatfix{\iget[const]{#2}}{}{#3}}}%
+\renewcommand*{\@nonmodelsinterpretationformatfix}[3][]{\iget[state]{#2}\not\in{\@interpretationformatfix{\iget[const]{#2}}{}{#3}}}}
+
+%%\@modalinterpretationformatfix{const}{\alpha}
+\newcommand{\@modalinterpretationformatfix}[2]{{\Interpretation@access}_{#1}\ifthenelse{\equal{#2}{}}{}{(#2)}}
+\DeclareOption{bracketmodalinterpret}{\renewcommand*{\@modalinterpretationformatfix}[2]{\lenvelope#2\renvelope^{#1}}}
+
+
+\newif\if@modelfix
+\@modelfixfalse
+%% Make \imodel and \iaccess follow common interpretation notation \@interpretationformatfix such as bracketinterpret, superinterpret, postinterpret, prefixinterpret
+\DeclareOption{fixformat}{\global\@modelfixtrue%
+\global\@modelsinterpretationsettrue%
+\renewcommand*{\@modalinterpretationformatfix}[2]{\@interpretationformatfix{#1}{}{#2}}
+\renewcommand*{\@modelsinterpretationformatfix}[3][]{\iget[state]{#2}\in{\@interpretationformatfix{\iget[const]{#2}}{}{#3}}}
+\renewcommand{\@nonmodelsinterpretationformatfix}[3][]{\iget[state]{#2}\not\in{\@interpretationformatfix{\iget[const]{#2}}{}{#3}}}}%
+
+%% suppress \iget[const] and \iget[algebra] parts to be silent in notations, with only explicit access if needed.
+\DeclareOption{silentconst}{\let\@oldinterpretationformatfix\@interpretationformatfix%
+\renewcommand*{\@interpretationformatfix}[3]{\@oldinterpretationformatfix{}{#2}{#3}}%
+%NOTE adapt depending on whether [fixformat] or [setfixinterpret] has been set
+\if@modelsinterpretationset
+\renewcommand*{\@modalinterpretationformatfix}[2]{\@interpretationformatfix{#1}{}{#2}}
+\renewcommand*{\@modelsinterpretationformatfix}[3][]{\iget[state]{#2}\in{\@interpretationformatfix{}{}{#3}}}
+\renewcommand{\@nonmodelsinterpretationformatfix}[3][]{\iget[state]{#2}\not\in{\@interpretationformatfix{}{}{#3}}}%
+\else
+\renewcommand*{\@modelsinterpretationformatfix}[3][]{\iget[state]{#2}\models_{#1}#3}%
+\renewcommand*{\@nonmodelsinterpretationformatfix}[3][]{\iget[state]{#2}\nonmodels_{#1}#3}%
+\fi
+\let\@oldmodalinterpretationformatfix\@modalinterpretationformatfix
+\renewcommand{\@modalinterpretationformatfix}[2]
+{\@oldmodalinterpretationformatfix{}{#2}}%
+}
+
+%% \modif{s}{x}{e} notation for modification of s at x to e.
+\newcommand{\modif}[3]{\imodif@impl{#1}{#2}{#3}}
+\newcommand{\imodif@impl}[3]{{#1}_{#2}^{#3}}
+%Default changed to [modifopindex] on 2013/08/19
+%% Which notation to use for semantic modification of interpretations
+%% Whether to use inline modification operator [_->_]
+\DeclareOption{modifopinline}{\renewcommand{\imodif@impl}[3]{#1[#2\mapsto#3]}}
+%% Whether to use index substitution operator _x^{f(x) with  super/subscripts
+\DeclareOption{modifopindex}{\renewcommand{\imodif@impl}[3]{{#1}_{#2}^{#3}}}
+%% Whether to use fractional notation f(x)/x for substitution operator
+\DeclareOption{modifopfrac}{\renewcommand{\imodif@impl}[3]{{#1}\{{#3}/{#2}\}}}
+
+\DeclareOption*{\PackageError{lsemantics}{Unknown option to logic subpackages `\CurrentOption'}}
+\ProcessOptions\relax
+
+\if@interpretationusesformatfix
+  \if@interpretationabbreviated
+    \PackageError{lsemantics}{Option clash `abbrinterpret` and other interpretation formatting options led to contradictory format preferences}
+  \fi
+\fi
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Semantics
+%%
+
+  %% model set \imodel[L]{I}{\phi} of logic L for the formula \phi
+  %% i.e., the set of states s of interpretation I in which \phi is true
+\if@modelfix
+  \newcommand*{\imodel}[3][]{\@interpretationformatfix{\iget[const]{#2}}{}{#3}}
+\else%compatibility mode, really
+  \newcommand*{\imodel}[3][]{\lenvelope#3\renvelope^{\iget[const]{#2}}_{#1}}
+\fi
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Interpretation Management
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%
+%% General Interpretation Data Structure
+%%
+
+  %%
+  %% Unfolds (part of) a complete lattice of interpretational distinctions
+  %% \interpretation defines the interpretation of all symbols of the vocabulary:
+  %% - of core symbols, i.e. of logical constants (operators) and of ``domain'' specific symbols
+  %% - of constant symbols from \Sigma and of variable symbols from V
+  %% - of rigid and of flexible symbols
+  %% And peculiarities like
+  %% - of type symbols and of individual object/function/predicate symbols
+  %% - of accessibility relation
+  %% Most possibly, cumulative aspects defining the interpretation of several
+  %% kinds of symbols at once occur frequently.
+  %%
+
+%%%%%%
+%% Defining attributes of the data structure
+%%
+
+  %% The object type of the data structure used to implement
+  %% object-oriented data structures, and as a key to the method dispatch table
+  \newattribute{Interpretation}{@typeid}[]{\def\Interpretation@@typeid{#1}}
+
+  %% The algebra or matrix interpreting the core signature of logical constants like operators (many-valued logic)
+  \newattribute{Interpretation}{algebra}[]{\def\Interpretation@algebra{#1}}
+
+  %% The interpretation of rigid constant function and predicate symbols
+  \newattribute{Interpretation}{const}[]{\def\Interpretation@const{#1}}
+  %% The variable assignment or valuation of rigid variables (first-order logic)
+  \newattribute{Interpretation}{assign}[]{\def\Interpretation@assign{#1}}
+  %% The world or state (modal logic)
+  %% defines the interpretation of flexible constant function and predicate symbols
+  \newattribute{Interpretation}{state}[]{\def\Interpretation@state{#1}}
+  %% The world or state interpretation (modal logic, optional)
+  %% defines the interpretation of flexible symbols for all worlds
+  \newattribute{Interpretation}{map}[]{\def\Interpretation@map{#1}}
+
+  %% The set of worlds (modal logic)
+  \newattribute{Interpretation}{worlds}[]{\def\Interpretation@worlds{#1}}
+  %% The modal accessibility relation between worlds (modal logic)
+  \newattribute{Interpretation}{access}[\iaccessibility]{\def\Interpretation@access{#1}}
+
+  %% ? The universe or domain of interpretation (perhaps world-dependent)
+  \newattribute{Interpretation}{universe}[]{\def\Interpretation@universe{#1}}
+  
+  %% accumulates several aspects of an interpretation into one, in a
+  %% logic-dependent way
+  %\newattribute{Interpretation}{cumulative}[]{\def\Interpretation@const{#1}}
+  \newattributealias{Interpretation}{cumulative}{Interpretation}{const}
+
+  %% default initial values for interpretations
+  \setkeys{Interpretation}{const,assign,algebra,state,worlds,access,universe,@typeid}
+
+%%%%%%
+%% Constructors for data structure
+%% 
+  
+  %%
+  %% Create a new interpretation with optional keval arguments
+  %% \interpretation[const=\ell,assign=\beta,state=s,algebra=\mathcal{M}]
+  %% which may be used as first argument of \ivaluation{I}{\phi}
+  %%
+  %% @internal mentioning const,assign etc. first leads to: use default
+  %% value, unless explicitly otherwise stated.
+  \newcommand{\interpretation}[1][const=\ell]{\@interpretation[#1]}
+  %%\newcommand{\@interpretation}[1][const=\ell]{\setkeys{Interpretation}{const,assign,algebra,state,@typeid,#1}}
+  \newcommand{\@interpretation}[1][const=\ell]{\setkeys{Interpretation}{#1}}
+  
+  %%
+  %% Create a new interpretation integrated into a single cumulative atomic name
+  %% without separation into an internal structure of const,assign,state,algebra
+  %% \interpretationc[\ell]
+  %% which may be used as first argument of \ivaluation{I}{\phi}
+  \newcommand{\interpretationc}[1][\ell]{\interpretation[cumulative=#1]}
+  
+  %%
+  %% Use the given interpretation.
+  %% Does not do anything except documenting what's happening.
+  \let\useinterpretation\useobject
+
+%%%%%%
+%% Inherent operations on data structure
+%% 
+
+  %%
+  %% Interface method
+  %% Accessor to get some part of an interpretation
+  %% \iget[const]{\ell}
+  %% Results in the constant part of interpretation \ell
+  %% Method can be overwritten to adapt notation for a different logic.
+  \newmethodo{iget}{2}[2][const]
+  %% Method overriding in \iget is useful for defaulting to
+  %% values of some interpretation structure parts obtained by a
+  %% functional computations of some other parts.  
+  \newmethodimplementation{}{iget}{2}[2]{%
+    \@ifundefined{Interpretation@#1}%
+    {{\bf ??}\@throwerror{Attribute `#1' for type `\Interpretation@@typeid' on page \thepage
+          \space not defined and no default value provided.}}%
+    {\csname Interpretation@#1\endcsname}%
+  }
+  
+%     
+%     \ifthenelse{\equal{#1}{@typeid}}{\Interpretation@typeid}{}%
+%     \ifthenelse{\equal{#1}{algebra}}{\InterpretationAlgebra}{}%
+%     \ifthenelse{\equal{#1}{const}}{\InterpretationConstant}{}%
+%     \ifthenelse{\equal{#1}{assign}}{\InterpretationVariableAssignment}{}%
+%     \ifthenelse{\equal{#1}{state}}{\InterpretationState}{}%
+%     \ifthenelse{\equal{#1}{worlds}}{\InterpretationWorlds}{}%
+%     \ifthenelse{\equal{#1}{access}}{\InterpretationAccessibilityRelation}{}%
+%     \ifthenelse{\equal{#1}{universe}}{\InterpretationUniverse}{}%
+%     \ifthenelse{\equal{#1}{cumulative}}{\InterpretationConstant}{}%
+  
+  %%
+  %% Get the name of some part of an interpretation
+  %% \iname[const]{\I}
+  %% Results in the colloquial name of the constant part of interpretation \I
+  %% Only the @typeid of \I is important, in this context.
+  %% Method can be overwritten to adapt notation for a different logic.
+  \newmethodo{iname}{2}[2][]
+  \newcommand{\o@@iname}[2]{%
+    \useinterpretation{#2}\edef\@otype{\Interpretation@@typeid}%
+    \@ifundefined{o@{\@otype}@interpretation#1name}%
+    {\@ifundefined{o@@interpretation#1name}%
+      {{\bf ??}\PackageError{lsemantics}{Interpretation part `#1' for type `\@otype' on page
+          \thepage \space undefined, and no default implementation is provided}}%
+      {\text{\csname o@@interpretation#1name\endcsname}}%
+    }%
+    {\text{\csname o@{\@otype}@interpretation#1name\endcsname}}%
+  }
+
+
+%%
+%% Portraying and interpretation output
+%%
+
+  %% How to refer to the parts of the interpretation data structure in
+  %% natural language
+  \newcommand{\o@@interpretationalgebraname}{algebra}
+  \newcommand{\o@@interpretationconstname}{interpretation}
+  \newcommand{\o@@interpretationassignname}{assignment}
+  \newcommand{\o@@interpretationstatename}{state}
+
+  %% \iportray{\I}
+  %% formats the whole interpretation \I in pretty-print
+  %% CAVEAT: the argument of \iportray may sometimes need additional {} brackets if it's \imodif or something like that.
+  \newmethod{iportray}{1}[1]
+  \newmethodimplementation{}{iportray}{1}[1]{%
+    \doFormatList[,]{\Interpretation@algebra}{\Interpretation@const}{\Interpretation@assign}{\Interpretation@state}\vargend%
+  }
+  %% valuation function \ivaluation{I}{\phi} of the expression \phi
+  %% in the interpretation I=\interpretation[....]
+  %% possibly composed of constant interpretation, variable assignment
+  %% and world/state
+  \newmethod{ivaluation}{1}[2]
+  \if@interpretationabbreviated
+  \newmethodimplementation{}{ivaluation}{1}[2]
+  {%
+    \ifthenelse{%
+      \(\equal{\Interpretation@algebra}{} \OR \equal{\Interpretation@const}{}\) \AND
+      \(\equal{\Interpretation@assign}{} \equal{\Interpretation@state}{} \)}%
+    {% abbreviated display
+      % only one of the following will produce any output here
+      \@interpretationformatfix{\Interpretation@algebra\Interpretation@const}{\Interpretation@assign\Interpretation@state}{#2}%
+    }%
+    {% more verbose syntax
+      val_{%
+        \doFormatList[,]{\Interpretation@algebra}{\Interpretation@const}{\Interpretation@assign}\vargend%
+      }%
+      (\ifthenelse{\equal{\Interpretation@state}{}}{}{\Interpretation@state,}%
+      #2)%
+    }%
+  }
+  \else%not \if@interpretationabbreviated
+  \if@interpretationusesformatfix
+  \newmethodimplementation{}{ivaluation}{1}[2]
+  {%
+      \@interpretationformatfix{%
+        \doFormatList[,]{\Interpretation@algebra}{\Interpretation@const}\vargend%
+      }{\doFormatList[,]{\Interpretation@state}{\Interpretation@assign}\vargend%
+      }{#2}%
+  }
+  \else
+  \newmethodimplementation{}{ivaluation}{1}[2]
+  {%
+      val_{%
+        \doFormatList[,]{\Interpretation@algebra}{\Interpretation@const}{\Interpretation@assign}\vargend%
+      }%
+      (\ifthenelse{\equal{\Interpretation@state}{}}{}{\Interpretation@state,}%
+      #2)%
+  }
+  \fi
+  \fi
+
+
+  %% values function \ivalues{I}{\phi} of the expression \phi i.e. the function it denotes
+  %% in the interpretation I=\interpretation[....]
+  \newmethod{ivalues}{1}[2]
+  \newmethodimplementation{}{ivalues}{1}[2]
+  {%
+      \@interpretationformatfix{%
+        \doFormatList[,]{\Interpretation@algebra}{\Interpretation@const}\vargend%
+      }{}{#2}%
+  }
+
+
+  %% satisfaction relation \imodels[L]{I}{\phi} of logic L for the formula \phi
+  %% in the interpretation I=\interpretation[....]
+  %% possibly composed of constant interpretation, variable assignment
+  %% and world/state
+  \newmethodo{imodels}{2}[3][]
+  \newmethodimplementation{}{imodels}{2}[3]
+  {\@modelsinterpretationformatfix[#1]{#2}{#3}}
+  \newmethodo{inonmodels}{2}[3][]
+  \newmethodimplementation{}{inonmodels}{2}[3]
+  {\@nonmodelsinterpretationformatfix[#1]{#2}{#3}}
+
+  %%
+  %%
+  %%
+
+ %% The name of the modal accessibility relation
+  \def\iaccessibility{\rho}
+
+  %% the modal accessibility relation \iaccess[\alpha]{I}
+  %% for the \alpha modality
+  %% in the interpretation I=\interpretation[....]
+  %% possibly composed of constant interpretation, variable assignment
+  %% @internal Similar to \iget[access]{#2}(#1)
+  \newmethodo{iaccess}{2}[2][]
+  \newmethodimplementation{}{iaccess}{2}[2]
+  {%%\doFormatList[,]{\Interpretation@algebra}{\Interpretation@const}{\Interpretation@assign}\vargend
+  \@modalinterpretationformatfix{\Interpretation@const}{#1}%
+  }
+
+  %% \idomain{\I}{\tau} the domain of interpretation of the type \tau in
+  %% interpretation \I
+  \newcommand{\idomain}[2]{\iget[const]{#1}\ifthenelse{\equal{#2}{}}{}{(#2)}}
+  \let\jidomain\idomain
+  
+  %% modal accessibility relation \iaccessible[\alpha]{I}{J}
+  %% says that J is accessible from I via the \alpha modality
+  %% @internal Similar to \related{\iaccess[#1]{#2}}{#2}{#3}
+  \newmethodo{iaccessible}{2}[3][]
+  \newmethodimplementation{}{iaccessible}{2}[3]
+  {%%\doFormatList[,]{\Interpretation@algebra}{\Interpretation@const}{\Interpretation@assign}\vargend
+  \related{\iaccess[#1]{#2}}{\iget[state]{#2}}{\iget[state]{#3}}%
+  }
+  %% modal inaccessibility relation \iinaccessible[\alpha]{I}{J}
+  %% says that J is NOT accessible from I via the \alpha modality
+  %% @internal Similar to \unrelated{\iaccess[#1]{#2}}{#2}{#3}
+  \newmethodo{iinaccessible}{2}[3][]
+  \newmethodimplementation{}{iinaccessible}{2}[3]
+  {%%\doFormatList[,]{\Interpretation@algebra}{\Interpretation@const}{\Interpretation@assign}\vargend
+  \unrelated{\iaccess[#1]{#2}}{\iget[state]{#2}}{\iget[state]{#3}}%
+  }
+  
+
+%%%%%%
+%% Modifying interpretation constructors / processors on interpretations
+%%
+
+  %%
+  %% Concatenates two interpretations
+  %% \iconcat[const=I,assign=\beta,state=s,algebra=\mathcal{M}]{\ell}
+  %% Returns an interpretation that is like \ell except that some parts of it are overwritten by whatever keys have been
+  %% assigned in the first argument
+  %% @note You should not use \newcommand{\I}{\iconcat[state=t]{...}}
+  %% interpretations during the current eqnarray, since then
+  %% iconcat interpretations can only be used once for mysterious reasons!
+  \newcommand{\iconcat}[2][]{\useinterpretation{#2}%
+    \edef\tmpconst{\Interpretation@const}%
+    \edef\tmpassign{\Interpretation@assign}%
+    \edef\tmpstate{\Interpretation@state}%
+    \edef\tmpalgebra{\Interpretation@algebra}%
+    %% @internal mentioning const,assign etc. first leads to: use
+    %% value from #2, unless explicitly otherwise stated in #1.
+    \interpretation[const=\tmpconst,assign=\tmpassign,state=\tmpstate,algebra=\tmpalgebra,#1]}
+  
+  
+  \newattribute{InterpretationPart}{algebra}[true]{\def\InterpretationPartAlgebra{#1}}
+  \newattribute{InterpretationPart}{const}[true]{\def\InterpretationPartConstant{#1}}
+  \newattribute{InterpretationPart}{assign}[true]{\def\InterpretationPartVariableAssignment{#1}}
+  \newattribute{InterpretationPart}{state}[true]{\def\InterpretationPartState{#1}}
+  \newattribute{InterpretationPart}{cumulative}[true]{\def\InterpretationPartConstant{#1}}
+  \setkeys{InterpretationPart}{const=false,assign=false,state=false,algebra=false}
+  
+  %%
+  %% Semantic modification of an interpretation.
+  %% \imodif[const]{I}{x}{a}
+  %% Returns an interpretation that is identical to I, except that in the
+  %% constant-interpretation part, x has been changed to have the value a.
+  %% Likewise for [assign], [state] or [algebra]
+  \newcommand{\imodif}[4][]{%
+    %% first eager-evaluate x,a arguments
+    %% @internal The brackets open a local scope for the local definition of ttmpx
+    %% otherwise nested uses of imodif in #1 wouldn't work
+    {%
+    \edef\ttmpx{#3}%
+    \edef\ttmpa{#4}%
+    \useinterpretation{#2}%
+    \global\edef\tmptypeid{\Interpretation@@typeid}%
+    \setkeys{InterpretationPart}{#1}%
+    %% @internal the \global\edefs export the evaluted values out of
+    %% this local scope
+    \ifthenelse{\equal{\InterpretationPartConstant}{true}}
+      {\global\edef\ttmpconst{\imodif@impl{\Interpretation@const}{\ttmpx}{\ttmpa}}}
+      %%%{\edef\ttmpconst{\semanticModification[C]{\Interpretation@const}{\ttmpx}{\ttmpa}}}
+      {\global\edef\ttmpconst{\Interpretation@const}}
+    \ifthenelse{\equal{\InterpretationPartVariableAssignment}{true}}
+      {\global\edef\ttmpassign{\imodif@impl{\Interpretation@assign}{\ttmpx}{\ttmpa}}}
+      {\global\edef\ttmpassign{\Interpretation@assign}}
+    \ifthenelse{\equal{\InterpretationPartState}{true}}
+      {\global\edef\ttmpstate{\imodif@impl{\Interpretation@state}{\ttmpx}{\ttmpa}}}
+      {\global\edef\ttmpstate{\Interpretation@state}}
+    \ifthenelse{\equal{\InterpretationPartAlgebra}{true}}
+      {\global\edef\ttmpalgebra{\imodif@impl{\Interpretation@algebra}{\ttmpx}{\ttmpa}}}
+      {\global\edef\ttmpalgebra{\Interpretation@algebra}}
+      %%\aftergroup instead of \gdef above could suffice to export the
+      %%information to the next line
+    }%
+    \interpretation[const=\ttmpconst,assign=\ttmpassign,state=\ttmpstate,algebra=\ttmpalgebra,@typeid=\tmptypeid]%
+  }
+  
+  %% \iadjoinstSubst{\sigma}{I} the adjoint interpretation to substitution \sigma on
+  %% semantic modification level applied to the interpretation I
+  \newcommand{\iadjointSubst}[2]{%
+    \useinterpretation{#2}%
+    \edef\tmpadjointconst{\adjointSubstApply{#1}{\Interpretation@const}}
+    \edef\tmpadjointstate{\adjointSubstApply{#1}{\Interpretation@state}}
+    \iconcat[const=\tmpadjointconst,state=\tmpadjointstate]{#2}
+  }
+  
+  %% uninteresting:
+  \newcommand{\iadjointSubstSmall}[2]{%
+    \useinterpretation{#2}%
+    \edef\tmpadjointconst{\adjointSubstApply{#1}{\Interpretation@const}}
+    \iconcat[const=\tmpadjointconst]{#2}
+  }
+
+  %% \imodulo{I}{~} the quotient structure I/~
+  %% @fixme does not really work
+  \newcommand{\imodulo}[2]{%
+    \useinterpretation{#1}%
+    \edef\tmpadjointconst{\modulo{\Interpretation@const}{#2}}
+    \iconcat[const=\tmpadjointconst]{#1}
+  }
+  
+
+  %% internal debugging tool
+  \newcommand{\idebug}[1]{\useinterpretation{#1}%
+    \edef\tmpconst{\Interpretation@const}
+    \edef\tmpassign{\Interpretation@assign}
+    \edef\tmpstate{\Interpretation@state}
+    \edef\tmpalgebra{\Interpretation@algebra}
+    \ensuremath{
+      \textrm{const}={\tmpconst},
+      \textrm{assign}={\tmpassign},
+      \textrm{state}={\tmpstate},
+      \textrm{algebra}={\tmpalgebra}
+    }
+  }
+%%
+%% End of data structure
+%%%%%%
+
+  
+%%
+%% Model Structure Management
+%%%%%%
+%% Data structure inheritance.
+%% extend \usepackage{logic}\interpretation management for some
+%% particular structures
+%%
+
+  %%%%%%
+  %% Constructors for data structure
+  %% 
+  %%
+  %% Create a new structure with optional keval arguments
+  %% \structure[const=\ell,assign=\beta,state=s,algebra=\mathcal{M}]
+  %% which may be used as first argument of \ivaluation{I}{\phi}
+  \newcommand{\modstructure}[1][]{\interpretation[#1,@typeid=structure]}
+  
+  %%%%%%
+  %% Overwriting operations on data structure
+  %% 
+  \newmethodimplementation{structure}{iget}{2}[2]{%
+    \ifthenelse{\equal{#1}{access}}
+    {\useinterpretation{#2}%
+      \ifthenelse{\equal{\Interpretation@access}{}}
+      {\rho_{\o@@iget{worlds}{#2}}}
+      {\Interpretation@access}}
+    {\o@@iget{#1}{#2}}%
+  }
+  \newmethodimplementation{structure}{iportray}{1}[1]{%
+      (\doFormatList[,]{\Interpretation@worlds}{\iget[access]{#1}}{\Interpretation@assign}{\Interpretation@state}\vargend)
+  }
+
+  %%%%%%
+  %% Operations on structures
+  %%
+  %% \slocalise{H}{G} localises subframe H in G
+  \newcommand{\slocalise}[2]
+  {\useinterpretation{#2}%
+    \edef\tmpworlds{\Interpretation@worlds}
+    \edef\tmpaccess{\Interpretation@access}
+    \edef\tmpassign{\Interpretation@assign}
+    \edef\tmpstate{\Interpretation@state}
+    \structure[worlds=#1,access=\restrict{\tmpaccess}{#1},assign=\tmpassign,state=\tmpstate]}
+  %%\newcommand{\slocalise}[2]
+  %%{\edef\tmpworlds{\iget[worlds]{#2}}
+  %%  \edef\tmpaccess{\iget[access]{#2}}
+  %%  \edef\tmpassign{\iget[assign]{#2}}
+  %%  \edef\tmpstate{\iget[state]{#2}}
+  %%  \structure[worlds=#1,access=\restrict{\tmpaccess}{#1},assign=\tmpassign,state=\tmpstate]}
+%%
+%% End of data structure
+%%%%%%
+  
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Consequences and satisfaction relations
+%%
+%% @see \imodels{\I}{\phi} 
+%%\def\models{\vDash}
+\def\nonmodels{\not\models}
+%% \entails[l] for local consequence, \entails[g] for global
+%% consequence \entails[lg] for both local and global consequences
+%% \entails[L] is the semantic consequence relation of the logic L.
+\newcommand{\entails}[1][]{\vDash_{\ifthenelse{\equal{#1}{g}}{g}{#1}}}
+%% \semientails{globalPremises}{localPremises}{consequence} for
+%% semi-local consequence relation
+\newcommand{\semientails}[4][]{#2\models_{#1}#3\internal{\rightarrow}\vartriangleright#4}
+\newcommand{\nonentails}[1][]{\nvDash}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Variation
+%%
+
+%% semantic modification \semanticModification[kind]{I}{x}{a} of x to a in I.
+           %% Where: kind is
+           %%  V for variable assignment modifications on the (logical) variables: I<x/a>
+           %%  S for state modifications on the program variables
+           %%  C for interpretation modifications on the non-logical constants
+\newcommand{\semanticModification}[4][V]
+{{#2}[#3\mapsto#4]}
+%% \adjoinstSubst{\sigma} the adjoint substitution to \sigma on
+%% semantic modification level
+\newcommand{\adjointSubst}[1]{#1^{*}}
+\newcommand{\adjointSubstApply}[2]{\applysubst{#1^{*}}{#2}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Helpers
+%%
+
+%% marks end of variable parameter list in TeX
+\def\@gobbleend\vargend{}
+
+
+%% \internal{Argument list processing}
+%% \formatList[Separator]{{x_1}{x_2}{x_3}}
+%% outputs the list x_1 Separator x_2 Separator x_3
+%% however skips empty epsilon {} list elements.
+%% variable parameter list in LaTeX
+\newcommand{\formatList}[2][,]
+{\edef\temp{#2}\expandafter\doFormatList[#1]\temp\vargend}
+\newcommand{\doFormatList}[1][,]
+{\edef\@formatseps{#1}\def\@formatwasempty{true}\expandafter\doFormatListContinue}
+\newcommand{\doFormatListContinue}[1]
+{\ifx\vargend#1
+      \relax
+  \else
+      \ifthenelse{\equal{#1}{}}{}{%
+        \ifthenelse{\equal{\@formatwasempty}{true}}{}{\@formatseps}%
+        \def\@formatwasempty{false}%
+        #1%
+      }%
+      \expandafter\doFormatListContinue
+  \fi
+}

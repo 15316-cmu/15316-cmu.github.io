@@ -16,3 +16,4 @@ exams/*
 *.fls
 .DS_Store
 *~$01*.pptx
+.DS_Store

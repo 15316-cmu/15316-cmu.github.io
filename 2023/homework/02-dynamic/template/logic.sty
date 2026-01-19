@@ -1,0 +1,176 @@
+\ProvidesPackage{logic}
+\NeedsTeXFormat{LaTeX2e}
+%%
+%% Copyright (c) 2003-2016 Andre Platzer
+%%
+%% This package provides very useful tools for writing logical formulas.
+%% Especially, it provides support for flexible notation of semantics
+%% of multiple logical systems in parallel.
+%% 
+%% The functionality distributes to subpackages
+%%    lsyntax.sty
+%%    lmeta.sty
+%%    lsemantics.sty
+%%    lcalculus.sty
+%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% optional parameters to this package
+%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Logical language
+%% Pass options to lsyntax
+\DeclareOption{conservativesign}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+\DeclareOption{modernsign}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+\DeclareOption{noquantifiertype}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+\DeclareOption{quantifiertype}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+
+\DeclareOption{dmodality}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+\DeclareOption{Dmodality}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+\DeclareOption{substopinline}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+\DeclareOption{substopindex}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+\DeclareOption{substopfrac}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+\DeclareOption{satisfactionmodal}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+\DeclareOption{satisfactionlabel}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Notation for sets of formulas Fml and terms Trm etc.
+%%
+\DeclareOption{longterms}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+\DeclareOption{shortterms}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+\DeclareOption{septerms}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+\DeclareOption{abbrterms}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+\DeclareOption{novarterms}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+\DeclareOption{varterms}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+\DeclareOption{nosigmaterms}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+\DeclareOption{sigmaterms}{\PassOptionsToPackage{\CurrentOption}{lsyntax}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Meta-Logical language
+%% Pass options to lmeta
+\DeclareOption{mconnectiveformal}{\PassOptionsToPackage{\CurrentOption}{lmeta}}
+\DeclareOption{mconnectivenatural}{\PassOptionsToPackage{\CurrentOption}{lmeta}}
+\DeclareOption{mconnectivetext}{\PassOptionsToPackage{\CurrentOption}{lmeta}}
+\DeclareOption{longmquant}{\PassOptionsToPackage{\CurrentOption}{lmeta}}
+\DeclareOption{shortmquant}{\PassOptionsToPackage{\CurrentOption}{lmeta}}
+\DeclareOption{boldmquant}{\PassOptionsToPackage{\CurrentOption}{lmeta}}
+\DeclareOption{dotmquant}{\PassOptionsToPackage{\CurrentOption}{lmeta}}
+\DeclareOption{bbmquant}{\PassOptionsToPackage{\CurrentOption}{lmeta}}
+\DeclareOption{colormquant}{\PassOptionsToPackage{\CurrentOption}{lmeta}}
+\DeclareOption{mixmquant}{\PassOptionsToPackage{\CurrentOption}{lmeta}}
+\DeclareOption{mquantifiertype}{\PassOptionsToPackage{\CurrentOption}{lmeta}}
+\DeclareOption{nomquantifiertype}{\PassOptionsToPackage{\CurrentOption}{lmeta}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Meta-Logical language
+%% Pass options to lsemantics
+\DeclareOption{longinterpret}{\PassOptionsToPackage{\CurrentOption}{lsemantics}}
+\DeclareOption{abbrinterpret}{\PassOptionsToPackage{\CurrentOption}{lsemantics}}
+\DeclareOption{bracketinterpret}{\PassOptionsToPackage{\CurrentOption}{lsemantics}}
+\DeclareOption{superinterpret}{\PassOptionsToPackage{\CurrentOption}{lsemantics}}
+\DeclareOption{prefixinterpret}{\PassOptionsToPackage{\CurrentOption}{lsemantics}}
+\DeclareOption{prefixflatinterpret}{\PassOptionsToPackage{\CurrentOption}{lsemantics}}
+\DeclareOption{postfixinterpret}{\PassOptionsToPackage{\CurrentOption}{lsemantics}}
+\DeclareOption{postfixflatinterpret}{\PassOptionsToPackage{\CurrentOption}{lsemantics}}
+\DeclareOption{setfixinterpret}{\PassOptionsToPackage{\CurrentOption}{lsemantics}}
+\DeclareOption{bracketmodalinterpret}{\PassOptionsToPackage{\CurrentOption}{lsemantics}}
+
+\DeclareOption{fixformat}{\PassOptionsToPackage{\CurrentOption}{lsemantics}}
+\DeclareOption{silentconst}{\PassOptionsToPackage{\CurrentOption}{lsemantics}}
+
+
+\DeclareOption{modifopinline}{\PassOptionsToPackage{\CurrentOption}{lsemantics}}
+\DeclareOption{modifopindex}{\PassOptionsToPackage{\CurrentOption}{lsemantics}}
+\DeclareOption{modifopfrac}{\PassOptionsToPackage{\CurrentOption}{lsemantics}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Calculus
+%% Pass options to lcalculus
+\DeclareOption{seqinfers}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{seqarrow}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{seqlongarrow}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{seqArrow}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{seqLongarrow}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{seqinsist}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{seqoptional}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{seqmarkglobal}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{seqnoglobal}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{longseqcontext}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{abbrseqcontext}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{condensedcalculus}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{footnotecalculus}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{sidenotecalculus}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{verbosecalculus}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{autoindex}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{irlabelform}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{irlabelformignore}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{irunistore}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{iranystore}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Implementation options
+%%
+\DeclareOption{nologging}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+\DeclareOption{logging}{\PassOptionsToPackage{\CurrentOption}{lcalculus}}
+
+\DeclareOption*{\PackageError{logic}{Unknown option `\CurrentOption'}}
+\ProcessOptions\relax
+
+%% Subpackages
+\RequirePackage{lsyntax}
+\RequirePackage{lmeta}
+\RequirePackage{lsemantics}
+\RequirePackage{lcalculus}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Implementation
+%%
+
+%% \closureall(F) Universal Closure of formula F
+\DeclareMathOperator{\closureall}{Cl_\forall}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Misc
+%%
+
+%%
+%% Language classes
+%%
+%% \LOS[n] is the n-th order logic, or ``logique d'ordre superieur''
+\newcommand{\LOS}[1][]{\ensuremath{\text{\upshape{FOL}}\ifthenelse{\equal{#1}{1}}{}{_{#1}}}\xspace}
+
+
+%% \logicmod{M} the logic generated by the class M of models
+\newcommand{\logicmod}[1]{\mathcal{L}(#1)}
+%% \logiccalc{C} the logic generated by the calculus C
+\newcommand{\logiccalc}[1]{\mathcal{L}(#1)}
+
+%% \restrictmod{L}{M} is the logic L restricted to models of the class M
+\newcommand{\restrictmod}[2]{\restrict{#1}{#2}}
+
+
+%% Extension of a predicate or function
+\newcommand{\pextension}[1]{\delta#1}
+
+%% \domain{I} the domain of the interpretation I.
+\newcommand{\domain}[1]{\operatorname{dom}(#1)}
+
+
+%% the meta variable for arbitrary syntactical ascriptors/compositors
+%% @internal Ein Springbrunnenbaum aus Brother Bear. Passt auch gut zur Blume \psi
+\newcommand{\mascriptor}[0]{\metavar{\Upsilon}}
+%% the meta variable for arbitrary arguments for composites
+\newcommand{\margholder}[0]{\mathit{u}}

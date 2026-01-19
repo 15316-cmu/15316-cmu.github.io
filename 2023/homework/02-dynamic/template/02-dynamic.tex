@@ -1,0 +1,147 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath,amssymb,fullpage,graphicx}
+\let\hat\widehat
+\let\tilde\widetilde
+
+\usepackage{xcolor}
+\usepackage{stmaryrd}
+\usepackage{mathpartir}
+
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{mathabx}
+%\usepackage{lsyntax}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newenvironment{proof}{\textbf{ Proof.}}{$\Box$}
+
+\newcommand{\answer}[1]{\text{{\it #1}}}
+\newcommand{\solution}[1]{\textbf{Solution:} #1}
+%\newcommand{\solution}[1]{}
+
+\usepackage[irlabel]{bugcatch}
+% \usepackage[bracketinterpret,seqinfers,sidenotecalculus]{logic}
+% \newcommand{\I}{\interpretation[const=I]}
+
+% \newcommand{\bebecomes}{\mathrel{::=}}
+% \newcommand{\alternative}{~|~}
+% \newcommand{\asfml}{F}
+% \newcommand{\bsfml}{G}
+% \newcommand{\cusfml}{C}
+% \def\leftrule{L}%
+% \def\rightrule{R}%
+
+%%%% new version of enumerate with less spacing
+\newenvironment{enum}{
+\begin{enumerate}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{enumerate}}
+
+\parskip 10pt
+\parindent 0pt
+\pagenumbering{gobble}
+\newcommand{\note}[1]{\ \\{\small\color{red}\emph{#1}}\\}
+
+\lstset{%
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries\color{green!60!black},
+  commentstyle=\itshape\color{purple!60!black},
+  stringstyle=\color{orange}
+}
+
+\newcommand{\pand}[2]{\keywordfont{and}(#1, #2)}
+\newcommand{\por}[2]{\keywordfont{or}(#1, #2)}
+
+\begin{document}
+
+\begin{center}
+\textbf{ Assignment 2: Dynamic Logic\\15-316 Software Foundations of Security and Privacy}\\
+\end{center}
+
+\vspace{-5mm}
+
+\begin{enumerate}
+\item \textbf{Structured chaos (25 points).} Sometimes when modeling a computation, we need to avoid making assumptions about what exactly might transpire at runtime. For example, suppose that we wish to write a program that accepts alphanumeric user input for further processing. We don't know exactly what the user will type, but we do know that it will be a string of characters drawn from the set $\{a, \ldots, z, A, \ldots, Z, 0, \ldots, 9\}$. The way to model this situation formally is using \emph{nondeterminism} with constraints. In this problem, we will explore how to do this in dynamic logic.
+
+\begin{description}
+
+  \item[Part 1 (10 points).] Extend the language discussed in lecture by defining the semantics of a constrained nondeterministic assignment command, $\pumod{x}{Q(x)}$. Informally, this command should nondeterministically assign a value to $x$ that satisfies the formula $Q(x)$. Here, the notation $Q(x)$ means that $Q$ is a formula with a free variable $x$. For example, after running $\pumod{x}{x > y}$, the variable $x$ could be assigned any integer greater than $y$ in the current state. If $Q(x)$ is not satisfiable, e.g. if $Q(x)$ is equivalent to $x < 0 \land x > 0$, then the command should not enter any final state (i.e., should not terminate).
+
+  \textbf{Solution.}
+  % Write your solution here, and remove the \vspace before typesetting.
+  %
+  \vspace*{15em}
+
+  \clearpage
+  \item[Part 2 (15 points).] Design an axiom that allows you to reason about box modalities around nondeterministic branches:
+  \[
+    \dbox{\pumod{x}{Q(x)}}p(x) \lbisubjunct \ldots
+  \]
+  The right side of this equivalence should not contain a box or diamond modality, but only first-order formulas. Prove that your axiom is valid using your semantics from Part 1.
+
+  \textbf{Solution.}
+  % Write your solution here, and remove the \vspace before typesetting.
+  %
+
+  \end{description}
+
+  \newpage
+
+  \item\textbf{Verified safety (15 points).} In the previous homework, you looked for ways to exploit a flawed runtime memory safety monitor. 
+  Recall that the safety policy aimed to ensure that a given program cannot write outside the range $\mathtt{0x800300}$--$\mathtt{0x8003FF}$ (inclusive).
+  Another way to enforce this policy is to verify that the program will not write outside the bounds, before executing it; this removes the need for any runtime monitors.
+
+  However, non-determinism arising from inputs that are unknown before execution can pose a challenge.
+  Consider the program $\alpha$ below.
+  \[
+  \alpha \equiv \pumod{s}{s \ge 0 \lor s < 0} ; \pumod{p}{p+s}
+  \]
+
+  \begin{description}
+
+    \item[Part 1 (5 points).] Explain why the following formula is not valid by giving a trace of $\alpha$ that violates the safety policy.
+    \[
+    \mathtt{0x8000300} \le p \le \mathtt{0x8000400} \limply
+      \dbox{\alpha}{\mathtt{0x8000300} \le p \le \mathtt{0x8000400}}
+    \]
+	Your trace should be given as a sequence of states that show the values of $s$ and $p$ at each step.
+	The easiest way to format this is as a table, e.g.:
+	\begin{center}
+		\begin{tabular}{l|l|l}
+			& $s$ & $p$ \\
+			\hline
+			Initial state & \ldots & \ldots \\
+			\vdots & \vdots & \vdots \\
+		\end{tabular}
+	\end{center}
+  \textbf{Solution.}
+
+
+  % Write your solution here
+  %
+
+  \newpage
+
+  \item[Part 2 (10 points).] Identify a formula $Q(s)$ to replace the nondeterministic assignment in $\alpha$ with that will make the program satisfy the safety policy.
+  Is the formula from Part 1 now valid with your fix?
+  If so, provide a sequent deduction using  the axioms of dynamic logic.
+  If not, then identify the premise in an attempted sequent deduction that is not valid.
+
+  \textbf{Solution.}
+
+  % Write your solution here
+  %
+
+  \end{description}
+
+\end{enumerate}
+
+\end{document}
