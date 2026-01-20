@@ -16,7 +16,7 @@ schedule = [
   {
     date: "Tue 01/20",
     topic: "Formal Proof",
-    pdf: "",
+    pdf: "../lectures/03-proof.pdf",
     tex: "",
     comments: "",
   },
