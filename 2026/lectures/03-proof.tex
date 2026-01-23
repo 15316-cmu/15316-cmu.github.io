@@ -21,26 +21,27 @@
 
 \section{Introduction}
 
-We begin by talking about safety, and in particular one important class of safety
-properties: memory safety. Mistakes that programmers make having to do with memory
-safety have been responsible for a lot of security vulnerabilities over the years,
-and we will discuss some of the different types of memory safety errors that lead
-to vulnerabilities in common programs.
+In the last lecture we introduced a precise semantics for a small imperative
+programming language and used it to reason about how programs change state.  In
+this lecture we will use that semantics as a running example to motivate and
+practice \emph{formal proof}.
 
-Our goal is to write code that does not have these vulnerabilities. There are
-many ways that have been proposed to avoid memory safety errors: type systems
-that ensure that memory is always used correctly, tools that check for memory
-safety errors at compile time, runtime systems that detect and prevent errors,
-and many others at various parts of the software and hardware stack. To understand
-how these work, and what their limitations and tradeoffs are, we need to understand
-how memory safety materializes in programs at the level of precise semantics.
+We start by reviewing the key semantic definitions and working through a small
+program proof, where we calculate intermediate states to show that a short
+program has the intended effect.  This kind of reasoning is simple in principle,
+but it is easy to make mistakes without a careful, systematic method.
 
-In the second part of this lecture, we will go into detail to understand the
-semantics of programs and how they relate to proving things about how programs
-will behave when run. We won't yet define exactly what memory safety means
-at this level, but we will have laid the essential groundwork to do this,
-as well as to start reasoning about the safety of programs in more systematic
-ways.
+In the second part of this lecture we introduce \emph{propositional sequent
+calculus} as a proof system for reasoning about logical validity.  We will define
+its syntax (formulas and sequents) and present inference rules that can be read
+bottom-up as a proof search procedure.
+
+Finally, we connect the proof rules to the semantics by proving key properties
+of the inference system: soundness, inversion, termination of proof search for
+the propositional fragment, and completeness.  These ideas will serve as a
+foundation for the program logics we develop next, which will allow us to prove
+that programs follow safety properties in a similar fashion to how we prove
+the validity of formulas in the propositional logic today.
 
 \section{Review: Program Semantics}
 

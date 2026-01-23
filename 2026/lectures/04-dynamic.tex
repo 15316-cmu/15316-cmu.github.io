@@ -1,0 +1,359 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.5in]{geometry}
+\usepackage{lecnotes}
+% \usepackage{mpass}
+% \lstset{style=verb,language=mpass}
+\input{lmacros}
+
+\newcommand{\course}{15-316: Software Foundations of Security \& Privacy}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecdate}{January 21, 2024}
+\newcommand{\lecnum}{4}
+\newcommand{\lectitle}{Dynamic Logic}
+\newcommand{\courseurl}{https://15316-cmu.github.io/2024/}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+In the last lecture we introduced \emph{propositional sequent calculus} because
+it is the foundation of most of the calculi we will investigate and because it
+helps us understand the basic principles underlying the sequent calculus.  Let's
+summarize them:
+\begin{itemize}
+\item We define \emph{sequents} $\Gamma \vdash \Delta$ with antecedents
+  (assumptions) and succedents (goals).
+\item We give a \emph{meaning} to sequents (also called a \emph{semantics}): a
+  sequent is \emph{valid} if when all antecedents are true then some succedent
+  is true.
+\item We also give \emph{inference rules} to prove sequents formally in a
+  bottom-up manner.  These are divided into \emph{right rules} (how to prove a
+  succedent) and \emph{left rules} (how to use an antecedent), and the identity
+  rule connecting left and right.
+\item We connect the inference rules to the semantics by proving
+  (mathematically, at the metalevel) that the sequent calculus is \emph{sound}
+  and \emph{complete}:
+  \begin{itemize}
+  \item A rule is sound if the validity of all premises implies
+    the validity of the conclusion.  If all rules are sound, the
+    whole system of inference rules is sound.
+  \item A system of rules is \emph{complete} if every valid sequent
+    can be proved with them.
+  \end{itemize}
+\end{itemize}
+In the specific case of propositional sequent calculus we were able to prove
+completeness using the following steps:
+\begin{itemize}
+\item Every rule is \emph{invertible} in the sense that if the conclusion is
+  valid then all the premise must also be valid.
+\item Every rule is \emph{reductive} in the sense that all premises are smaller
+  than the conclusion by counting the number of connectives and logical
+  constants.
+	\end{itemize}
+	As we move forward, we will have to give up some of these properties while
+	retaining others.
+
+	In this lecture we begin the study of \emph{dynamic logic}, which enriches the
+	sequent calculus with formulas that talk directly about program execution.  The
+	key new ingredients are the modalities $[\alpha]Q$ and $\langle \alpha\rangle
+	Q$, which express (partial) correctness properties of a program $\alpha$ with
+	respect to a postcondition $Q$.  We will define the syntax of our tiny language,
+	give semantics to these modal formulas, and then derive proof rules for common
+	program constructs such as assignments and conditionals.
+
+\section{Dynamic Logic: A Logic with Programs}
+
+In this course we use a tiny imperative programming language so we can be
+rigorous about the concepts we introduce.  With it we illustrate and analyze the
+concepts that transfer to realistic languages.  There will be small differences
+regarding the precise extent of the language as we move through various
+concepts.  Here is our first cut.  \emph{Expressions} denote integers and are
+either constants, variables, or operators like addition and multiplication.
+Programs include variable assignment, sequential composition, conditionals, and
+loops.  Formulas no longer have propositional variables (for simplicity), but we
+add comparisons between integers to the usual set of logical constants and
+connectives.  New here are two kinds of formulas, $[\alpha]Q$ and
+$\langle \alpha\rangle Q$ that mention programs.  We explain them below the
+table.
+\[
+  \begin{array}{llcl}
+    \mbox{Variables} & x, y, z \\
+    \mbox{Constants} & c & ::= & \ldots, -1, 0, 1, \ldots \\
+    \mbox{Expressions} & e & ::= & c \mid x \mid e_1 + e_2 \mid e_1 * e_2 \mid \ldots \\
+    \mbox{Programs} & \alpha, \beta & ::= & x := e \mid \alpha \semi \beta
+                                            \mid \mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta
+                                            \mid \mb{while}\; P\; \alpha \\
+    \mbox{Formulas} & P, Q & ::= & e_1 \leq e_2 \mid e_1 = e_2 \mid \ldots \\
+                     & & \mid  & P \land Q \mid P \lor Q \mid P \arrow Q \mid P \leftrightarrow Q \mid
+                                 \lnot P \mid \top \mid \bot \\
+                     & & \mid & \forall x . P(x) \mid \exists x . P(x) \\
+                     & & \mid & [\alpha]Q \mid \langle \alpha\rangle Q
+  \end{array}
+\]
+A \emph{state} is a total map from variables to integer values.  We use
+$\omega, \mu, \nu$ for states.  A program represents a partial function from an
+initial state (called \emph{prestate}) to a final state (called
+\emph{poststate}).  It is a partial function because loops may not terminate, so
+no final state may every be reached.  The sequence of states that a program goes
+through is its \emph{trace} as discussed above.
+
+Characteristic of \emph{dynamic logic}~\citep{Harel79book,Harel00book} are two
+modalities that mention programs:
+\begin{itemize}
+\item $[\alpha]Q$ (pronounced ``\emph{box alpha $Q$}'') which is true if,
+  starting in a prestate $\omega$, the formula $Q$ will be true in every
+  poststate $\nu$ we can reach by executing program $\alpha$.
+\item $\langle \alpha\rangle Q$ (pronounced ``\emph{diamond alpha $Q$}'') which
+  is true in a state $\omega$ if there is a poststate $\nu$ that we can
+  reach by executing $\alpha$ in which $Q$ is true.
+\end{itemize}
+We refer to $Q$ in these formulas as a \emph{postcondition}.  These definitions
+are formulated to account for \emph{nondeterministic} programs that may have
+multiple poststates for a given prestate.  In our case of a deterministic
+language, this will be zero or one.  Therefore, we can already see that
+$\langle \alpha\rangle Q$ should imply $[\alpha]Q$.
+
+In the next lecture we introduce a rigorous \emph{semantics} for dynamic logic
+(which, by necessity, also includes programs and expressions).  For today, we
+instead try to derive some rules keeping in mind the informal semantics and our
+understanding how an imperative programming language executes.
+
+\section{Semantics of Formulas}
+
+The semantics of formulas in a given state must appeal to the meaning of
+expressions and the meaning of programs.  Therefore the meanings of programs and
+formulas mutually depend on each other.  We start with some simple cases.
+\[
+  \begin{array}{lcl}
+    \omega \models e_1 \leq e_2 & \mbox{iff} & \omega \lbb e_1\rbb \leq \omega \lbb e_2\rbb \\
+    \omega \models e_1 = e_2 & \mbox{iff} & \omega \lbb e_1\rbb = \omega \lbb e_2\rbb \\[1ex]
+    \omega \models P \land Q & \mbox{iff} & \omega \models P \quad\mbox{and}\quad \omega \models Q \\
+    \omega \models P \lor Q & \mbox{iff} & \omega \models P \quad\mbox{or}\quad \omega \models Q \\
+    \omega \models P \arrow Q & \mbox{iff} & \omega \models P \quad\mbox{implies}\quad \omega \models Q \\
+    \omega \models \lnot P & \mbox{iff} & \omega \not\models P \\
+    \omega \models P \leftrightarrow Q & \mbox{iff} & \omega \models P \quad\mbox{iff}\quad \omega \models Q \\
+    \omega \models \forall x.\, P(x) & \mbox{iff} & \omega[x \mapsto c] \models P(x) \quad \mbox{for every $c \in \mathbb{Z}$} \\
+    \omega \models \exists x.\, P(x) & \mbox{iff} & \omega[x \mapsto c] \models P(x) \quad \mbox{for some $c \in \mathbb{Z}$}
+  \end{array}
+\]
+Here $\omega[x \mapsto c]$ denotes the state obtained from $\omega$ by mapping $x$
+to $c$ and leaving all other variables unchanged.
+
+For programs, we have to recall the informal definition from earlier.  
+$[\alpha]Q$ is true if $Q$ is true in \emph{every} poststate of
+$\alpha$.  Because a nonterminating program does not have a poststate, this is a
+statement about the \emph{partial correctness} of the program $\alpha$.
+Conversely, $\langle \alpha\rangle Q$ is true if $Q$ is true in \emph{some}
+poststate of $\alpha$.
+\[
+  \begin{array}{lcl}
+    \omega \models [\alpha]Q & \mbox{iff}
+    & \mbox{for every $\nu$ with $\omega \lbb\alpha\rbb \nu$
+      we have $\nu \models Q$} \\
+    \omega \models \langle\alpha\rangle Q & \mbox{iff}
+    & \mbox{there is a $\nu$ with $\omega \lbb \alpha \rbb \nu$
+      and $\nu \models Q$}
+  \end{array}
+\]
+
+Now we say $P$ is \emph{valid} (written as $\models P$) if $\omega \models P$
+for every state $\omega$.  (Recall that all states are defined on all variables,
+so this is well-defined.)
+
+A sequent $P_1, \ldots, P_n \vdash Q_1, \ldots, Q_m$ is valid if for every state
+$\omega$, whenever for all antecedents $P_i$ we have $\omega \models P_i$ then
+for some succedent $Q_j$ we have $\omega \models Q_j$.
+
+\section{Rules and Axioms}
+
+Our goal is ultimately to find proof rules for Dynamic Logic formulas containing
+boxes and diamonds. We'll start with a general observation: if $P$ and $Q$ are
+equivalent (i.e. $P \leftrightarrow Q$ is valid), then rules such as
+\begin{rules}
+  \infer[]
+  {\Gamma \vdash P, \Delta}
+  {\Gamma \vdash Q, \Delta}
+  \hspace{3em}
+  \infer[]
+  {\Gamma, P \vdash \Delta}
+  {\Gamma, Q \vdash \Delta}
+\end{rules}
+are \textbf{both sound and invertible}.  That's because $P$ and $Q$ are always
+either both false or both true, regardless of the state because the
+bi-implication $P \leftrightarrow Q$ is valid. We call these valid formulas
+\emph{axioms}, and we'll use this observation to identify axioms that 
+we can use to derive sound and invertible proof rules.
+
+In order to obtain good left and right rules from axioms we just
+have to make sure the rules are reductive.  For example, the following
+equivalence is reductive in that it has the effect of making the program 
+$\alpha\,;\,\beta$ smaller, breaking it into $\alpha$ and $\beta$ that
+reside in separate boxes.
+\[
+  [\alpha \semi \beta]Q \leftrightarrow [\alpha]([\beta]Q)
+\]
+Let's prove this.  We start with the right-to-left direction, which implies the
+\emph{soundness} of $[\semi]R$ and \emph{invertibility} of $[\semi]L$.
+We set up the proof:
+\begin{tabbing}
+  $\omega \models [\alpha]([\beta]Q)$ \` (assumption) \\
+  $\ldots$ \\
+  $\omega \models [\alpha \semi \beta]Q$ \` (to show)
+\end{tabbing}
+We now walk through the proof in individual steps, narrowing the gap, sometimes
+from below and sometimes from above.  Typically, one only presents the end
+result and the reader has to figure out how one might have obtained it.
+
+By definition, the conclusion holds if for every state $\nu$ such that
+$\omega \lbb \alpha \semi \beta\rbb \nu$ we have $\nu \models Q$.  Now our proof
+state is (highlighting the new parts in \new{blue}):
+\begin{tabbing}
+  $\omega \models [\alpha]([\beta]Q)$ \` (1, assumption) \\
+  \new{$\omega\lbb \alpha \semi \beta\rbb \nu$ for some $\nu$} \` \new{(2, assumption)} \\
+  \new{$\ldots$} \\
+  \new{$\nu \models Q$} \` \new{(to show)} \\
+  $\omega \models [\alpha \semi \beta]Q$ \` \new{(by defn.\ of $\models$)}
+\end{tabbing}
+By definition, assumption 2 is true if there is some intermediate state $\mu$
+such that $\omega \lbb \alpha \rbb \mu$ and $\mu \lbb \beta \rbb \nu$.
+Let's write this into the proof as well.
+\begin{tabbing}
+  $\omega \models [\alpha]([\beta]Q)$ \` (1, assumption) \\
+  $\omega\lbb \alpha \semi \beta\rbb \nu$ for some $\nu$ \` (2, assumption) \\
+  \new{$\omega\lbb \alpha\rbb \mu$ and $\mu \lbb \beta \rbb \nu$ for some $\mu$}
+  \` \new{(3, from 2 by defn.\ of $\lbb{-}\rbb$)} \\
+  $\ldots $ \\
+  $\nu \models Q$ \` (to show) \\
+  $\omega \models [\alpha \semi \beta]Q$ \` (by defn.\ of $\models$)
+\end{tabbing}
+Next: from assumption 1 and the fact that $\omega \lbb \alpha \rbb \mu$
+we can conclude that $\mu \models [\beta]Q$, again just by the definition
+of $\models$.
+\begin{tabbing}
+  $\omega \models [\alpha]([\beta]Q)$ \` (1, assumption) \\
+  $\omega\lbb \alpha \semi \beta\rbb \nu$ for some $\nu$ \` (2, assumption) \\
+  $\omega\lbb \alpha\rbb \mu$ and $\mu \lbb \beta \rbb \nu$ for some $\mu$
+  \` (3, from 2 by defn.\ of $\lbb{-}\rbb$) \\
+  \new{$\mu \models [\beta]Q$} \` \new{(4, from 1 and 3(a) by defn.\ of $\models$)} \\
+  $\ldots $ \\
+  $\nu \models Q$ \` (to show) \\
+  $\omega \models [\alpha \semi \beta]Q$ \` (by defn.\ of $\models$)
+\end{tabbing}
+Now we use the same argument knowing that $\mu \lbb \beta \rbb \nu$
+and $\mu \models [\beta]Q$ to conclude that $\nu \models Q$.  But that's
+what we needed to show!
+\begin{tabbing}
+  $\omega \models [\alpha]([\beta]Q)$ \` (1, assumption) \\
+  $\omega\lbb \alpha \semi \beta\rbb \nu$ for some $\nu$ \` (2, assumption) \\
+  $\omega\lbb \alpha\rbb \mu$ and $\mu \lbb \beta \rbb \nu$ for some $\mu$
+  \` (3, by defn.\ of $\lbb{-}\rbb$ from 2) \\
+  $\mu \models [\beta]Q$ \` (4, from 1 and 3(a) by defn. of $\models$) \\
+  $\nu \models Q$ \` \new{(5, from 4 and 3(b) by defn. of $\models$)} \\
+  $\omega \models [\alpha \semi \beta]Q$ \` (\new{from 5 and 2} by defn.\ of $\models$)
+\end{tabbing}
+We see the proof is actually quite straightforward.  We just have to
+carefully unwind the definitions.
+
+Here is the proof in the other direction.\footnote{not shown in lecture}  We set up:
+\begin{tabbing}
+  $\omega \models [\alpha \semi \beta]Q$ \` (1, assumption) \\
+  $\ldots$ \\
+  $\omega \models [\alpha]([\beta]Q)$ \` (to show)
+\end{tabbing}
+We show the filled-in proof.  You can probably walk through it in the order
+we made the deductions.
+\begin{tabbing}
+  $\omega \models [\alpha \semi \beta]Q$ \` (1, assumption) \\
+  $\omega \lbb \alpha\rbb \mu$ for some $\mu$ \` (2, assumption) \\
+  $\mu \lbb \beta\rbb \nu$ for some $\nu$ \` (3, assumption) \\
+  $\omega \lbb \alpha \semi \beta\rbb \nu$ \` (4, from 2 and 3 by defn.\ of $\lbb {-}\rbb$ \\
+  $\nu \models Q$ \` (5, from 1 and 4 by defn of $\models$) \\
+  $\mu \models [\beta]Q$ \` (6, from 5 and 3 by defn of $\models$) \\
+  $\omega \models [\alpha]([\beta]Q)$ \` (7, from 6 and 2 by defn of $\models$)
+\end{tabbing}
+
+Now that we know that $[\alpha \semi \beta]Q \leftrightarrow [\alpha]([\beta]Q)$ is
+valid, we can derive left and right rules for reasoning about sequential composition.
+\begin{rules}
+  \infer[{[\semi]}R]
+  {\Gamma \vdash [\alpha \semi \beta]Q, \Delta}
+  {\Gamma \vdash [\alpha]([\beta]Q), \Delta}
+  \quad
+  \infer[{[\semi]}L]
+  {\Gamma, [\alpha \semi \beta]Q \vdash \Delta}
+  {\Gamma, [\alpha]([\beta]Q) \vdash \Delta}
+\end{rules}
+
+\section{Some Axioms for Dynamic Logic}
+
+Based on the insights from the previous section and the rules for programs in
+dynamic logic, we can conjecture the following axioms.  And, indeed, they are
+all valid, even though we don't show the proofs.  We write the postfix ``$A$''
+to indicate that what we are naming is not a rule but an axiom.
+\[
+  \begin{array}{lll}
+    [:=]A & [x := e]Q(x) \leftrightarrow \forall x'. x' = e \arrow Q(x') \quad
+            \mbox{($x'$ not in $e$ or $Q(x)$)} \\\relax
+    [\semi]A & [\alpha \semi \beta]Q \leftrightarrow [\alpha]([\beta]Q) \\\relax
+    [\mb{if}]A & [\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta]Q
+                  \leftrightarrow (P \arrow [\alpha]Q) \land (\lnot P \arrow [\beta]Q) \\\relax
+    [\mb{unfold}]A & [\mb{while}\; P\; \alpha] \leftrightarrow
+                     (P \arrow [\alpha][\mb{while}\; P\; \alpha]Q)
+                     \land (\lnot P \arrow Q)
+  \end{array}
+\]
+Because these axioms are valid biconditionals, we obtain correct left and right
+rules for the sequent calculus. Note that directly translating these axioms into
+rules may be somewhat unsatisfactory. For example, the rules for $[\mb{unfold}]$ would
+not be reductive, and the rules for $[:=]$ and $[\mathbf{if}]$ introduce complicated
+formulas. In the next lecture, we'll see how this can be addressed.
+
+For now, let's take a closer look at the $[:=]A$ axiom, which may not seem obvious
+at first glance. The first instinct might be the following axiom for assignment
+\[
+  [x \leftarrow e]P \leftrightarrow (x = e \rightarrow P) \qquad (\mbox{WRONG})
+\]
+However, this is \emph{not valid} and could therefore lead to unsound
+reasoning. For example, the following is certainly not
+valid
+\[
+  \not\models x = 3 \rightarrow [x \leftarrow x+1] (x = 17)
+\]
+since computing $x \leftarrow x+1$ will set $x$ to $4$ but the
+postcondition requires $x$ to be $17$.  With the wrong axiom we could
+prove
+\[
+  (x = 3 \rightarrow [x \leftarrow x+1] x = 17) \leftrightarrow
+  (x = 3 \rightarrow ((x = x+1) \rightarrow x = 17))
+\]
+and the right-hand side is true since $x = x+1$ is contradictory.
+
+There are two ways out: one is to \emph{carefully} substitute $e$ for
+$x$ with a so-called \emph{uniform substitution}.  The other is to
+\emph{rename} the variable $x$, something we also did when generating
+a verification condition for a loop.  This is handled by
+quantification over a fresh variable that does not occur in $P$.  We
+write $P(x)$ for a formula $P$ with (possible) occurrences of $x$, and
+then $P(x')$ for the result of renaming all occurrences of $x$ to
+$x'$.  Then our axiom becomes
+\[
+  [x \leftarrow e]P(x) \leftrightarrow (\forall x'.\, x' = e \rightarrow P(x'))
+\]
+It is important for soundness that $x'$ is a variable that does not
+already occur in $e$ or $P(x)$.  We often refer to this as a ``fresh
+variable''.
+
+Our example no longer gives us a contradiction, because
+\[
+  (x = 3 \rightarrow [x \leftarrow x+1] x = 17) \leftrightarrow
+  (x = 3 \rightarrow \forall x'.\, x' = x+1 \rightarrow x' = 17)
+\]
+is false as it should be.
+
+\bibliographystyle{plainnat}
+\bibliography{bibliography}
+
+\end{document}

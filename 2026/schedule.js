@@ -23,7 +23,7 @@ schedule = [
   {
     date: "Thu 01/22",
     topic: "Dynamic Logic",
-    pdf: "",
+    pdf: "../lectures/04-dynamic.pdf",
     tex: "",
     comments: "",
   },
