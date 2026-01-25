@@ -346,14 +346,53 @@ It is important for soundness that $x'$ is a variable that does not
 already occur in $e$ or $P(x)$.  We often refer to this as a ``fresh
 variable''.
 
-Our example no longer gives us a contradiction, because
-\[
-  (x = 3 \rightarrow [x \leftarrow x+1] x = 17) \leftrightarrow
-  (x = 3 \rightarrow \forall x'.\, x' = x+1 \rightarrow x' = 17)
-\]
-is false as it should be.
+	Our example no longer gives us a contradiction, because
+	\[
+	  (x = 3 \rightarrow [x \leftarrow x+1] x = 17) \leftrightarrow
+	  (x = 3 \rightarrow \forall x'.\, x' = x+1 \rightarrow x' = 17)
+	\]
+	is false as it should be.
 
-\bibliographystyle{plainnat}
-\bibliography{bibliography}
+		\section{Addendum: Soundness of the Assignment Axiom}
 
-\end{document}
+		In this addendum we prove that the assignment axiom $[:=]A$ is valid.
+		Recall the statement (with $x'$ \emph{fresh}, i.e.\ $x'$ does not occur in $e$ or $Q(x)$):
+		\[
+		  [x := e]Q(x) \leftrightarrow \forall x'.\, x' = e \arrow Q(x')
+		\]
+
+		We start with the left-to-right direction.  We set up the proof:
+		\begin{tabbing}
+		  $\omega \models [x := e]Q(x)$ \` (1, assumption) \\
+		  $\ldots$ \\
+		  $\omega \models \forall x'.\, x' = e \arrow Q(x')$ \` (to show)
+		\end{tabbing}
+    Now we proceed like before.
+		\begin{tabbing}
+		  $\omega \models [x := e]Q(x)$ \` (1, assumption) \\
+		  $\omega \lbb x := e \rbb \nu$ for $\nu = \omega[x \mapsto \omega\lbb e\rbb]$ \` (2, by defn. of $\lbb :=\rbb$) \\
+      $\omega[x \mapsto \omega\lbb e \rbb] \models Q(x)$ \` (3, by 2 and defn of $[\cdot]$) \\
+		  $\omega[x' \mapsto \omega\lbb e \rbb] \models Q(x')$ for fresh $x'$ \` (4, by 3 and $x'$ fresh) \\
+		  $\omega[x' \mapsto c] \models x' = e \rightarrow Q(x')$ for every $c \in \mathbb{Z}$  \` (5, by 4 and defn. $\rightarrow$) \\
+		  $\omega \models \forall x'.\, x' = e \arrow Q(x')$ \` (by defn.\ of $\forall$)
+		\end{tabbing}
+
+		In the above, $Q(x')$ is the result of renaming the free occurrences of $x$ in $Q$ to the fresh variable $x'$.
+		Since $c = \omega\lbb e\rbb$, the value of $x$ in $\nu$ equals the value of $x'$ in $\omega[x' \mapsto c]$,
+		and all other variables agree with $\omega$; therefore $\nu \models Q(x)$ implies $\omega[x' \mapsto c] \models Q(x')$.
+		This is exactly what we needed, completing the left-to-right direction.
+
+		Here is the proof in the other direction. 
+		\begin{tabbing}
+		  $\omega \models \forall x'.\, x' = e \arrow Q(x')$ \` (1, assumption) \\
+      $\omega[x' \mapsto c] \models x' = e \arrow Q(x')$ for all $c \in \mathbb{Z}$ \` (2, by defn. $\forall$) \\
+      $\omega[x' \mapsto \omega\lbb e\rbb] \models Q(x')$ \` (3, by 2 and defn. of $\rightarrow$) \\
+      $\omega[x \mapsto \omega\lbb e\rbb] \models Q(x)$ \` (4, by 3 and $x'$ fresh) \\
+		  $\omega \lbb x := e \rbb \nu$ for any $\nu = \omega[x \mapsto \omega\lbb e\rbb]$ \` (5, by defn. of $\lbb :=\rbb$) \\
+		  $\omega \models [x := e]Q(x)$ \` (6, from 4 and 5 by defn.\ of $[\cdot]$)
+		\end{tabbing}
+
+		\bibliographystyle{plainnat}
+		\bibliography{bibliography}
+	
+	\end{document}
