@@ -15,6 +15,9 @@ for(var i = 0; i < schedule.length; i++) {
     links.append(pdf)
   }
   if(ent['tex'].length > 0) {
+    if(ent['pdf'].length > 0) {
+      links.append(' ')
+    }
     tex = jQuery('<a href=\"lectures/' + ent['tex'] + '\">[tex]</a>')
     links.append(tex)
   }

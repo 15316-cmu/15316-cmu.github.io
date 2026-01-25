@@ -9,22 +9,22 @@ schedule = [
   {
     date: "Thu 01/15",
     topic: "Safety and Semantics",
-    pdf: "../lectures/02-semantics.pdf",
-    tex: "",
+    pdf: "02-semantics.pdf",
+    tex: "02-semantics.tex",
     comments: "",
   },
   {
     date: "Tue 01/20",
     topic: "Formal Proof",
-    pdf: "../lectures/03-proof.pdf",
-    tex: "",
+    pdf: "03-proof.pdf",
+    tex: "03-proof.tex",
     comments: "",
   },
   {
     date: "Thu 01/22",
     topic: "Dynamic Logic",
-    pdf: "../lectures/04-dynamic.pdf",
-    tex: "",
+    pdf: "04-dynamic.pdf",
+    tex: "04-dynamic.tex",
     comments: "",
   },
   {
