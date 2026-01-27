@@ -1,0 +1,704 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.5in]{geometry}
+\usepackage{lecnotes}
+% \usepackage{mpass}
+% \lstset{style=verb,language=mpass}
+\input{lmacros}
+
+\newcommand{\course}{15-316: Software Foundations of Security \& Privacy}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecdate}{January 26, 2026}
+\newcommand{\lecnum}{5}
+\newcommand{\lectitle}{Proving Safety}
+\newcommand{\courseurl}{https://15316-cmu.github.io/2024/}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+So far we have focused attention on proving general properties of programs.
+Such properties are certainly relevant to safety, but how does this now
+translate to safety?  And how exactly do we then prove safety?  Looking at our
+language up to now, all constructs are ``safe''.  For example, we operate on
+integers, so there is no overflow.  In the next lecture we will consider
+out-of-bounds memory access as a quintessential unsafe operation; in this
+lecture we consider division by $0$.  In a language like C, the behavior of
+division by $0$ is \emph{undefined}.  For C, undefined behavior gives the
+compiler a lot of leeway.  For example, it could raise an exception.  But it
+could also optimize $(1 / 0) * 0$ to just $0$ instead of raising an exception.
+Or it could exhibit some other unexpected behavior that could give an attacker
+access to your machine.
+
+Because ``\emph{undefined}'' has different meanings in different contexts,
+we avoid this term.  Instead we use:
+\begin{description}
+\item[Unsafe:] If an operation is \emph{unsafe} we do not know what an
+  implementation of a language might do.  In particular, we consider \emph{all}
+  safety properties as being violated by an unsafe operation.  In C, this would
+  be called \emph{undefined behavior}.
+\item[Indeterminate:] If an operation is \emph{indeterminate} it has a valid
+  outcome, but the language specification does not say what precisely this
+  outcome is.  In C, the order of evaluation for many expressions is
+  \emph{unspecified} so that there may be many outcomes that are all correct.
+\item[Safe:] The program performs no unsafe operation.  This includes situations
+  where the outcome may be indeterminate.
+\end{description}
+Basically, we fix a subset of all safety properties, namely those that arise
+from a single operation deemed \emph{unsafe}.
+
+This particular (even if restricted) concept of safety already raises the issue
+that dynamic logic only relates an initial state to a final state, but does not
+explicitly mention any intermediate states.  So we have to start by extending
+dynamic logic so it can reflect the concept of an unsafe program.  We do not
+have an explicit \emph{predicate} inside the logic that expresses a program
+$\alpha$ is safe, but it will nevertheless be easy to write formulas that imply
+safety.
+
+\section{Soundess by Derivation}
+
+We ended the previous lecture by stating several axioms for Dynamic Logic.
+\[
+  \begin{array}{lll}
+    [:=]A & [x := e]Q(x) \leftrightarrow \forall x'. x' = e \arrow Q(x') \quad
+            \mbox{($x'$ not in $e$ or $Q(x)$)} \\\relax
+    [\semi]A & [\alpha \semi \beta]Q \leftrightarrow [\alpha]([\beta]Q) \\\relax
+    [\mb{if}]A & [\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta]Q
+                  \leftrightarrow (P \arrow [\alpha]Q) \land (\lnot P \arrow [\beta]Q) \\\relax
+    [\mb{unfold}]A & [\mb{while}\; P\; \alpha] \leftrightarrow
+                     (P \arrow [\alpha][\mb{while}\; P\; \alpha]Q)
+                     \land (\lnot P \arrow Q)
+  \end{array}
+\]
+We saw how axioms that consist of biconditionals lead to proof rules that are
+sound an invertible. For conditional statements, we would directly obtain
+the left and right rules,
+\begin{rules}
+\infer[{[\mb{if}]}R]
+  {\Gamma \vdash [\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta]Q, \Delta}
+  {\Gamma \vdash (P \arrow [\alpha]Q) \land (\lnot P \arrow [\beta]Q), \Delta}
+  \quad
+\infer[{[\mb{if}]}L]
+  {\Gamma, [\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta]Q \vdash \Delta}
+  {\Gamma, (P \arrow [\alpha]Q) \land (\lnot P \arrow [\beta]Q) \vdash \Delta}
+\end{rules}
+However, these rules introduce several connectives that hide the essential
+proof obligations that need to be discharged to reason about a conditional.
+This is fixed easily by using the rules that we already have for logical
+connectives. For example, we can derive as follows on the right rule.
+\begin{rules}
+  \infer[{[\mb{if}]}R]
+  {\Gamma \vdash [\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta]Q, \Delta}
+  {\infer[{\land}R]
+    {\Gamma \vdash (P \arrow [\alpha]Q) \land (\lnot P \arrow [\beta]Q), \Delta}
+    {\infer[{\arrow}R]
+      {\Gamma \vdash P \arrow [\alpha]Q, \Delta}
+      {\Gamma, P \vdash [\alpha]Q, \Delta}
+      &
+      \infer[{\arrow}R]
+      {\Gamma \vdash \lnot P \arrow [\beta]Q, \Delta}
+      {\infer[{\lnot}L]
+        {\Gamma, \lnot P \vdash [\beta]Q, \Delta}
+        {\Gamma \vdash P, [\beta]Q, \Delta}}}}
+\end{rules}
+Of course we aren't able to close the proof entirely, and we're left with
+two premises that, were they giveen proofs, would prove the original goal.
+So this gives us a new rule.
+\begin{rules}
+  \infer[{[\mb{if}]}R]
+  {\Gamma \vdash [\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta]Q, \Delta}
+  {
+    {\Gamma, P \vdash [\alpha]Q, \Delta}
+    &
+    {\Gamma \vdash P, [\beta]Q, \Delta}
+  }
+\end{rules}
+Note that this rule immediately surfaces the proof obligations, short circuiting
+past the connectives from the axiom. We can do the same thing for the left rule
+as well, which would lead to the following rule.
+\begin{rules}
+  \infer[{[\mb{if}]}L]
+  {\Gamma, [\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta]Q \vdash \Delta}
+  {
+    {\Gamma, P, [\alpha]Q \vdash \Delta}
+    &
+    {\Gamma, [\beta]Q \vdash P, \Delta}
+  }
+\end{rules}
+
+\paragraph{Assignments.}
+In order to do this for the assignment axiom, we'll need rules for reasoning about
+the universal quantifier.
+\begin{rules}
+  \infer[{\forall}R^{x'}]
+  {\Gamma \vdash \forall x.\, P(x), \Delta}
+  {\Gamma \vdash P(x'), \Delta}
+  \hspace{3em}
+  \infer[{\forall}L^{x'}]
+  {\Gamma, \forall x.\, P(x) \vdash \Delta}
+  {\Gamma, \forall x.\, P(x), x' = e, P(x') \vdash \Delta}
+\end{rules}
+We write $\forall R^{x'}$ to denote that $x'$ is a fresh new variable that
+doesn't appear anywhere in the context of $\Gamma, \Delta$, or $P$.
+Reading the rules ${\forall}L^{x'}$ bottom-up, we can freely choose the 
+expression $e$ to instantiate the quantifier with as long as it doesn't 
+mention $x'$. Now we show the derivation of the right rule for assignment.
+\begin{rules}
+ \infer[{[\mb{:=}]}R^{x'}]
+ {\Gamma \vdash [x := e]Q(x), \Delta}
+ {\infer[{\forall}R^{x'}]
+  {\Gamma \vdash \forall x'. x' = e \arrow Q(x'), \Delta}
+  {\infer[{\arrow}R]
+    {\Gamma \vdash x' = e \arrow Q(x')}
+    {\Gamma, x' = e \vdash Q(x')}}}
+\end{rules}
+Doing the same for the left rule gives us the following direct rules for
+assignment.
+\begin{rules}
+  \infer[{[\mb{:=}]}R^{x'}]
+  {\Gamma \vdash [x := e]Q(x), \Delta}
+  {\Gamma, x' = e \vdash Q(x'), \Delta}
+  \quad
+  \infer[{[\mb{:=}]}L^{x'}]
+  {\Gamma, [x := e]Q(x) \vdash \Delta}
+  {\Gamma, x' = e, Q(x') \vdash \Delta}
+\end{rules}
+
+\section{Loops}
+
+How does a loop $\mb{while}\; P\; \alpha$ execute?  If $P$ is true then we
+execute the loop body $\alpha$ once, followed again by
+$\mb{while}\; P\; \alpha$.  If $P$ is false we just exit the loop.
+The following rule suggests itself:
+\begin{rules}
+  \infer[{[\mb{unwind}]R}]
+  {\Gamma \vdash [\mb{while}\; P\; \alpha]Q, \Delta}
+  {\Gamma \vdash [\mb{if}\; P\; \mb{then}\; (\alpha \semi \mb{while}\; P\; \alpha)\; \mb{else}\; \mb{skip}]Q, \Delta}
+\end{rules}
+Here we made up a new program $\mb{skip}$ that doesn't do anything.  It behaves
+like the unit of parallel composition in that $\mb{skip} \semi \alpha$ is
+equivalent to $\alpha$.  We could use $x := x$ instead, but that seems more
+complicated because it mentions a variable.
+
+The problem with our first rule is that it replaces a program with a larger one, so
+it is not reductive.  We can use the rules we already have to simplify it a bit to
+\begin{rules}
+  \infer[{[\mb{unfold}]R}]
+  {\Gamma \vdash [\mb{while}\; P\; \alpha]Q, \Delta}
+  {\Gamma, P \vdash [\alpha] ([\mb{while}\; P\; \alpha])Q, \Delta
+    & \Gamma, \lnot P \vdash Q, \Delta}
+\end{rules}
+This is better, but in the first premise we still have to reason about exactly
+the same program.  So while these two rules are sound, their application is
+somewhat limited as we will see in the next lecture.
+
+If you think back to 15-122 \emph{Principles of Imperative Computation} you may
+remember how we reasoned about loops: we used \emph{loop invariants}.  In that
+course, loop invariants (like pre- and post-conditions for functions) where
+themselves \emph{executable}.  Here they are formulas and subject to logical
+reasoning.  How do loop invariants work?  Let's look at a trivial program:
+\[
+  \mb{while}\; (x > 1)\; x := x-2
+\]
+under the precondition that (say) $x \geq 6$.  After the loop we know that if
+the initial $x$ was even, then in the poststate $x$ must be $0$, and if the
+initial $x$ was odd, then in the poststate $x$ must be $1$.  For safety
+properties that may a bit specific, so here we only want to ascertain that
+$0 \leq x \leq 1$ in the poststate.
+
+In dynamic logic we express this as the proposition
+\[
+  x \geq 6 \arrow [\mb{while}\; (x > 1)\; x : = x-2]\, 0 \leq x \leq 1
+\]
+But how do we prove it?  What is the loop invariant?  Recall:
+\begin{itemize}
+\item The loop invariant must be true initially.
+\item The loop invariant must be preserved by the loop body,
+  under the assumption that the loop guard is true.
+\item The postcondition of the loop must be implied by the loop invariant
+  together with the negated loop guard.
+\end{itemize}
+If we can prove all three of these then we can conclude the postcondition of the
+loop.  In this example, we pick the loop invariant $J$ to be $x \geq 0$.  Then
+we have to prove:
+\begin{description}
+\item[True Initially] $x \geq 6 \vdash x \geq 0$
+\item[Preserved] $x \geq 0, x > 1 \vdash [x := x-2]\; x \geq 0$
+\item[Implies Postcondition] $x \geq 0, \lnot (x > 1) \vdash 0 \leq x \leq 1$
+\end{description}
+These are all easy to prove (with an oracle for arithmetic), reducing the one in
+the middle in one step (using rule $[:=]R^{x'}$) to
+\[
+  x \geq 0, x > 1, x' = x-2 \vdash x' \geq 0
+\]
+
+Summarizing all of this with a rule yields the following, for an arbitrary loop
+invariant $J$.
+
+\begin{rules}
+  \infer[{[\mb{while}]R}]
+  {\Gamma \vdash [\mb{while}\; P\; \alpha]Q, \Delta}
+  {\Gamma \vdash J, \Delta
+    & J, P \vdash [\alpha]J
+    & J, \lnot P \vdash Q}
+\end{rules}
+Sadly, since $J$ is an arbitrary formula, this rule is not reductive.  It would
+be okay, however, if we forced the programmer to write $J$ in the program (as we
+do in C0), because then each premise only refers to components of the
+conclusion.  When we want to emphasize this point we may write
+\[
+  [\mb{while}_J\; P\; \alpha]Q
+\]
+where $J$ is the loop invariant.
+
+An important point about this rule is that we drop $\Gamma$ and $\Delta$ in the
+second and third premise.  This is because we don't know how often we may have
+to go around the loop.  Preservation (the second premise) has to hold for any
+state we might reach during the iteration, but the antecedents in $\Gamma$ are
+only guaranteed \emph{before} the first iteration.
+
+In our example, $x \geq 6$ is only known to be true before the loop starts, and
+not after each iteration.  In fact, it may be false after the first iteration
+and therefore we cannot use it to prove for the second and third premise.
+Similarly, the additional succedents $\Delta$ also must be dropped.  Otherwise
+we could reformulate the goal
+\[
+  \cdot \vdash [\mb{while}\; (x > 1)\; x := x-2]\, 0 \leq x \leq 1, \lnot (x \geq 6)
+\]
+and then use ${\lnot}R$ rule to turn the succedent $\lnot (x \geq 6)$ into the
+(unwarranted) antecedent $x \geq 6$.
+
+Putting all of this together, we can prove our program as follows.
+
+\begin{small}
+  \begin{rules}
+    \hspace*{-2.5em}
+    \infer[{\arrow}R]
+    {\cdot \vdash x \geq 6 \arrow [\mb{while}\; (x > 1)\; x := x - 2]\, 0 \leq x \leq 1}
+    {\infer[{[\mb{while}]}R^*]
+      {x \geq 6 \vdash [\mb{while}\; (x > 1)\; x := x - 2]\, 0 \leq x \leq 1}
+      {\deduce[(\mbox{by arithmetic})]{x \geq 6 \vdash x \geq 0}{}
+        & \infer[{[:=]R^{x'}}]
+        {x \geq 0, x > 1 \vdash [x := x - 2]\, x \geq 0}
+        {\deduce[(\mbox{by arithmetic})]{x \geq 0, x > 1, x' = x-2 \vdash x' \geq 0}{}}
+        & \deduce[(\mbox{by arithmetic})]{x \geq 0, \lnot (x > 1) \vdash 0 \leq x \leq 1}{}}}
+  \end{rules}
+  \mbox{$(*)$ with loop invariant $J(x) = (x \geq 0)$}
+\end{small}
+
+\section{Unsafe Programs}
+
+We might deem expressions such as $1/0$ as inherently \emph{unsafe}.  But
+formulas include expressions, and it is unclear what ``unsafe formulas'' would
+be, or how we reason with them logically and correctly.  It is actually possible
+to design logics where formulas may be true or false or undefined, that is, may
+not have a truth value (see, for example, the article about \emph{Free
+  Logic}~\citep{Nolt10}).  This would be a rather drastic revision and further
+depart from what theorem provers and decision procedures offer.  Another
+standard path is to consider such expressions as \emph{indeterminate}.  In that
+case, we simply won't be able to deduce much about indeterminate expressions.
+For example, an axiom about the quotient $a / b$ and remainder
+$a \mathbin{\%} b$ might state
+\[
+  0 \leq r < b \land a = q * b + r \arrow a / b = q \land a \mathbin{\%} b = r
+\]
+The antecedent of the implication cannot be satisfied if $b = 0$ so in that case
+we can't deduce anything about the nature of $a / b$ or $a \mathbin{\%} b$
+except that they are integers (since all variables here are typed as integers).
+
+Since expressions are shared between formulas and programs we therefore simply
+declare all expressions to be \emph{safe}, although possibly indeterminate.  An
+intuitively unsafe expression then is elevated to the level of commands.  Here
+we use the terminology \emph{command} for a primitive part of a program such as
+assignment ($x := e$) or $\mb{skip}$ (which has no effect).  Commands are
+included in the grammar for programs.  Our new form of command is
+$x := \mathbf{divide}\; e_1\; e_2$.  This is \emph{unsafe} if $e_2$ denotes $0$;
+otherwise it assigns to $x$ the result of $e_1 / e_2$ (integer division).
+
+We emphasize: $\mb{divide}\; e_1\; e_2$ is not a new \emph{expression} (because all
+expressions should remain safe), but $x := \mb{divide}\; e_1\; e_2$ is a new
+command.  This means an ordinary assignment such as $x := x / y + 1$ is not part
+of our language.  It would instead have to be expressed as
+$t := \mb{divide}\; x\; y \semi x := t + 1$ where $t$ is a fresh variable (often
+called a \emph{temporary variable} in a compiler).
+
+In order to capture unsafe behavior, we semantically characterize unsafe
+programs using the form
+\[
+  \omega \lbb \alpha\rbb \lightning
+\]
+which means that $\alpha$ is unsafe when executed starting in state $\omega$.
+We can think of the symbol $\lightning$ as denoting an unsafe state, different
+from the states we have been using so far ($\omega, \mu, \nu$) from which the
+program can proceed as expected.  Formally, we don't change our definition of
+state as a total map from variables to integers, which is why we instead
+introduce a new notation and new relation.  Starting with our new command, we
+have the following two clauses:
+\[
+  \begin{array}{l@{\;}c@{\;}l}
+    \omega \lbb x := \mb{divide}\; e_1\; e_2\rbb \nu
+    & \mbox{iff}
+    & \omega\lbb e_1\rbb = a, \omega \lbb e_2\rbb = b,
+      c = a / b \;\mbox{and}\; \nu = \omega[x \mapsto c] \\
+    & & \quad \mbox{provided}\; b \neq 0
+    \\[1em]
+    \omega \lbb x := \mb{divide}\; e_1\; e_2\rbb \lightning
+    & \mbox{iff}
+    & \omega\lbb e_2\rbb = 0
+  \end{array}
+\]
+We need to be careful (and want to prove) that there is no program $\alpha$ such
+that $\omega\lbb \alpha\rbb \nu$ for some $\nu$ and at the same time
+$\omega \lbb \alpha\rbb \lightning$.  That is, unsafe programs never have a
+final state, and programs with a final state are never unsafe.  On the other
+hand, it is possible for a program to have no final state and yet be
+safe---these are programs that execute safely but never terminate.
+
+We continue by defining when other programs besides division are unsafe.  We do
+not need to change the previous definition for when a program relates a prestate
+to a poststate, because it does not change (see
+\href{\courseurl/lectures/04-semantics.pdf}{Lecture 4}, Figure 3 on page L4.11
+for reference).
+
+\paragraph{Assignment.}  Since expressions are never unsafe, assignments
+are never unsafe:
+\[
+  \begin{array}{lcl}
+    \omega \lbb x := e\rbb \lightning & \mbox{never}
+  \end{array}
+\]
+To make our semantic definitions more uniform, we will often state
+this equivalently as
+\[
+  \begin{array}{lcl}
+    \omega \lbb x := e\rbb \lightning & \mbox{iff} & \mbox{false}
+  \end{array}
+\]
+
+\paragraph{Sequential composition.}  $\alpha \semi \beta$ is unsafe if either
+$\alpha$ is unsafe, or $\beta$ is unsafe.  In the latter case, we have to
+specify that the poststate of $\alpha$ is the prestate of $\beta$.
+\[
+  \begin{array}{lcl}
+    \omega \lbb \alpha \semi \beta \rbb \lightning
+    & \mbox{iff}
+    & \mbox{either}\  \omega \lbb \alpha\rbb \lightning \\
+    & & \mbox{or}\  \omega \lbb \alpha\rbb \mu \ \mbox{and}\ 
+        \mu \lbb \beta\rbb \lightning\  \mbox{for some $\mu$}
+  \end{array}
+\]
+
+\paragraph{Conditional.}  $\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta$
+is unsafe if $\alpha$ or $\beta$ are unsafe, depending on $P$.  Fortunately, we
+don't have to worry about $P$ being unsafe: formulas are always either true or
+false.
+\[
+  \begin{array}{lcl}
+    \omega \lbb \mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta \rbb \lightning
+    & \mbox{iff}
+    & \mbox{either}\ \omega \models P \ \mbox{and}\  \omega \lbb \alpha\rbb \lightning \\
+    & & \mbox{or} \  \omega \not\models P \ \mbox{and}\  \omega \lbb \beta\rbb \lightning
+  \end{array}
+\]
+
+\paragraph{While loop.}  $\mb{while}\; P\; \alpha$ is unsafe if $\alpha$ is unsafe
+after any number of iterations.  So we proceed as in the prior semantic definition,
+using an auxiliary form.
+\[
+  \begin{array}{lcl}
+    \omega \lbb \mb{while}\; P\; \alpha\rbb \lightning
+    & \mbox{iff}
+    & \omega \lbb \mb{while}\; P\; \alpha\rbb^n \lightning \  \mbox{for some $n \in \mathbb{N}$}
+    \\[1em]
+    \omega \lbb \mb{while}\; P\; \alpha\rbb^{n+1} \lightning 
+    & \mbox{iff}
+    & \mbox{either}\  \omega \models P\  \mbox{and}\ 
+      \omega \lbb \alpha\rbb \lightning \\
+    & & \mbox{or}\  \omega \models P\  \mbox{and}\ 
+        \omega \lbb \alpha\rbb \mu \  \mbox{and}\  \mu\lbb \mb{while}\; P\; \alpha\rbb^n \lightning
+    \\
+    & & \quad\mbox{for some $\mu$}
+    \\[1ex]
+    \omega \lbb \mb{while}\; P\; \alpha\rbb^0 \lightning 
+    & \mbox{iff}
+    & \mbox{false}
+      % \ \mbox{provided $\omega \not\models P$}
+  \end{array}
+\]
+
+\section{Reasoning about Safety}
+
+Our previous definition for the truth of $[\alpha]Q$ was the following:
+\[
+  \begin{array}{lcl}
+    \omega \models [\alpha]Q
+    & \mbox{iff}
+    & \mbox{for every $\nu$ with $\omega \lbb \alpha \rbb \nu$ we have $\nu \models Q$}
+  \end{array}
+\]
+This is a statement about \emph{partial correctness} of $\alpha$ because if
+$\alpha$ does not terminate, \emph{there is no such $\nu$} so the statement is
+vacuously true.
+
+With unsafe behavior we have a similar situation: An unsafe program has no
+poststate.  If we leave the definition as is, then an unsafe program would
+satisfy every postcondition, which is clearly not desirable.  So we modify our
+definition to add the condition that the program be \emph{safe} (that is, not
+unsafe).
+\[
+  \begin{array}{lcl}
+    \omega \models [\alpha]Q
+    & \mbox{iff}
+    & \mbox{for every $\nu$ with $\omega \lbb \alpha \rbb \nu$ we have $\nu \models Q$} \\
+    & & \quad \mbox{and \textbf{not} $\omega \lbb \alpha \rbb \lightning$}
+  \end{array}
+\]
+The second part of this definition is how we solve that problem that in dynamic
+logic we only reason about the prestate and the poststate of the program.  If it
+is unsafe, we should be not be able to prove the anything about the poststate.
+This includes the universally true proposition $\top$.
+
+This means if we want to prove that a program $\alpha$ is safe given a
+precondition $P$ we ``just'' need to prove
+\[
+  P \arrow [\alpha]\top
+\]
+Note how this is different from general correctness where we have a
+postcondition $Q$.  Of course, during the (formal) proof the formula above we
+may encounter other kinds of postconditions.  Consider, for example, the case
+where $\alpha$ is $\alpha_1 \semi \alpha_2$.  Or the case where safety of a
+division requires a loop invariant.
+
+But how do unsafe programs come into the meaning of $[\alpha]Q$?  We have to
+prevent such formulas to be provable when $\alpha$ is unsafe.  For the
+division command we do this as follows.
+\begin{rules}
+  \infer[{[\mb{divides}]R}^{x'}]
+  {\Gamma \vdash [x := \mb{divides}\; e_1\; e_2]Q(x), \Delta}
+  {\Gamma \vdash \lnot (e_2 = 0), \Delta
+    & \Gamma, x' = e_1 / e_2 \vdash Q(x'), \Delta}
+\end{rules}
+where $x'$ must be chosen fresh (that is, it does not appear in $e_1$, $e_2$,
+$Q(x)$, $\Gamma$, or $\Delta$).
+
+Two important points about this rule:
+\begin{enumerate}
+\item We cannot apply this rule unless we can \emph{prove} that $e_2 \neq 0$,
+  that is, the division is safe.
+\item The expression $e_1 / e_2$ (denoting integer division) that we add to
+  $\Gamma$ is \emph{indeterminate} in the manner explained in the introduction.
+  So while it is technically an expression, we do not allow it in programs, only
+  in formulas like $x' = e_1 / e_2$.  If we did allow the program to use it
+  directly, our language would then have indeterminate results because the
+  result of $a / b$ is an indeterminate integer.  While this could be allowed as
+  long as we carefully distinguish between unsafe and indeterminate behavior, we
+  avoid this complication here.
+\end{enumerate}
+
+We do not prove the soundness or invertibility of this rule, but we will
+prove a related result later.  As an axiom, by the way,
+the property of the $\mb{divide}$ program would be written as
+\[
+  % [\mb{divide}]A \qquad
+  [x := \mb{divides}\; e_1\; e_2]Q(x)
+  \leftrightarrow
+  \forall x'.\; \lnot (e_2 = 0) \land x' = e_1 / e_2 \arrow Q(x')
+\]
+A pleasant part of this approach is that the axioms and rules we derived so far
+can remain unchanged, essentially because they only rely on safe behavior.  A
+premise involving a program will simply not be provable if its behavior is
+unsafe.
+
+% \section{A Sample Proof of Safety}
+
+% Proofs of safety can often be significantly simpler than proof of correctness.
+% On the other hand, sometimes safety depends critically on some other correctness
+% property.
+
+% We reconsider the example from \href{\courseurl/lectures/04-semantics.pdf}{Lecture 4}.
+% \[
+%   x \geq 6 \arrow [\mb{while}\; (x > 1)\; x := x-2]\, 0 \leq x \leq 1
+% \]
+% To prove this, we required a loop invariant, and $x \geq 0$ was sufficient.
+
+% We can modify this to introduce a division, and just prove safety (so the
+% postcondition is $\top$.
+% \[
+%   x \geq 6 \arrow [\mb{while}\; (x > 1)\; x : = \mb{divide}\; x\; 2]\, \top 
+% \]
+% After one step (${\arrow}R$) it remains to prove
+% \[
+%   x \geq 6 \vdash [\mb{while}\; (x > 1)\; x := \mb{divide}\; x\; 2]\, \top 
+% \]
+% Here, we pick the weakest loop invariant we can think of, namely $J = \top$.
+% Then we have to prove:
+% \begin{description}
+% \item[True Initially:]  $x \geq 6 \vdash \top$, which is manifestly valid.
+% \item[Preserved:] We lose the antecedent $x \geq 6$, but we add the
+%   loop invariant and the loop guard.  So we have to show
+%   \[
+%     \top, x > 1 \vdash [x := \mb{divide}\; x\; 2]\top
+%   \]
+%   Using the rule $[\mb{divide}]R$, this reduces to showing
+%   \[
+%     \top, x > 1 \vdash \lnot (2 = 0)
+%   \]
+%   and
+%   \[
+%     \top, x > 1, x' = x / 2 \vdash \top
+%   \]
+%   Both of these are manifestly valid.
+% \item[Implies Postcondition:] Again, without the antecedent, but this time
+%   with the negated loop guard, we have to prove the postcondition $\top$.
+%   So:
+%   \[
+%     \top, \lnot (x > 1) \vdash \top
+%   \]
+%   Again, this is easily seen to be true.
+% \end{description}
+% So to prove safety, we only need the very weakest loop invariant in this example
+% (which corresponds to having no significant loop invariant at all).
+
+% This would still be true for the following modified program:
+% \[
+%   x \geq 6 \vdash [\mb{while}\; (x > 1)\; \{y := \mb{divide}\; y\; x \semi x := x-2\}]\, \top 
+% \]
+% By the loop guard we see that $x > 1$ inside the loop body, so the division is
+% safe.  However, if we had written $\mb{divide}\; x\; y$ then there is an
+% immediate counterexample with $y = 0$.
+
+% \section{A Generic Unsafe Command}
+
+% In the example of division, unsafe behavior comes down to a particular
+% operation. In general, though, it may be the combination of some operations that
+% makes a program unsafe.  For example, a program should not be able to write to
+% an output stream after it has been closed.  So it is not the output operation
+% \emph{per se}, but a condition associated with it.  Or we may not be able to
+% read from an input stream if we are not authorized to do so.  We can capture
+% such conditions more generically with the command
+% \[
+%   \mb{assert}\; P
+% \]
+% where $P$ is a formula that may depend on variables.  $\mb{assert}\; P$ is
+% \emph{unsafe} if $P$ is false; otherwise it is safe but does not change
+% the state.
+% \[
+%   \begin{array}{lcl}
+%     \omega \lbb \mb{assert}\; P\rbb \nu & \mbox{iff} & \omega \models P \ \mbox{and}\ \nu = \omega
+%     \\[1em]
+%     \omega \lbb \mb{assert}\; P\rbb \lightning & \mbox{iff} & \omega \not\models P
+%   \end{array}
+% \]
+% It should be clear that we preserve the property that unsafe programs have no
+% poststate.
+
+% Among other things, we could rewrite our programs using $\mb{assert}$ commands.
+% For example, if we replaced $x := \mb{divide}\; e_1\; e_2$ by
+% $\mb{assert}\; \lnot (e_2 = 0) \semi x := e_1 / e_2$ the two programs would have
+% the same meaning in every state (either both unsafe, or both safe and
+% determinate).
+
+% How do we reason about $[\mb{assert}\; P]Q$?  If $P$ is true, then the
+% postcondition $Q$ must be true.  If $P$ is false, then $Q$ is irrelevant: the
+% formula $[\mb{assert}\; P]Q$ is always false.  These two conditions are neatly
+% captured by the axiom
+% \[ 
+%   [\mb{assert}\; P]Q \leftrightarrow P \land Q
+% \]
+% Here are the corresponding right and left rules of the sequent calculus.
+% \begin{rules}
+%   \infer[{[\mb{assert}]R}]
+%   {\Gamma \vdash [\mb{assert}\; P]Q, \Delta}
+%   {\Gamma \vdash P, \Delta
+%     & \Gamma \vdash Q, \Delta}
+%   \hspace{3em}
+%   \infer[{[\mb{assert}]L}]
+%   {\Gamma, [\mb{assert}\; P]Q \vdash \Delta}
+%   {\Gamma, P, Q \vdash \Delta}
+% \end{rules}
+% Let's prove that the axiom is actually valid.  From that, the soundness of the
+% rules as previously explained for the axiom $[\semi]A$ for sequential program
+% composition.
+
+% \begin{theorem}
+%   The axiom
+%   \[ 
+%     [\mb{assert}\; P]Q \leftrightarrow P \land Q
+%   \]
+%   is valid.
+% \end{theorem}
+% \begin{proof}
+%   We start with the proof from right to left.  We set up,
+%   for an arbitrary state $\omega$:
+%   \begin{tabbing}
+%     $\omega \models P \land Q$ \` (assumption) \\
+%     $\ldots$ \\
+%     $\omega \models [\mb{assert}\; P]Q$ \` (to show)
+%   \end{tabbing}
+%   In order to show the conclusion, we have to show
+%   two properties: (a) if $\omega\lbb \mb{assert}\; P\rbb \nu$
+%   then $\nu \models Q$, and (b) \textbf{not} $\omega \lbb \mb{assert}\; P\rbb \lightning$.
+
+%   (a) follows, since $\nu = \omega$ by definition of $\lbb {-}\rbb$
+%   and $\omega \models Q$ from our assumption.
+
+%   (b) follows by definition of $\lightning$ since $\omega \models P$ from
+%   our assumption.
+
+%   \medskip
+%   \noindent For the proof from left to right, we set up
+%   \begin{tabbing}
+%     $\omega \models [\mb{assert}\; P]Q$ \` (assumption) \\
+%     $\ldots$ \\
+%     $\omega \models P \land Q$ \` (to show)
+%   \end{tabbing}
+%   By the definition of $\models$, the assumption gives us (a) for every $\nu$
+%   with $\omega \lbb \mb{assert}\; P\rbb \nu$ we have $\nu \models Q$, and (b)
+%   \textbf{not} $\omega \lbb \mb{assert}\; P \rbb \lightning$.
+
+%   From (b) we know $\omega \models P$ (otherwise $\mb{assert}\; P$ would be
+%   unsafe).  Therefore, by definition of $\lbb {-}\rbb$ and our assumption we
+%   have $\omega = \nu$, so $\omega \models Q$.
+
+%   Taking these two together we have $\omega \models P \land Q$.
+% \end{proof}
+
+% \section{A Theorem about Safety\protect\footnotemark}
+% \footnotetext{mentioned, but not explicitly stated in lecture}
+% \label{sec:safety-thm}
+
+% \begin{theorem}[Soundness of Dynamic Logic with Unsafe Programs]
+%   All the rules of the sequent calculus are sound, and all the axioms we stated
+%   are valid.
+% \end{theorem}
+% \begin{proof}
+%   By considering each case and reasoning along similar lines as in the sample
+%   proofs of such properties in lecture.
+% \end{proof}
+
+% We can rigorously state that if we can prove \emph{some} postcondition for
+% $\alpha$ then $\alpha$ is safe.  The theorem assumes that we have proved the
+% soundness of all the sequent calculus rules (or axioms) we use in the formal
+% proof (as claimed in the preceding theorem).
+
+% \begin{theorem}[Safety]
+%   If $\cdot \vdash P \arrow [\alpha]Q$ then there is no $\omega$ with
+%   $\omega \models P$ such that $\omega \lbb \alpha\rbb \lightning$.
+% \end{theorem}
+% \begin{proof}
+%   Assume $\cdot \vdash P \arrow [\alpha]Q$ and for some
+%   $\omega$ we have $\omega \models P$ and $\omega \lbb \alpha \rbb \lightning$.
+%   We have to show a contradiction.
+
+%   By soundness of the sequent calculus we have
+%   $\omega \models P \arrow [\alpha]Q$.  Since $\omega \models P$ we obtain
+%   $\omega \models [\alpha]Q$.  By definition, this implies that \textbf{not}
+%   $\omega \lbb \alpha\rbb \lightning$, which is a contradiction.
+% \end{proof}
+
+\bibliographystyle{plainnat}
+\bibliography{bibliography}
+
+\end{document}

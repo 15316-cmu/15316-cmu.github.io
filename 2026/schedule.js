@@ -30,8 +30,8 @@ schedule = [
   {
     date: "Tue 01/27",
     topic: "Proving Safety",
-    pdf: "",
-    tex: "",
+    pdf: "05-safety.pdf",
+    tex: "05-safety.tex",
     comments: "Asst 1 due",
   },
   {
