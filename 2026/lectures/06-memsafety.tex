@@ -1,0 +1,742 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.5in]{geometry}
+\usepackage{lecnotes}
+% \usepackage{mpass}
+% \lstset{style=verb,language=mpass}
+\input{lmacros}
+
+\newcommand{\course}{15-316: Software Foundations of Security \& Privacy}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecdate}{January 29, 2026}
+\newcommand{\lecnum}{6}
+\newcommand{\lectitle}{Memory Safety}
+\newcommand{\courseurl}{https://15316-cmu.github.io/2026/}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+The classic \emph{buffer overflow attack} (about which you learn in 15-213
+\emph{Computer Systems}) allows a program to take control of your machine while
+otherwise innocuous code is executed.  It exploits that accessing memory that
+hasn't been explicitly allocated by a program is undefined behavior in C and
+therefore \emph{unsafe}.
+
+In this lecture we define a simplistic model of memory and introduce memory
+write and read operations into our language.  We then define unsafe behavior and
+investigate how to prove safety of programs accessing memory.
+For the most part, we see that the reasoning principles involved are quite
+similar to how we have done normal assignment to variables, thanks to a
+theory of array-valued objects that allows us to treat memory updates as
+construction of new array-valued terms. As a result, the only explicit change in
+state that occurs is an update to whichever variable maps to the array.
+
+% What can we do if we cannot prove safety, but we'd still like to run a program?
+% One option is to rewrite the program by checking that any memory access is in
+% bounds before running it.  We show how this can be done for our language, and
+% prove safety for the resulting program.  This is one of techniques used in
+% \emph{sandboxing} which refers to running untrusted programs in a manner that
+% prevents them from doing damage (``\emph{inside a sandbox}'').  There are
+% commercial tools such as Intel's
+% \href{https://www.intel.com/content/www/us/en/developer/articles/tool/pin-a-dynamic-binary-instrumentation-tool.html}{Pin}
+% that can instrument binary code for Intel instruction set architectures.
+
+% \section{A Generic Unsafe Command}
+
+% Before moving on to memory, let's think of safety in more general terms.
+% In the example of division, unsafe behavior comes down to a particular
+% operation. In general, though, it may be the combination of some operations that
+% makes a program unsafe.  For example, a program should not be able to write to
+% an output stream after it has been closed.  So it is not the output operation
+% \emph{per se}, but a condition associated with it.  Or we may not be able to
+% read from an input stream if we are not authorized to do so.  We can capture
+% such conditions more generically with the command
+% \[
+%   \mb{assert}\; P
+% \]
+% where $P$ is a formula that may depend on variables.  $\mb{assert}\; P$ is
+% \emph{unsafe} if $P$ is false; otherwise it is safe but does not change
+% the state.
+% \[
+%   \begin{array}{lcl}
+%     \omega \lbb \mb{assert}\; P\rbb \nu & \mbox{iff} & \omega \models P \ \mbox{and}\ \nu = \omega
+%     \\[1em]
+%     \omega \lbb \mb{assert}\; P\rbb \lightning & \mbox{iff} & \omega \not\models P
+%   \end{array}
+% \]
+% It should be clear that we preserve the property that unsafe programs have no
+% poststate.
+
+% Among other things, we could rewrite our programs using $\mb{assert}$ commands.
+% For example, if we replaced $x := \mb{divide}\; e_1\; e_2$ by
+% $\mb{assert}\; \lnot (e_2 = 0) \semi x := e_1 / e_2$ the two programs would have
+% the same meaning in every state (either both unsafe, or both safe and
+% determinate).
+
+% How do we reason about $[\mb{assert}\; P]Q$?  If $P$ is true, then the
+% postcondition $Q$ must be true.  If $P$ is false, then $Q$ is irrelevant: the
+% formula $[\mb{assert}\; P]Q$ is always false.  These two conditions are neatly
+% captured by the axiom
+% \[ 
+%   [\mb{assert}\; P]Q \leftrightarrow P \land Q
+% \]
+% Here are the corresponding right and left rules of the sequent calculus.
+% \begin{rules}
+%   \infer[{[\mb{assert}]R}]
+%   {\Gamma \vdash [\mb{assert}\; P]Q, \Delta}
+%   {\Gamma \vdash P, \Delta
+%     & \Gamma \vdash Q, \Delta}
+%   \hspace{3em}
+%   \infer[{[\mb{assert}]L}]
+%   {\Gamma, [\mb{assert}\; P]Q \vdash \Delta}
+%   {\Gamma, P, Q \vdash \Delta}
+% \end{rules}
+% Let's prove that the axiom is actually valid.  From that, the soundness of the
+% rules as previously explained for the axiom $[\semi]A$ for sequential program
+% composition.
+
+% \begin{theorem}
+%   The axiom
+%   \[ 
+%     [\mb{assert}\; P]Q \leftrightarrow P \land Q
+%   \]
+%   is valid.
+% \end{theorem}
+% \begin{proof}
+%   We start with the proof from right to left.  We set up,
+%   for an arbitrary state $\omega$:
+%   \begin{tabbing}
+%     $\omega \models P \land Q$ \` (assumption) \\
+%     $\ldots$ \\
+%     $\omega \models [\mb{assert}\; P]Q$ \` (to show)
+%   \end{tabbing}
+%   In order to show the conclusion, we have to show
+%   two properties: (a) if $\omega\lbb \mb{assert}\; P\rbb \nu$
+%   then $\nu \models Q$, and (b) \textbf{not} $\omega \lbb \mb{assert}\; P\rbb \lightning$.
+
+%   (a) follows, since $\nu = \omega$ by definition of $\lbb {-}\rbb$
+%   and $\omega \models Q$ from our assumption.
+
+%   (b) follows by definition of $\lightning$ since $\omega \models P$ from
+%   our assumption.
+
+%   \medskip
+%   \noindent For the proof from left to right, we set up
+%   \begin{tabbing}
+%     $\omega \models [\mb{assert}\; P]Q$ \` (assumption) \\
+%     $\ldots$ \\
+%     $\omega \models P \land Q$ \` (to show)
+%   \end{tabbing}
+%   By the definition of $\models$, the assumption gives us (a) for every $\nu$
+%   with $\omega \lbb \mb{assert}\; P\rbb \nu$ we have $\nu \models Q$, and (b)
+%   \textbf{not} $\omega \lbb \mb{assert}\; P \rbb \lightning$.
+
+%   From (b) we know $\omega \models P$ (otherwise $\mb{assert}\; P$ would be
+%   unsafe).  Therefore, by definition of $\lbb {-}\rbb$ and our assumption we
+%   have $\omega = \nu$, so $\omega \models Q$.
+
+%   Taking these two together we have $\omega \models P \land Q$.
+% \end{proof}
+
+\section{A Proof of Safety}
+
+Before diving in to talk about the semantics of memory and memory safety,
+we start with a brief follow-up to our coverage of safety from the previous lecture.
+Proofs of safety can often be significantly simpler than proof of correctness.
+On the other hand, sometimes safety depends critically on some other correctness
+property.
+
+We reconsider the example from \href{\courseurl/lectures/05-safety.pdf}{Lecture 5}.
+\[
+  x \geq 6 \arrow [\mb{while}\; (x > 1)\; x := x-2]\, 0 \leq x \leq 1
+\]
+To prove this, we required a loop invariant, and $x \geq 0$ was sufficient.
+
+We can modify this to introduce a division, and just prove safety (so the
+postcondition is $\top$.
+\[
+  x \geq 6 \land y = x \arrow [\mb{while}\; (x > 2)\; \{x := x-1 \semi y := y-1 \semi z := \mb{divide}\; z\; y\}]\, \top 
+\]
+After one step (${\arrow}R$) it remains to prove
+\[
+  x \geq 6, y = x \vdash [\mb{while}\; (x > 2)\; \{x := x-1 \semi y := y-1 \semi z := \mb{divide}\; z\; y\}]\, \top 
+\]
+Here, we pick the weakest loop invariant we can think of, namely $J = (y = x)$.
+Then we have to prove:
+\begin{description}
+\item[True Initially:]  $x \geq 6, y = x \vdash y = x$, which is manifestly valid.
+\item[Preserved:] We lose the antecedent $x \geq 6$ and $y=x$, but we add the
+  loop invariant and the loop guard.  So we have to show
+  \[
+    y = x, x > 2 \vdash [\{x := x-1 \semi y := y-1 \semi z := \mb{divide}\; z\; y\}](y = x)
+  \]
+  Using the rules $[\mb{:=}]R$ and $[\mb{divide}]R$, this reduces to showing
+  \[
+    y = x, x > 2, x' = x-1, y' = y-1 \vdash \lnot (y' = 0)
+  \]
+  and
+  \[
+    y = x, x > 2, x' = x-1, y' = y-1, z' = z / y' \vdash y' = x'
+  \]
+  Both of these are manifestly valid.
+\item[Implies Postcondition:] Again, without the antecedent, but this time
+  with the negated loop guard, we have to prove the postcondition $\top$.
+  So:
+  \[
+    y = x, \lnot (x > 2) \vdash \top
+  \]
+  Again, this is easily seen to be true.
+\end{description}
+So to prove safety, we need a nontrivial loop invariant in this example
+(which corresponds to proving a simple element of correctness as part of safety).
+
+On the other hand, safety is still easy for the following modified program:
+\[
+  x \geq 6 \vdash [\mb{while}\; (x > 1)\; \{y := \mb{divide}\; y\; x \semi x := x-2\}]\, \top 
+\]
+By the loop guard we see that $x > 1$ inside the loop body, so the division is
+safe.  However, if we had written $\mb{divide}\; x\; y$ then there is an
+immediate counterexample with $y = 0$.
+
+
+\subsection{A Theorem about Safety\protect\footnotemark}
+\footnotetext{mentioned, but not explicitly stated in lecture}
+\label{sec:safety-thm}
+
+\begin{theorem}[Soundness of Dynamic Logic with Unsafe Programs]
+  All the rules of the sequent calculus are sound, and all the axioms we stated
+  are valid.
+\end{theorem}
+\begin{proof}
+  By considering each case and reasoning along similar lines as in the sample
+  proofs of such properties in lecture.
+\end{proof}
+
+We can rigorously state that if we can prove \emph{some} postcondition for
+$\alpha$ then $\alpha$ is safe.  The theorem assumes that we have proved the
+soundness of all the sequent calculus rules (or axioms) we use in the formal
+proof (as claimed in the preceding theorem).
+
+\begin{theorem}[Safety]
+  If $\cdot \vdash P \arrow [\alpha]Q$ then there is no $\omega$ with
+  $\omega \models P$ such that $\omega \lbb \alpha\rbb \lightning$.
+\end{theorem}
+\begin{proof}
+  Assume $\cdot \vdash P \arrow [\alpha]Q$ and for some
+  $\omega$ we have $\omega \models P$ and $\omega \lbb \alpha \rbb \lightning$.
+  We have to show a contradiction.
+
+  By soundness of the sequent calculus we have
+  $\omega \models P \arrow [\alpha]Q$.  Since $\omega \models P$ we obtain
+  $\omega \models [\alpha]Q$.  By definition, this implies that \textbf{not}
+  $\omega \lbb \alpha\rbb \lightning$, which is a contradiction.
+\end{proof}
+
+\section{Writing and Reading Memory}
+
+Mathematically, we model memory as a map from $\mathbb{Z}$ (the index domain) to
+$\mathbb{Z}$ (the value domain).  It is total, but may be \emph{indeterminate}
+on some indices.  In the programming language we assume that each memory value
+comes with an allocated size, and accessing memory outside its bounds is
+\emph{unsafe}.
+
+As explained in \href{\courseurl/lectures/05-safety.pdf}{Lecture 5}, we would
+like to keep expressions \emph{safe}, but possibly \emph{indeterminate}.  Unsafe
+behavior is then exhibited only by commands and the programs constructed from
+them.  Sticking to this approach, we add a new kind of variable, $M$, that
+stands for memory (along with $N, \ldots$), and the new commands
+\begin{itemize}
+\item $M := \mb{alloc}\; e$ \quad allocate a fresh memory block of size $e$ and
+  store it in $M$.  This is unsafe if the value of $e$ is negative.
+\item $M[e_1] := e_2$ \quad write $e_2$ into memory $M$ at address $e_1$.
+  This is unsafe if the value of $e_1$ is out of bounds for $M$.
+\item $x := M[e]$ \quad set $x$ to the contents of memory at address $e$ into
+  $x$.  This is unsafe if the value of $e$ is out of bounds for $M$.
+\end{itemize}
+The design decision that memory access takes place via commands means that you
+have to rewrite hypothetical code such as
+\[
+  M[x] := (M[x-1] + M[x+1])/2
+\]
+in the more verbose form
+\[
+  \begin{array}{l}
+    t_1 := M[x-1] \semi \\
+    t_2 := M[x+1] \semi \\
+    t_3 := \mb{divide}\; (t_1 + t_2)\; 2 \semi \\
+    M[x] := t_3
+  \end{array}
+\]
+
+Next, we need to rigorously define the semantics of the new commands so that (a)
+we can implement them, and (b) we can prove soundness of our axioms and rules to
+reason about them (including their safety).
+
+The first issue is how to track the contents of memory.  For that purpose, we
+change our definition of the state $\omega$.  So far the state has been a total
+function from variables to integers, $\omega : \ms{Var} \arrow \mathbb{Z}$ where
+$\ms{Var}$ is the (countably infinite) set of variables.  Now variables can also
+map to memory.
+\[
+  \omega : \ms{Var} \arrow (\mathbb{Z} \cup (\mathbb{Z} \arrow \mathbb{Z}))
+\]
+We assume that programs map lowercase variables to integers and uppercase
+variables to memory, so that there is never any confusion between the two forms.
+Mathematically, we use the letter $H : \mathbb{Z} \arrow \mathbb{Z}$ (suggesting
+a \emph{heap}).  In addition, each heap comes with an allocated size $|H|$.
+All indices $0 \leq i < |H|$ are in bounds; all other indices are out of bounds.
+All our previous semantic definitions remain unchanged since all variables in
+those definitions stand for integers.
+
+We write $|H|$ for the allocated size of a heap $H$.  This is a term and it is
+always determinate.
+
+We also use $|M|$ as an expression.  If $\omega \lbb M\rbb = H$ then
+\[
+  \omega \lbb |M|\rbb = |H|
+\]
+
+We begin with safe and unsafe memory reads.
+\[
+  \begin{array}{lcl}
+    \omega \lbb x := M[e]\rbb \nu
+    & \mbox{iff}
+    & \omega \lbb e\rbb = i \ \mbox{and}\ \omega \lbb M\rbb = H\ \mbox{and}\
+      \nu = \omega[x \mapsto H(i)] \\
+    & & \quad \mbox{provided $0 \leq i < |H|$}
+    \\[1em]
+    \omega \lbb x := M[e]\rbb \lightning
+    & \mbox{iff}
+    & \omega \lbb e\rbb = i \ \mbox{and}\ \omega \lbb M\rbb = H\ \mbox{and \textbf{not}}\ 0 \leq i < |H|
+  \end{array}
+\]
+It should be clear that unsafe programs continue to satisfy no postcondition.
+
+Memory write follows the same intuition, we just have to make sure to suitably
+update the map defining the state of memory.
+\[
+  \begin{array}{lcl}
+    \omega \lbb M[e_1] := e_2\rbb \nu
+    & \mbox{iff}
+    & \omega \lbb e_1\rbb = i \ \mbox{and}\ \omega \lbb e_2\rbb = a\ \mbox{and}\ 
+      \omega \lbb M\rbb = H\ \mbox{and} \\
+    & & \quad H' = H[i \mapsto a] \ \mbox{and}\ \nu = \omega[M \mapsto H'] \\
+    & & \quad \mbox{provided $0 \leq i < |H|$}
+    \\[1em]
+    \omega \lbb M[e_1] := e_2\rbb \lightning
+    & \mbox{iff}
+    & \omega \lbb e_1\rbb = i \ \mbox{and}\ \omega \lbb M\rbb = H\ \mbox{and \textbf{not}}\ 0 \leq i < |H|
+  \end{array}
+\]
+
+Finally, allocation creates a fresh heap of the requested size.  We do not
+model the initial contents, so the only information we obtain about the newly
+allocated heap $H$ is its size.
+\[
+  \begin{array}{lcl}
+    \omega \lbb M := \mb{alloc}\; e\rbb \nu
+    & \mbox{iff}
+    & \omega \lbb e\rbb = n\ \mbox{and}\ n \geq 0\ \mbox{and}\ \nu = \omega[M \mapsto H] \\
+    & & \quad \mbox{for some $H$ with $|H| = n$}
+    \\[1em]
+    \omega \lbb M := \mb{alloc}\; e\rbb \lightning
+    & \mbox{iff}
+    & \omega \lbb e\rbb = n\ \mbox{and}\ n < 0
+  \end{array}
+\]
+
+Before moving on, it is worth taking note that we explicitly do not allow
+assigning one heap variable to another, i.e., we do not consider
+$N := M$ to be a valid program. If we did, we would need to model this
+semantically as copying the contents of $M$ into a new heap $N$.
+This can be accomplished by iterating over the length of $M$ and copying
+each memory cell into $N$.
+
+\section{Reasoning about Memory}
+
+In order to reason about memory we need to introduce expressions that capture
+what we know about the state of memory.  Mathematically, this leads us to the
+\emph{theory of arrays} \citep{McCarthy62ifip} which we can view as being
+constructed on top of the theory of arithmetic we have assumed so far.  Because
+of the importance of arrays in imperative programming, some efficient decision
+procedures have been devised (see, for example, \citet{Stump01lics}) and
+implemented in provers such as Z3 or the CVC family.
+
+In the theory of arrays we have two expressions $\mb{read}\; H\; i$ and
+$\mb{write}\; H\; i\; a$ where $H$ denotes an array, $i$ and index into an
+array, and $a$ a value stored in the array.  Note that the expression
+$\mb{write}\; H\; i\; a$ denotes a ``new'' array; semantically $H[i \mapsto a]$.
+For us, both the index domain and the values are integers.
+
+To reason about safety of memory access we also need to talk about the allocated
+size of a heap.  Mathematically, we write $|H|$ for this size.  Writes preserve
+the allocated size, so we have the axiom
+\[
+  |\mb{write}\; H\; i\; a| = |H|
+\]
+
+There are two axioms, called \emph{read over write}, that allow us to
+reason about these expressions.
+\[
+  \begin{array}{l}
+    i = k \rightarrow \mb{read}\; (\mb{write}\; H\; i\; a)\; k = a \\
+    i \neq k \rightarrow \mb{read}\; (\mb{write}\; H\; i\; a)\; k = \mb{read}\; H\; k
+  \end{array}
+\]
+In addition we have an \emph{axiom of extensionality} which states that two
+arrays are equal if they agree on all elements.  In our use of the theory
+of arrays, the quantifier ranges over integers.
+\[
+  (\forall i. H(i) = H'(i)) \land |H| = |H'| \rightarrow H = H'
+\]
+As usual, we treat the new expressions as always denoting either an array or an
+integer, although the value may sometimes be indeterminate.
+
+The right rules of the sequent calculus for these new commands are now
+relatively straightforward.
+\begin{rules}
+  \infer[{[\mb{read}]R^{x'}}]
+  {\Gamma \vdash [x := M[e]]Q(x), \Delta}
+  {\Gamma \vdash 0 \leq e < |M|, \Delta
+    & \Gamma, x' = \mb{read}\; M\; e \vdash Q(x'), \Delta}
+\end{rules}
+As for assignment, the $x'$ must be chosen fresh in $[\mb{read}]R^{x'}$.  The
+same is true for $M'$ in the following rules.
+\begin{rules}
+  \infer[{[\mb{write}]R^{M'}}]
+  {\Gamma \vdash [M[e_1] := e_2]Q(M), \Delta}
+  {\Gamma \vdash 0 \leq e_1 < |M|, \Delta
+    & \Gamma, M' = \mb{write}\; M\; e_1\; e_2 \vdash Q(M'), \Delta}
+\end{rules}
+For allocation, the main thing that we need to be careful about is breaking
+any association with the newly-allocated heap and the previous heap's contents.
+This is accomplished by creating a fresh variable $M'$ and introducing a
+single assumption about its size.
+\begin{rules}
+  \infer[{[\mb{alloc}]R^{M'}}]
+  {\Gamma \vdash [M := \mb{alloc}\; e]Q(M), \Delta}
+  {\Gamma \vdash 0 \leq e, \Delta
+    & \Gamma, |M'| = e \vdash Q(M'), \Delta}
+\end{rules}
+
+The aspect of these rules critical for safety is the first premise that requires
+us to prove safety (independently of the postcondition).
+
+\subsection{Uninitialized Memory}
+
+A student in class asked what happens if we apply these rules in a situation
+where an array is freshly allocated, and then read from prior to any writes
+taking place. This is a good opportunity to see them in action.
+
+Supposing we have a program $M := \mb{alloc}\; 5; x := M[0]$, and we want to
+query whether $0 < x$ afterwards. We start by setting this up in a sequent,
+and removing the sequential composition.
+\begin{rules}
+  \infer[{[;]R}]
+  {\cdot \vdash [M := \mb{alloc}\; 5; x := M[0]]0 < x}
+  {\infer[{[\mb{alloc}]R^{M'}}]
+    {\cdot \vdash [M := \mb{alloc}\; 5][x := M[0]]0 < x}
+    {\cdot \vdash 0 \leq 5
+      & |M'| = 5 \vdash [x := M'[0]]0 < x}}
+\end{rules}
+The left premise is true by arithmetic. Continuing with the right premise,
+\begin{rules}
+  \infer[{[\mb{read}]R^{x'}}]
+  {|M'| = 5 \vdash [x := M'[0]]0 < x}
+  {|M'| = 5 \vdash 0 \le 0 < |M'|
+    & |M'| = 5, x' = \mb{read}\; M'\; 0 \vdash 0 < x'}
+\end{rules}
+Again the left premise follows immediately by arithmetic, but the right
+premise is stuck. This answers the original question: just like with
+uninitialized variables, we simply can't prove anything about the
+uninitialized contents of memory. Any attempt to prove non-vacuous
+properties involving uninitialized memory will at some point get stuck
+as we see in this example.
+
+\section{A Small Example of Memory Safety}
+\label{sec:mem-example}
+
+Consider the following program to initialize memory up to $n$:
+\[
+  i := 0 \semi \mb{while}\; (i < n) \{\, M[i] := i \semi i := i+1\, \}
+\]
+This is patently unsafe: just consider a state where $|M| = k$ and
+$n = k+1$.  Then the last time around the loop we will have $i = k$, leading to
+an unsafe memory access at $M[k]$.
+
+We can add a precondition $n \leq |M|$ and then try to
+prove safety with
+\[
+  n \leq |M| \arrow [i := 0 \semi \mb{while}\; (i < n) \{\, M[i] := i \semi i := i+1\,\}]\top
+\]
+We could try $i \leq n$ but that's insufficient.  Here is what preservation
+would require:
+\[
+  i \leq n, i < n \vdash [M[i] := i \semi i := i+1] i \leq n
+\]
+We note two problems: (1) safety will fail because we cannot prove that $0 \leq i$
+and (2) we have lost the precondition $n \leq |M|$ so we also cannot conclude
+that $i < |M|$.
+
+Let's try a more complex invariant:
+\[
+  0 \leq i \leq n \leq |M|
+\]
+Now preservation requires
+\[
+  0 \leq i \leq n \leq |M|, i < n \vdash [M[i] := i \semi i := i+1]\, (0 \leq i \leq n \leq |M|)
+\]
+This reduces in two steps to
+\[
+  0 \leq i \leq n \leq |M|, i < n, M' = \mb{write}\; M\; i\; i, i' = i+1 \vdash 0 \leq i' \leq n \leq |M'|
+\]
+Fortunately, this is valid (even with the useless assumption about $M'$).
+Because our postcondition is just $\top$, that is easily seen to be true, but
+the loop invariant does not hold initially because
+\[
+  n \leq |M| \vdash 0 \leq 0 \leq n \leq |M|
+\]
+is not valid (counterexample: $n = -1$).  So we need to strengthen our precondition
+to
+\[
+  0 \leq n \leq |M|
+\]
+
+% \section{Guards}
+
+% Consider the scenario where you are given the program from the previous section
+% but no loop invariant.  We might be able to guess a loop invariant, but if not
+% we are stuck.  The program looks unsafe, even with the precondition
+% $0 \leq n \leq |M|$.  If we still need to run it, what can we do?  One option
+% would be \emph{dynamic monitoring}: we track memory accesses as the program
+% executes and abort it if it attempts to do something unsafe.  Another one is to
+% \emph{instrument it with guards} before memory accesses.  These guards abort the
+% program if the access would be unsafe and let it go on if they are safe.
+% Aborting programs is considered safe, because aborting is actually a
+% well-defined operation that does no harm (except to the running program, but it
+% is its own fault if it tries to execute an unsafe command).  For this purpose we
+% need a new command $\mb{test}\; P$.  In the literature on dynamic logic this is
+% called a \emph{guard} and written as ${?} P$.  It has the following
+% specification.
+% \[
+%   \begin{array}{lcl}
+%     \omega \lbb \mb{test}\; P\rbb \nu & \mbox{iff} & \omega \models P \ \mbox{and}\ \nu = \omega
+%     \\[1ex]
+%     \omega \lbb \mb{test}\; P\rbb \lightning & \mbox{iff} & \mbox{false}
+%   \end{array}
+% \]
+% The program $\mb{test}\; \bot$ will not have a poststate, but it is also safe
+% because it aborts.  As a result, based on the definition of $\omega \models [\alpha]Q$
+% it is the case that
+% \[
+%   \omega \models [\mb{test}\; \bot] Q
+% \]
+% for any $\omega$ and $Q$.  This in turn means that $[\mb{test}\; \bot]Q$ is
+% logically valid and $\cdot \vdash [\mb{test}\; \bot]Q$ should be derivable.
+
+% Just to be sure, let's recall the definition of $\omega \models [\alpha]Q$
+% from \href{\courseurl/lectures/05-safety.pdf}{Lecture 5}, page L5.4.
+% \[
+%   \begin{array}{lcl}
+%     \omega \models [\alpha]Q
+%     & \mbox{iff}
+%     & \mbox{for every $\nu$ with $\omega \lbb \alpha \rbb \nu$ we have $\nu \models Q$} \\
+%     & & \quad \mbox{and \textbf{not} $\omega \lbb \alpha \rbb \lightning$}
+%   \end{array}
+% \]
+% This is a \emph{partial correctness} statement: if there is no poststate $\nu$
+% such that $\omega \lbb \omega\rbb \nu$, then the first part of the condition is
+% vacuously true.
+
+% What does this mean for the axiom for $[\mb{test}\; P]Q$?  If $P$ is true, then
+% $Q$ should also be true.  But if the test succeeds then we know $P$, so we
+% conjecture (somewhat rashly, perhaps)
+% \[
+%   [\mb{test}\; P]Q \leftrightarrow (P \arrow Q)
+% \]
+% What if $P$ is false?  Then the program $\mb{test}\; P$ has no poststate, and
+% yet it is safe.  Consequently $[\mb{test}\; P]Q$ should be true, and by this
+% axiom it will be becase $\bot \arrow Q$ is valid.
+
+% Let's prove that this axiom is valid, just as in Theorem 1 of
+% \href{\courseurl/lectures/05-safety.pdf}{Lecture 5} we proved that
+% $[\mb{assert}\; P]Q \leftrightarrow (P \land Q)$.
+
+% \begin{theorem}
+%   The axiom
+%   \[ 
+%     [\mb{test}\; P]Q \leftrightarrow (P \arrow Q)
+%   \]
+%   is valid.
+% \end{theorem}
+% \begin{proof}
+%   From right to left we set up for an arbitrary $\omega$
+%   \begin{tabbing}
+%     $\omega \models P \arrow Q$ \` (assumption) \\
+%     $\ldots$ \\
+%     $\omega \models [\mb{test}\; P]Q$ \` (to show)
+%   \end{tabbing}
+%   The conclusion holds if for every $\nu$ such that
+%   $\omega \lbb \mb{test}\; P\rbb \nu$ we have $\nu \models Q$ (and \textbf{not}
+%   $\omega \models \lbb \mb{test}\; P\rbb \lightning$, which is true).
+  
+%   So we assume $\omega \lbb \mb{test}\; P\rbb \nu$ and have to show that
+%   $\nu \models Q$.  By definition, this second assumption give us
+%   $\omega \models P$ and $\nu = \omega$.
+  
+%   By the first assumption also $\omega \models Q$ and since $\nu = \omega$
+%   we have $\nu \models Q$
+
+%   \vspace{1em}\noindent
+%   For the left to right direction, we set up for an arbitrary $\omega$
+%   \begin{tabbing}
+%     $\omega \models [\mb{test}\; P]Q$ \` (assumption) \\
+%     $\ldots$ \\
+%     $\omega \models P \arrow Q$ \` (to show)
+%   \end{tabbing}
+%   So we assume $\omega \models P$ and it remains to show that
+%   $\omega \models Q$.  Since $\omega \models P$, the first assumption gives us
+%   $\nu \models Q$ for any $\nu$ with $\omega \lbb \mb{test}\; P\rbb \nu$.  We
+%   can use this for $\nu = \omega$ (since $\omega \models P$) to obtain
+%   $\omega \models Q$.
+% \end{proof}
+
+% We can easily turn the two directions of the axiom into right and
+% left rules of the sequent calculus.
+% \begin{rules}
+%   \infer[{[\mb{test}]R}]
+%   {\Gamma \vdash [\mb{test}\; P]Q, \Delta}
+%   {\Gamma, P \vdash Q, \Delta}
+%   \hspace{3em}
+%   \infer[{[\mb{test}]L}]
+%   {\Gamma, [\mb{test}\; P]Q \vdash \Delta}
+%   {\Gamma \vdash P, \Delta
+%     & \Gamma, Q \vdash \Delta}
+% \end{rules}
+
+% Here is a little table on the differences between $\mb{assert}\; P$ and
+% $\mb{test}\; P$.
+
+% \vspace{1em}
+% \[
+%   \begin{tabular}{c|c|c}
+%     Poststate & $\omega \lbb \mb{assert}\; P\rbb \nu$ & $\omega \lbb \mb{test}\; P\rbb \nu$ \\
+%     & iff $\omega \models P$ and $\nu = \omega $ & iff $\omega \models P$ and $\nu = \omega$
+%     \\[1ex]\hline & & \\[-1ex]
+%     Safety & $\omega \lbb \mb{assert}\; P\rbb \lightning$ & $\omega \lbb \mb{test}\; P\rbb \lightning$ \\
+%     & iff $\omega \not\models P$ & never
+%     \\[1ex]\hline & & \\[-1ex]
+%     Axiom & $[\mb{assert}\; P]Q \leftrightarrow P \land Q$ & $[\mb{test}\; P]Q \leftrightarrow (P \arrow Q)$
+%   \end{tabular}
+% \]
+
+% \section{Sandboxing}
+
+% Sandboxing unsafe behavior (including memory access through the read or write
+% commands) proceeds as follows.  We replace
+% \begin{itemize}
+% \item every allocation $M := \mb{alloc}\; e$ with the program
+%   $\mb{test}\; 0 \leq e \semi M := \mb{alloc}\; e$
+% \item every memory read $x := M[e]$ with the program
+%   $\mb{test}\; 0 \leq e < |M| \semi x := M[e]$
+% \item every memory write $M[e_1] := e_2$ with the program
+%   $\mb{test}\; 0 \leq e_1 < |M| \semi M[e_1] := e_2$
+% \item every division $x := \mb{divides}\; e_1\; e_2$ with
+%   the program $\mb{test}\; e_2 \neq 0 \semi x := \mb{divides}\; e_1\; e_2$.
+% \item every assertion $\mb{assert}\; P$ with
+%   the program $\mb{test}\; P$
+% \end{itemize}
+% Now we can safely execute the program.  Equally importantly, perhaps, we can
+% prove the safety of the program transformed in this manner.
+
+% \begin{theorem}[Safety of Sandboxed Programs]
+%   Given a program $\alpha$ under precondition $P$, we obtain the sandboxed
+%   $\alpha'$ as defined in the preceding paragraph.
+  
+%   Then $\cdot \vdash P \arrow [\alpha']\top$.
+% \end{theorem}
+% \begin{proof}
+%   We prove safety using the loop invariant $\top$ for every loop.  Since any
+%   potentially unsafe command is immediately preceded by a guard, the safety
+%   condition incorporated into the rule will be provable since it is exactly the
+%   assumption enabled by the postcondition of the guard.
+
+%   More formally, this proof would be carried out by an \emph{induction over the
+%     structure of formulas and programs}.
+% \end{proof}
+
+% There are two optimizations that come to mind.  We can introduce fresh
+% temporaries in order to avoid recomputing the value of expressions.  For
+% example, instead of $\mb{test}\; 0 \leq e < |M| \semi x := M[e]$ we would
+% insert $t := e \semi \mb{test}\; 0 \leq t < |M| \semi x := M[t]$ for a fresh
+% temporary variable $t$.
+
+% The other optimization is a bit trickier.  At first one might think that if we
+% can \emph{prove} $P$ when we encounter $\mb{test}\; P$ during the verification
+% of safety we can replace it by $\mb{skip}$ (or $\mb{assert}\; \top$, which
+% should be equivalent).  However, in conditionals the postcondition is
+% replicated:
+% \[
+%   [\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta]Q
+%   \leftrightarrow
+%   (P \arrow [\alpha]Q) \land (\lnot P \arrow [\beta]Q)
+% \]
+% When the postcondition contains a program (which arises from sequential
+% composition, for example), this program may be proved twice, once in each
+% branch.  A similar remark applies if we unfold loops because the program
+% $\alpha$ is replicated.
+
+% So we can only replace $\mb{test}\; P$ with $\mb{skip}$ only if for all
+% occurrences of $[\mb{test}\; P]Q$ in a safety proof we can prove $P$.
+
+% Returning to our earlier example, we can sandbox
+% \[
+%   n \leq |M| \arrow [i := 0 \semi \mb{while}\; (i < n) \{\, M[i] := i \semi i := i+1\,\}]\top 
+% \]
+% as
+% \[
+%   n \leq |M| \arrow [i := 0 \semi \mb{while}\; (i < n) \{\, 
+%   \mb{test}\; 0 \leq i < |M| \semi M[i] := i \semi i := i+1\,\}]\top  
+% \]
+% Without a loop invariant and stronger precondition we can't eliminate the guard.
+% With the additional information from \autoref{sec:mem-example} it would be
+% redundant and can be dropped.
+
+\section{Summary}
+
+Since it has been a while, we summarize the language so far.  We restrict
+programs from containing certain expressions with indeterminate behavior to
+retain the property that for every given prestate $\omega$, every program has
+three possible outcomes: a poststate $\nu$, or no poststate in which case it may
+be safe or unsafe ($\lightning$).
+\[
+  \begin{array}{llcll}
+    \mbox{Variables} & x, y, z \\
+    \mbox{Memory} & M, N, \ldots \\[1ex]
+    \mbox{Constants} & c & ::= & \ldots, -1, 0, 1, \ldots \\[1ex]
+    \mbox{Expressions} & e & ::= & c \mid x \mid e_1 + e_2 \mid e_1 * e_2 \mid e_1 - e_2 & \mbox{determinate} \\
+                     & & \mid & |M| & \mbox{determinate} \\
+                     & & \mid & e_1 / e_2 \mid \mb{read}\; M\; e \mid \mb{write}\; M\; e_1\; e_2
+                         & \mbox{may be indeterminate} \\[1ex]
+    \mbox{Programs} & \alpha, \beta & ::= & x := e \mid \alpha \semi \beta \mid \mb{skip} \\
+                     & & \mid & \mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta
+                                \mid \mb{while}\; P\; \alpha \\
+                     & & \mid & \mb{test}\; P & \mbox{safe} \\
+                     & & \mid & \mb{assert}\; P \mid x := \mb{divide}\; e_1 \; e_2 & \mbox{may be unsafe} \\
+                     & & \mid & M := \mb{alloc}\; e & \mbox{may be unsafe} \\
+                     & & \mid & x := M[e] \mid M[e_1] := e_2 & \mbox{may be unsafe} \\[1ex]
+    \mbox{Formulas} & P, Q & ::= & e_1 \leq e_2 \mid e_1 = e_2 \mid \top \mid \bot \\
+                     & & \mid  & P \land Q \mid P \lor Q \mid P \arrow Q \mid P \leftrightarrow Q \mid
+                                 \lnot P \\
+                     & & \mid & \forall x.\, P(x) \mid \exists .\, P(x) \\
+                     & & \mid & [\alpha]Q \mid \langle \alpha\rangle Q
+  \end{array}
+\]
+
+\bibliographystyle{plainnat}
+\bibliography{../../2024/lectures/bibliography}
+
+\end{document}

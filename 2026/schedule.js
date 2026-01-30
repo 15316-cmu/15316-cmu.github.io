@@ -37,8 +37,8 @@ schedule = [
   {
     date: "Thu 01/29",
     topic: "Memory Safety",
-    pdf: "",
-    tex: "",
+    pdf: "06-memsafety.pdf",
+    tex: "06-memsafety.tex",
     comments: "",
   },
   {
