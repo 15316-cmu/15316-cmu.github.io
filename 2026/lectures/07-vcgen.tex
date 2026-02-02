@@ -1,0 +1,472 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.5in]{geometry}
+\usepackage{lecnotes}
+% \usepackage{mpass}
+% \lstset{style=verb,language=mpass}
+\input{lmacros}
+
+\newcommand{\course}{15-316: Software Foundations of Security \& Privacy}
+\newcommand{\lecturer}{Frank Pfenning}
+\newcommand{\lecdate}{September 17, 2024}
+\newcommand{\lecnum}{7}
+\newcommand{\lectitle}{Generating Verification Conditions}
+\newcommand{\courseurl}{https://15316-cmu.github.io/2024/}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+Dynamic logic is very general.  Among other things, it allows us to prove
+program equivalence, which you explored in
+\href{\courseurl/homework/hww-dl.pdf}{Assignment 2} (Task 5) and
+\href{\courseurl/homeworks/hw3-safety.pdf}{Assignment 3} (Task 1).  Here is
+another instance.  Just using the axiom
+\[
+  [\alpha \semi \beta]Q \leftrightarrow [\alpha]([\beta]Q)
+\]
+we can formally prove that sequential composition is associative.
+\begin{tabbing}
+  $[\alpha \semi (\beta \semi \gamma)]Q$ \\
+  $\null \leftrightarrow [\alpha]([\beta \semi \gamma])Q$ \\
+  $\null \leftrightarrow [\alpha]([\beta]([\gamma]Q))$ \\
+  $\null \leftrightarrow [\alpha \semi \beta]([\gamma]Q)$ \\
+  $\null \leftrightarrow [(\alpha \semi \beta) \semi \gamma]Q$
+\end{tabbing}
+When we are proving safety (or even correctness) we'd like to take advantage of
+the special form of pre- and post-conditions that are formulated purely in the
+theory of arithmetic (or maybe the theory of arrays if we model memory), namely
+\[
+  P \arrow [\alpha] Q
+\]
+where $P$ is the precondition, $\alpha$ is the program we are trying to verify,
+and $Q$ is the postcondition.  This is often written as $\{P\}\, \alpha\; \{Q\}$
+and called a \emph{Hoare triple}.
+
+For this and the next lecture, we make the following assumptions:
+\begin{enumerate}
+\item The precondition $P$ and postcondition $Q$ are formulas of pure
+  arithmetic.  While they may contain expressions, they may not contain
+  programs.
+\item All formulas occurring in the program $\alpha$ (in conditionals, loop
+  guards, assertions, and tests) are formulas of pure arithmetic.
+\end{enumerate}
+The formulas of \emph{pure arithmetic} are a subset of all formulas defined by
+\[
+  \begin{array}{llcl}
+    \mbox{Pure formulas}
+    & P, Q
+    & ::=
+    & e_1 \leq e_2 \mid e_1 = e_2 \mid P \land Q \mid P \lor Q \mid P \arrow Q \mid \lnot P \mid \top \mid \bot
+  \end{array}
+\]
+We probably should use a new notation for such formulas, but since in today's
+lecture we consider only pure ones (except when recalling axioms), maybe we can
+track this in our heads.
+
+As we proceed, we should also consider the status of quantifiers.  On the one
+hand we sometimes need to refer to them in pre- and post-conditions (especially
+when reasoning about arrays).  On the other hand, they make the theorem proving
+problem much harder.  Plus, they shouldn't appear in program formulas like
+conditionals or loop guards because then rather than computing a Boolean value,
+we'd have to crank up a theorem prover while the program is running (potentially
+have to solve a problem in some undecidable class).
+
+\section{Weakest Liberal Precondition}
+
+If we are given a program $\alpha$ and a postcondition $Q$, then a
+\emph{sufficient precondition} is a pure formula $P$ such that
+$P \arrow [\alpha]Q$.  For example, $P = \bot$ is a sufficient precondition for
+any $\alpha$ and $Q$ since $\bot \arrow [\alpha]Q$ is valid.  We would like the
+\emph{weakest} such precondition which means that it is implied by any other
+precondition.  We call this the weakest \emph{liberal} precondition if we
+consider \emph{partial correctness}, which is exactly what $[\alpha]Q$ captures.
+As has become common practice we may drop the adjective \emph{liberal} since we
+essentially never consider \emph{total correctness} (that is, require
+termination to be proved).
+
+In order to explain the term ``weakest'': we say $P$ is \emph{stronger than} $Q$
+if $P$ implies $Q$.  Then $P = \bot$ is the strongest formula (it implies
+everything), while $P = \top$ is the weakest: it only implies $Q$ if $Q$ is
+already true without the help of $P$.
+
+Writing $\ms{wlp}\; \alpha\; Q$ for the weakest liberal precondition we want
+the following two properties:
+\begin{enumerate}
+\item $\ms{wlp}\; \alpha\; Q \arrow [\alpha]Q$ (it is a precondition)
+\item If $P \arrow [\alpha]Q$ then $P \arrow \ms{wlp}\; \alpha\; Q$ (it
+  the weakest among them).
+\end{enumerate}
+It is easy to check that $\ms{wlp}\; \alpha\; Q \leftrightarrow [\alpha]Q$
+because $[\alpha]Q$ satisfies both conditions.  Sadly, we cannot just define
+$\ms{wlp}\; \alpha\; Q = [\alpha]Q$ because the right-hand side is not pure, and
+we therefore cannot just hand it off to a theorem prover for arithmetic.
+
+When thinking about the desired property it quickly becomes clear that loops are
+a major obstacle to computing the weakest liberal precondition algorithmically.
+So we require the programmer to supply a \emph{loop invariant} $J$ for every
+loop and then construct a weakest liberal precondition \emph{with respect to the
+  given loop invariants}.  We'll come back to this point in \autoref{sec:loops}.
+For all the other constructs, we can derive an algorithm for computing it from
+the axioms.
+
+When given a problem $P \arrow [\alpha]Q$, then we call
+$P \arrow \ms{wlp}\; \alpha\; Q$ the \emph{verification condition}.  If it can
+be shown valid by an arithmetic prover, then the original dynamic logic formula
+$P \arrow [\alpha]Q$ is valid.
+
+\section{Programs Without Loops}
+
+The function $\ms{wlp}\; \alpha\; Q$ is defined by \emph{induction} over
+$\alpha$.  That is, we can make recursive calls to $\ms{wlp}$, but only on
+constituents programs for $\alpha$.  The result, $P$, should be a pure formula
+as defined before (and, in particular, it should not contain any programs).
+
+We go through the program constructs one by one, reminding ourselves of the
+axioms and then deriving from that a case in the definition of $\ms{wlp}$.  The
+key here is $\ms{wlp}\; \alpha\; Q \leftrightarrow [\alpha]Q$.
+
+\paragraph{Sequential Composition.}  Recall from earlier in this lecture
+\[
+  [\alpha \semi \beta]Q \leftrightarrow [\alpha]([\beta]Q)
+\]
+Blindly using equivalences:
+\[
+  \ms{wlp}\; (\alpha \semi \beta)\; Q = \ms{wlp}\; \alpha\; (\ms{wlp}\; \beta\; Q)
+\]
+This actually works!  $\ms{wlp}\; \beta\; Q$ will be the weakest liberal
+precondition of $Q$ with respect to $\beta$, and we can use this as the
+postcondition for the next recursive call on $\alpha$ because it must be pure.
+
+An interesting aspect of this clause is that we proceed through the program from
+right to left: when computing the weakest precondition of $\alpha \semi \beta$
+we first compute it for $\beta$ and then for $\alpha$.  This is characteristic
+of this approach.  Going in the other direction is also possible, but it either
+leads us to the \emph{strongest postcondition} (which we will not discuss) or
+the closely related \emph{symbolic evaluation} (which is the subject of
+\href{\courseurl/lectures/08-symeval.pdf}{Lecture 8}.
+
+\paragraph{Assignment.}  For assignment, we will take particular advantage of
+the purity of the postcondition.  First, let's recall the axiom:
+\[
+  [x := e]Q(x) \leftrightarrow \forall x'.\, x' = e \arrow Q(x')\quad \mbox{($x'$ fresh)}
+\]
+where $x'$ is chosen so it does not already occur in $e$ or $Q(x)$.  We need
+this side condition for two reasons.  (1) if we have some previous knowledge
+about $x$ (like: $x = 2$) then after an assignment (like: $x := 3$) we would
+reach inconsistent assumptions because they the two values of $x$ would be in
+conflict.  (2) We cannot just substitute $e$ for $x$ in $Q(x)$ because $Q(x)$
+might contain programs.  For example, in
+$[x := 5]([\mb{while}\; x > 0\; x := x-1])$ the variable $x$ in the program
+successively refers to $5, 4, 3, 2, 1, 0$, so substituting in the initial value
+$5$ ist just plain incorrect.
+
+Fortunately, when calculating the weakest precondition we know that $Q(x)$ is a
+formula of pure arithmetic.  Significantly, it does not contain any programs.
+Because of that, substituting $e$ for $x$ is actually not problematic.  We write
+this as $Q(e)$.  So we define
+\[
+  \ms{wlp}\; (x := e)\; Q(x) = Q(e)
+\]
+
+Let's run through an example to see the two clauses in the definition of
+$\ms{wlp}$ in action.  The program $z := x \semi x := y \semi y := z$ swaps the
+contents of variables $x$ and $y$ using the auxiliary variable $z$.  Let's say
+the postcondition is $x = b \land y = a$.  We expect the weakest precondition
+to imply that before the execution of the program, $x = a \land y = b$ must be
+true.
+\[
+  \begin{array}{cl}
+    & \ms{wlp}\; (z := x \semi x := y \semi y := z)\; (x = a \land y = b) \\
+    = & \ms{wlp}\; (z := x)\; (\ms{wlp}\; (x := y\; \semi y := z)\; (x = a \land y = b)) \\
+    = & \ms{wlp}\; (z := x) \; (\ms{wlp}\; (x := y)\; (\ms{wlp}\; (y := z)\; (x = a \land y = b)))
+  \end{array}
+\]
+At this point in rightmost call will use the rule for assignment, substituting
+$z$ for $y$ in the postcondition.  The new constructed postcondition then
+feeds into the prior call to $\ms{wlp}$, and so on.
+\[
+  \begin{array}{cl}
+    = & \ms{wlp}\; (z := x) \; (\ms{wlp}\; (x := y)\; (x = a \land z = b)) \\
+    = & \ms{wlp}\; (z := x) \; (y = a \land z = b) \\
+    = & y = a \land x = b
+  \end{array}
+\]
+In this case, we get essentially \emph{exactly} the precondition we expected.
+It does not mention $z$, since $z$ is written to in the first assignment so its
+value prior to execution is irrelevant.
+
+\paragraph{Conditionals.}  Recall the axiom
+\[
+  [\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta] Q
+  \leftrightarrow (P \arrow [\alpha]Q) \land (\lnot P \arrow [\beta]Q)
+\]
+Again, we can use this straightforwardly, making two recursive calls
+on subprograms.
+\[
+  \ms{wlp}\; (\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta)\; Q
+  =
+  (P \arrow \ms{wlp}\; \alpha\; Q) \land (\lnot P \arrow \ms{wlp}\; \beta\; Q)
+\]
+The postcondition does not change in both calls and is therefore pure, while $P$
+is a program condition and therefore pure by our general assumption (2) from
+this lecture.  Therefore, the result of $\ms{wlp}$ is pure.
+
+\paragraph{Assertions and Tests.}  Again, the axioms:
+\[
+  \begin{array}{l}
+    [\mb{assert}\; P]Q \leftrightarrow (P \land Q) \\\relax
+    [\mb{test}\; P]Q \leftrightarrow (P \arrow Q)
+  \end{array}
+\]
+So:
+\[
+  \begin{array}{lcl}
+    \ms{wlp}\; (\mb{assert}\; P)\; Q & = & P \land Q  \\
+    \ms{wlp}\; (\mb{test}\; P)\; Q & = & P \arrow Q 
+  \end{array}
+\]
+As in the case of conditionals, these results are pure because $P$ is a program
+condition.
+
+This leads us to the case of loops.
+
+\section{Loops}
+\label{sec:loops}
+
+First, let's recall the right rule for $[\mb{while}]R$.  Roughly, it states that
+the loop invariant $J$ must hold initially, that it must be preserved by one
+trip around the loop, and that it must imply the postcondition.
+\[
+  \infer[{[\mb{while}]R}]
+  {\Gamma \vdash [\mb{while}\; P\; \alpha]Q, \Delta}
+  {\Gamma \vdash J, \Delta
+    & J, P \vdash [\alpha]J
+    & J, \lnot P \vdash Q}
+\]
+In applying this rule we have to choose the right loop invariant $J$.  Since
+this a very difficult problem (both in theory and in practice), we will assume
+for the remainder of this lecture and part of the next lecture that the
+programmer has supplied it---maybe they were lucky enough to have taken 15-122
+\emph{Principles of Imperative Computation}!  Our notation here is just
+$\mb{while}_J\; P\; \alpha$ where $J$ is the loop invariant.
+
+Another particularly tricky aspect of this rule is that neither $\Gamma$ nor
+$\Delta$ are allowed to be used in the second and third premise.  That's because
+$\Gamma$ and $\Delta$ hold formulas that reference variables \emph{in their
+  state as we enter the loop}.  However, the loop invariant must be preserved no
+matter how many times we go around the loop, so we cannot rely on any
+assumptions that holds as enter it.  That's the same reason we cannot substitute
+an expression for a variable that appears in the loop.
+
+So what to do?  It turns out that we need a new logical connective to model this
+as a formula.  We write $\Box P$ (pronounced ``\emph{white box $P$}'') which is
+true exactly if $P$ is valid (which means: true in every state, as we have
+defined when proving validity of our axioms).  The right rule for $\Box P$
+then wipes out any knowledge we might have about the current state.
+\[
+  \infer[{\Box}R]
+  {\Gamma \vdash \Box P, \Delta}
+  {\cdot \vdash P}
+\]
+Semantically, it is also easy to define
+\[
+  \begin{array}{lcl}
+    \omega \models \Box P & \mbox{iff} & \nu \models P \quad \mbox{for all states $\nu$}
+  \end{array}
+\]
+It is a useful exercise to show the soundness of the ${\Box}R$ rule given this
+definition.  Unfortunately, it is not invertible.  For example, we have
+$\bot \vdash \Box (\bot)$, but we cannot prove the premise of the rule
+$\cdot \vdash \bot$.
+
+We won't discuss the left rule or axioms for $\Box P$, because we don't need
+them in the context of this course.  The particular modal logic we need here is
+called S4, and if you are curious you can read more about it in the Stanford
+Encyclopedia of Philosophy \citep{Garson00}.
+
+With this in hand, we can turn the $[\mb{while}]R$ rule into an axiom.
+\[
+  \begin{array}{lclll}
+    [\mb{while}_J\; P\; \alpha]Q
+    & \leftrightarrow
+    & & J & (\mbox{true initially}) \\
+    & & \land & \Box(J \land P \arrow [\alpha]J) & (\mbox{preserved}) \\
+    & & \land & \Box(J \land \lnot P \arrow Q) & (\mbox{implies postcondition})
+  \end{array}
+\]
+We have packaged up the \emph{allowed antecedents} (like $J$ and $P$) together
+with the succedent and then stashed under a white box in order to ``erase'' any
+other antecedents or succedents we might have.
+
+We have written this as a bi-implication.  If the loop invariant $J$ were not
+specified in the syntax of the program, it would only be a right-to-left
+implication.  Keeping this in mind, we can now turn this axiom into a definition
+of the weakest precondition.
+\[
+  \begin{array}{lclll}
+    \ms{wlp}\; (\mb{while}_J\; P\; \alpha)\; Q
+    & =
+    & & J & (\mbox{true initially}) \\
+    & & \land & \Box(J \land P \arrow \ms{wlp}\; \alpha\; J) & (\mbox{preserved}) \\
+    & & \land & \Box(J \land \lnot P \arrow Q) & (\mbox{implies postcondition})
+  \end{array}
+\]
+We should check a few things.  First, are all postconditions in calls to
+$\ms{wlp}$ pure?  There is only one recursive call, and its postcondition $J$
+must be pure because $J$ appears in the program and was therefore assumed to be
+pure.  Also, the formula returned by $\ms{wlp}$ is pure \emph{if we allow
+  $\Box P$ as a pure formula}.  This seems reasonable since it does not contain
+any program.  So we revise:
+\[
+  \begin{array}{llcl}
+    \mbox{Pure formulas}
+    & P, Q
+    & ::=
+    & e_1 \leq e_2 \mid e_1 = e_2 \mid P \land Q \mid P \lor Q \mid P \arrow Q \mid \lnot P \mid \top \mid \bot \\
+    & & \mid & \Box P
+  \end{array}
+\]
+The theorem provers we use don't understand the white box modality, so we have
+to take care to turn these pure formulas into their language.  We comment on
+that in \autoref{sec:whitebox}.
+
+We can also see that if the loop invariant is \textbf{not} preserved or does
+\textbf{not} imply the postcondition, the weakest liberal precondition is
+equivalent to falsehood ($\bot$) because the white boxed formula is always
+either true or false.
+
+\section{A Loop Example}
+
+Let's reconsider an example from
+\href{\courseurl/lextures/04-semantics.pdf}{Lecture 4} and
+\href{\courseurl/lextures/05-safety.pdf}{Lecture 5}.
+\[
+  [\mb{while}_{x \geq 0}\; (x > 1)\; x := x-2]\, (0 \leq x \leq 1)
+\]
+We have already written in the loop invariant we discovered the first time.  Our
+precondition was $x \geq 6$, but we purposely omit it here to see what the the
+weakest liberal precondition might be.  We expect that whatever it is should be
+\emph{implied by} $x \geq 6$.
+
+So we start to calculate (with $J = (x \geq 0)$).
+\[
+  \begin{array}{l}
+    \ms{wlp}\; (\mb{while}_{x \geq 0}\; (x > 1)\; x := x-2)\, (0 \leq x \leq 1) \\
+    \null = x \geq 0 \\
+    \quad \null \land \Box\, (x \geq 0 \land x > 1 \arrow \ms{wlp}\; (x := x-2)\; (x \geq 0)) \\
+    \quad \null \land \Box\, (x \geq 0 \land \lnot\, (x > 1) \arrow 0 \leq x \leq 1)
+  \end{array}
+\]
+There is one recursive call to $\ms{wlp}$, which we can work out by substitution
+(since it is an assignment):
+\[
+  \ms{wlp}\; (x := x-2)\; (x \geq 0) = (x-2 \geq 0)
+\]
+Plugging this back in we get
+\[
+  \begin{array}{l}
+    \ms{wlp}\; (\mb{while}_{x \geq 0}\; (x > 1)\; x := x-2)\, (0 \leq x \leq 1) \\
+    = x \geq 0 \\
+    \quad \null \land \Box\, (x \geq 0 \land x > 1 \arrow x-2 \geq 0) \\
+    \quad \null \land \Box\, (x \geq 0 \land \lnot\, (x > 1) \arrow 0 \leq x \leq 1)
+  \end{array}
+\]
+Since we can verify the two boxed formulas as being valid, the weakest liberal
+precondition is equivalent to $x \geq 0$.  As expected, this is implied by
+$x \geq 6$.
+
+\section{White Box\protect\footnotemark}
+\footnotetext{not covered in lecture, but important for the first lab}
+\label{sec:whitebox}
+
+First a note on substitution.  When we write $Q(x)$ where $Q$ may contain
+formulas $\Box P$, then occurrence of $x$ in $P$ are allowed, but excluded from
+substitution.  That's because $P$ has to be \emph{valid}, which means true in
+every state.  Therefore any occurrence of $x$ in $P$ does not refer to the same
+$x$ as outside the white box.  For example, if
+\[
+  Q(x) = (x > 1 \land \Box (x < 0 \arrow -x > 0))
+\]
+then
+\[
+  Q(5) = (5 > 1 \land \Box (x < 0 \arrow -x > 0))
+\]
+We might say that ``substitution is blocked by white boxes''.  This is related
+to the fact that substitution into $[\alpha]P$ may be prohibited, in particular
+if $\alpha$ contains loops or assignments.
+
+Can we translate a formula with white boxes into arithmetic without boxes?  This
+is what we need in order to pass it to a theorem prover for arithmetic.  It
+turns out to be quite easy: we ``pull out'' all white boxed formulas to the top
+level and replace them by $\top$ or $\bot$, depending on whether they can
+be verified or not.
+
+In the example from the previous section (not with the precondition),
+we'd like to verify
+\[
+  x \geq 6 \arrow [\mb{while}_{x \geq 0}\; (x > 1)\; x := x-2]\, (0 \leq x \leq 1)
+\]
+We calculate the weakest liberal precondition,
+\[
+  \begin{array}{l}
+    \ms{wlp}\; (\mb{while}_{x \geq 0}\; (x > 1)\; x := x-2)\, (0 \leq x \leq 1) \\
+    = x \geq 0 \\
+    \quad \null \land \Box\, (x \geq 0 \land x > 1 \arrow x-2 \geq 0)\\
+    \quad \null \land \Box\, (x \geq 0 \land \lnot\, (x > 1) \arrow 0 \leq x \leq 1)
+  \end{array}
+\]
+form the implication from the precondition, and pull out the white boxed
+formulas.  We thus have to ask our theorem prover if all of the following
+are valid and plug in the results:
+\[
+  \begin{array}{lcl}
+    p_1 & = & \ms{valid}\; (x \geq 0 \land x > 1 \arrow x-2 \geq 0) \\
+    p_2 & = & \ms{valid}\; (x \geq 0 \land \lnot\, (x > 1) \arrow 0 \leq x \leq 1) \\
+    \multicolumn{3}{l}{\ms{valid}\; (x \geq 6 \arrow x \geq 0 \land p_1 \land p_2)}
+  \end{array}
+\]
+If we determine the validity of $p_1$ and $p_1$ first (which will be true or
+false), we can then replace $p_1$ and $p_2$ with $\top$ or $\bot$ in the third
+line.
+
+Fortunately, in this example, all of these are quite easy and valid.  Note that
+we cannot just signal an error if $p_1$ or $p_2$ are invalid.  For example, in
+\[
+  \ms{wlp}\; (\mb{if}\; \top\; \mb{then}\; x := x+1\; \mb{else}\;
+  (\mb{while}_{x = 0}\; (x \geq 0)\; x := x-1))\, (x = 5)
+\]
+the loop invariant $x = 0$ is not preserved, but, logically, the weakest liberal
+precondition should be $x = 4$ since the implication
+$\lnot \top \arrow \ms{wlp}\; (\mb{while} \ldots)\, (x = 5)$ is valid, even if
+$\ms{wlp}\; (\mb{while} \ldots)\, (x = 5) = \bot$.
+
+Alternatively we could stipulate that loop invariants must be loop invariants
+wherever they occur and just abort with an error when given a program such as
+the one above.
+
+\section{Summary}
+
+We summarize the definition of $\ms{wlp}\; \alpha\; Q$.
+\[
+  \begin{array}{lcl}
+    \ms{wlp}\; (\alpha \semi \beta)\; Q & = & \ms{wlp}\; \alpha\; (\ms{wlp}\; \beta\; Q) \\
+    \ms{wlp}\; (x := e)\; Q(x) & = & Q(e) \\
+    \ms{wlp}\; (\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta)\; Q
+    & = & (P \arrow \ms{wlp}\; \alpha\; Q) \land (\lnot P \arrow \ms{wlp}\; \beta\; Q) \\
+    \ms{wlp}\; (\mb{assert}\; P)\; Q & = & P \land Q  \\
+    \ms{wlp}\; (\mb{test}\; P)\; Q & = & P \arrow Q \\
+    \ms{wlp}\; (\mb{while}_J\; P\; \alpha)\; Q 
+    & = & J  \\ % & (\mbox{true initially})
+    & & \null \land \Box(J \land P \arrow \ms{wlp}\; \alpha\; J) \\ % & (\mbox{preserved}) \\
+    & & \null \land \Box(J \land \lnot P \arrow Q) % & (\mbox{implies postcondition})
+  \end{array}
+\]
+
+
+\bibliographystyle{plainnat}
+\bibliography{bibliography}
+
+\end{document}
