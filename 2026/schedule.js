@@ -44,8 +44,8 @@ schedule = [
   {
     date: "Tue 02/03",
     topic: "Generating Verification Conditions",
-    pdf: "",
-    tex: "",
+    pdf: "07-vcgen.pdf",
+    tex: "07-vcgen.tex",
     comments: "Asst 2 due",
   },
   {
