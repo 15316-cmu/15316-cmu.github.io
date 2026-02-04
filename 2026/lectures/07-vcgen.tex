@@ -74,6 +74,265 @@ conditionals or loop guards because then rather than computing a Boolean value,
 we'd have to crank up a theorem prover while the program is running (potentially
 have to solve a problem in some undecidable class).
 
+\section{Guards}
+
+Consider the scenario where you are given the program from the previous section
+but no loop invariant.  We might be able to guess a loop invariant, but if not
+we are stuck.  The program looks unsafe, even with the precondition
+$0 \leq n \leq |M|$.  If we still need to run it, what can we do?  One option
+would be \emph{dynamic monitoring}: we track memory accesses as the program
+executes and abort it if it attempts to do something unsafe.  Another one is to
+\emph{instrument it with guards} before memory accesses.  These guards abort the
+program if the access would be unsafe and let it go on if they are safe.
+Aborting programs is considered safe, because aborting is actually a
+well-defined operation that does no harm (except to the running program, but it
+is its own fault if it tries to execute an unsafe command).  For this purpose we
+need a new command $\mb{test}\; P$.  In the literature on dynamic logic this is
+called a \emph{guard} and written as ${?} P$.  It has the following
+specification.
+\[
+  \begin{array}{lcl}
+    \omega \lbb \mb{test}\; P\rbb \nu & \mbox{iff} & \omega \models P \ \mbox{and}\ \nu = \omega
+    \\[1ex]
+    \omega \lbb \mb{test}\; P\rbb \lightning & \mbox{iff} & \mbox{false}
+  \end{array}
+\]
+The program $\mb{test}\; \bot$ will not have a poststate, but it is also safe
+because it aborts.  As a result, based on the definition of $\omega \models [\alpha]Q$
+it is the case that
+\[
+  \omega \models [\mb{test}\; \bot] Q
+\]
+for any $\omega$ and $Q$.  This in turn means that $[\mb{test}\; \bot]Q$ is
+logically valid and $\cdot \vdash [\mb{test}\; \bot]Q$ should be derivable.
+
+Just to be sure, let's recall the definition of $\omega \models [\alpha]Q$
+from \href{\courseurl/lectures/05-safety.pdf}{Lecture 5}, page L5.4.
+\[
+  \begin{array}{lcl}
+    \omega \models [\alpha]Q
+    & \mbox{iff}
+    & \mbox{for every $\nu$ with $\omega \lbb \alpha \rbb \nu$ we have $\nu \models Q$} \\
+    & & \quad \mbox{and \textbf{not} $\omega \lbb \alpha \rbb \lightning$}
+  \end{array}
+\]
+This is a \emph{partial correctness} statement: if there is no poststate $\nu$
+such that $\omega \lbb \omega\rbb \nu$, then the first part of the condition is
+vacuously true.
+
+What does this mean for the axiom for $[\mb{test}\; P]Q$?  If $P$ is true, then
+$Q$ should also be true.  But if the test succeeds then we know $P$, so we
+conjecture (somewhat rashly, perhaps)
+\[
+  [\mb{test}\; P]Q \leftrightarrow (P \arrow Q)
+\]
+What if $P$ is false?  Then the program $\mb{test}\; P$ has no poststate, and
+yet it is safe.  Consequently $[\mb{test}\; P]Q$ should be true, and by this
+axiom it will be becase $\bot \arrow Q$ is valid.
+
+Let's prove that this axiom is valid.
+
+\begin{theorem}
+  The axiom
+  \[ 
+    [\mb{test}\; P]Q \leftrightarrow (P \arrow Q)
+  \]
+  is valid.
+\end{theorem}
+\begin{proof}
+  From right to left we set up for an arbitrary $\omega$
+  \begin{tabbing}
+    $\omega \models P \arrow Q$ \` (assumption) \\
+    $\ldots$ \\
+    $\omega \models [\mb{test}\; P]Q$ \` (to show)
+  \end{tabbing}
+  The conclusion holds if for every $\nu$ such that
+  $\omega \lbb \mb{test}\; P\rbb \nu$ we have $\nu \models Q$ (and \textbf{not}
+  $\omega \models \lbb \mb{test}\; P\rbb \lightning$, which is true).
+  
+  So we assume $\omega \lbb \mb{test}\; P\rbb \nu$ and have to show that
+  $\nu \models Q$.  By definition, this second assumption give us
+  $\omega \models P$ and $\nu = \omega$.
+  
+  By the first assumption also $\omega \models Q$ and since $\nu = \omega$
+  we have $\nu \models Q$
+
+  \vspace{1em}\noindent
+  For the left to right direction, we set up for an arbitrary $\omega$
+  \begin{tabbing}
+    $\omega \models [\mb{test}\; P]Q$ \` (assumption) \\
+    $\ldots$ \\
+    $\omega \models P \arrow Q$ \` (to show)
+  \end{tabbing}
+  So we assume $\omega \models P$ and it remains to show that
+  $\omega \models Q$.  Since $\omega \models P$, the first assumption gives us
+  $\nu \models Q$ for any $\nu$ with $\omega \lbb \mb{test}\; P\rbb \nu$.  We
+  can use this for $\nu = \omega$ (since $\omega \models P$) to obtain
+  $\omega \models Q$.
+\end{proof}
+
+We can easily turn the two directions of the axiom into right and
+left rules of the sequent calculus.
+\begin{rules}
+  \infer[{[\mb{test}]R}]
+  {\Gamma \vdash [\mb{test}\; P]Q, \Delta}
+  {\Gamma, P \vdash Q, \Delta}
+  \hspace{3em}
+  \infer[{[\mb{test}]L}]
+  {\Gamma, [\mb{test}\; P]Q \vdash \Delta}
+  {\Gamma \vdash P, \Delta
+    & \Gamma, Q \vdash \Delta}
+\end{rules}
+
+\subsection{Assertions}
+
+We defined $\mb{test}$ so that it is never unsafe. A related type of
+program that appears in many languages is the $\mb{assert}$ command
+\[
+  \mb{assert}\; P
+\]
+where $P$ is a formula that may depend on variables. 
+The meaning of $\mb{assert}\; P$ is similar to $\mb{test}\; P$, except that
+\emph{unsafe} if $P$ is false; otherwise it is safe but does not change
+the state.
+\[
+  \begin{array}{lcl}
+    \omega \lbb \mb{assert}\; P\rbb \nu & \mbox{iff} & \omega \models P \ \mbox{and}\ \nu = \omega
+    \\[1em]
+    \omega \lbb \mb{assert}\; P\rbb \lightning & \mbox{iff} & \omega \not\models P
+  \end{array}
+\]
+It should be clear that we preserve the property that unsafe programs have no
+poststate.
+
+Among other things, we could rewrite our programs using $\mb{assert}$ commands.
+For example, if we replaced $x := \mb{divide}\; e_1\; e_2$ by
+$\mb{assert}\; \lnot (e_2 = 0) \semi x := e_1 / e_2$ the two programs would have
+the same meaning in every state (either both unsafe, or both safe and
+determinate).
+
+How do we reason about $[\mb{assert}\; P]Q$?  If $P$ is true, then the
+postcondition $Q$ must be true.  If $P$ is false, then $Q$ is irrelevant: the
+formula $[\mb{assert}\; P]Q$ is always false.  These two conditions are neatly
+captured by the axiom
+\[ 
+  [\mb{assert}\; P]Q \leftrightarrow P \land Q
+\]
+So why do we need $\mb{assert}\; P$ in our language when we already have
+$\mb{test}\; P$? First, we wouldn't necessarily want to use $\mb{assert}$ to
+check for things like whether an array index is in bounds or not; if the
+assertion fails, then the program is unsafe, which doesn't change anything
+from how normal memory accesses work.
+
+Rather, assertions are useful as a general-purpose way of specifying what is
+unsafe for a program to do.
+For example, we could use an assertion to model that it is unsafe to read
+from an input stream if the current user is unauthorized to do so; or that
+it is not safe to send output over a network interface after the program
+has read from a sensitive file.
+These policies can be modeled using assertions by introducing additional
+\emph{ghost variables} that track the current state of the policy.
+You will explore using ghost variables to express safety properties like this
+in Homework 3.
+
+Here are the corresponding right and left rules of the sequent calculus.
+\begin{rules}
+  \infer[{[\mb{assert}]R}]
+  {\Gamma \vdash [\mb{assert}\; P]Q, \Delta}
+  {\Gamma \vdash P, \Delta
+    & \Gamma \vdash Q, \Delta}
+  \hspace{3em}
+  \infer[{[\mb{assert}]L}]
+  {\Gamma, [\mb{assert}\; P]Q \vdash \Delta}
+  {\Gamma, P, Q \vdash \Delta}
+\end{rules}
+
+Here is a little table on the differences between $\mb{assert}\; P$ and
+$\mb{test}\; P$.
+
+\vspace{1em}
+\[
+  \begin{tabular}{c|c|c}
+    Poststate & $\omega \lbb \mb{assert}\; P\rbb \nu$ & $\omega \lbb \mb{test}\; P\rbb \nu$ \\
+    & iff $\omega \models P$ and $\nu = \omega $ & iff $\omega \models P$ and $\nu = \omega$
+    \\[1ex]\hline & & \\[-1ex]
+    Safety & $\omega \lbb \mb{assert}\; P\rbb \lightning$ & $\omega \lbb \mb{test}\; P\rbb \lightning$ \\
+    & iff $\omega \not\models P$ & never
+    \\[1ex]\hline & & \\[-1ex]
+    Axiom & $[\mb{assert}\; P]Q \leftrightarrow P \land Q$ & $[\mb{test}\; P]Q \leftrightarrow (P \arrow Q)$
+  \end{tabular}
+\]
+
+\section{Sandboxing}
+
+Sandboxing unsafe behavior (including memory access through the read or write
+commands) proceeds as follows.  We replace
+\begin{itemize}
+\item every allocation $M := \mb{alloc}\; e$ with the program
+  $\mb{test}\; 0 \leq e \semi M := \mb{alloc}\; e$
+\item every memory read $x := M[e]$ with the program
+  $\mb{test}\; 0 \leq e < |M| \semi x := M[e]$
+\item every memory write $M[e_1] := e_2$ with the program
+  $\mb{test}\; 0 \leq e_1 < |M| \semi M[e_1] := e_2$
+\item every division $x := \mb{divides}\; e_1\; e_2$ with
+  the program $\mb{test}\; e_2 \neq 0 \semi x := \mb{divides}\; e_1\; e_2$.
+\item every assertion $\mb{assert}\; P$ with
+  the program $\mb{test}\; P$
+\end{itemize}
+Now we can safely execute the program.  Equally importantly, perhaps, we can
+prove the safety of the program transformed in this manner.
+
+\begin{theorem}[Safety of Sandboxed Programs]
+  Given a program $\alpha$ under precondition $P$, we obtain the sandboxed
+  $\alpha'$ as defined in the preceding paragraph.
+  
+  Then $\cdot \vdash P \arrow [\alpha']\top$.
+\end{theorem}
+\begin{proof}
+  We prove safety using the loop invariant $\top$ for every loop.  Since any
+  potentially unsafe command is immediately preceded by a guard, the safety
+  condition incorporated into the rule will be provable since it is exactly the
+  assumption enabled by the postcondition of the guard.
+
+  More formally, this proof would be carried out by an \emph{induction over the
+    structure of formulas and programs}.
+\end{proof}
+
+There are two optimizations that come to mind.  We can introduce fresh
+temporaries in order to avoid recomputing the value of expressions.  For
+example, instead of $\mb{test}\; 0 \leq e < |M| \semi x := M[e]$ we would
+insert $t := e \semi \mb{test}\; 0 \leq t < |M| \semi x := M[t]$ for a fresh
+temporary variable $t$.
+
+The other optimization is a bit trickier.  At first one might think that if we
+can \emph{prove} $P$ when we encounter $\mb{test}\; P$ during the verification
+of safety we can replace it by $\mb{skip}$ (or $\mb{assert}\; \top$, which
+should be equivalent).  However, in conditionals the postcondition is
+replicated:
+\[
+  [\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta]Q
+  \leftrightarrow
+  (P \arrow [\alpha]Q) \land (\lnot P \arrow [\beta]Q)
+\]
+When the postcondition contains a program (which arises from sequential
+composition, for example), this program may be proved twice, once in each
+branch.  A similar remark applies if we unfold loops because the program
+$\alpha$ is replicated.
+
+So we can only replace $\mb{test}\; P$ with $\mb{skip}$ only if for all
+occurrences of $[\mb{test}\; P]Q$ in a safety proof we can prove $P$.
+
+Returning to our earlier example, we can sandbox
+\[
+  n \leq |M| \arrow [i := 0 \semi \mb{while}\; (i < n) \{\, M[i] := i \semi i := i+1\,\}]\top 
+\]
+as
+\[
+  n \leq |M| \arrow [i := 0 \semi \mb{while}\; (i < n) \{\, 
+  \mb{test}\; 0 \leq i < |M| \semi M[i] := i \semi i := i+1\,\}]\top  
+\]
+Without a loop invariant and stronger precondition we can't eliminate the guard.
+
 \section{Weakest Liberal Precondition}
 
 If we are given a program $\alpha$ and a postcondition $Q$, then a

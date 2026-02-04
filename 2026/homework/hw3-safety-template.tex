@@ -1,0 +1,204 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.0in]{geometry}
+\usepackage{lecnotes}
+\input{lmacros}
+\usepackage{framed}
+
+\newcommand{\course}{15-316: Software Foundations of Security \& Privacy}
+\newcommand{\lecturer}{}
+\newcommand{\lecdate}{Due Tue, Feb 10, 2026}
+\newcommand{\lecnum}{3}
+\newcommand{\lectitle}{Homework 3 (Solutions Template)}
+\newcommand{\courseurl}{https://15316-cmu.github.io/2026/}
+
+\title{Assignment \lecnum \\ Proving Safety \\ Solutions Template}
+\date{\lecdate \\ 75 points}
+
+\lhead[\fancyplain{}{\bfseries A\lecnum.\thepage}]%
+      {\fancyplain{}{\bfseries\lectitle}}
+\chead[]{}
+\rhead[\fancyplain{}{\bfseries\lectitle}]%
+      {\fancyplain{}{\bfseries A\lecnum.\thepage}}
+\lfoot[{\small\scshape Assignments}]{{\small\scshape Assignments}}
+\cfoot[]{}
+\rfoot[{\small\scshape\lecdate}]{{\small\scshape\lecdate}}
+
+\begin{document}
+
+\maketitle
+
+\noindent
+This file is a template for writing up your solutions.
+
+Your solution should be handed in as a file \texttt{hw3.pdf} to Gradescope.  If
+at all possible, write your solutions in \LaTeX.  The handout
+\texttt{hw3-safety.zip} includes the \LaTeX\ sources for Lectures 5 and 6 and
+the necessary style files which provide some examples for rules, derivations,
+and proofs.
+
+\section{Semantic Equivalence [20 points]}
+
+In the previous homework we proved program equivalence using the inference rules
+of the sequent calculus for dynamic logic.  For programs that use $\mb{while}$
+this is difficult or impossible with the tools we have so far, since our axiom
+for $\mb{while}$ is only an implication (not a bi-implication) and,
+consequently, only corresponds to a right rule ($[\mb{while}]R$) in the sequent
+calculus and not a left rule.
+
+\begin{task}[20 points]\rm
+  Consider the two formulas
+  \[
+    [\mb{while}\; \top\; \mb{assert} \top] Q
+  \]
+  and
+  \[
+    [\mb{test}\; \bot] Q
+  \]
+  Prove that they are \emph{semantically} equivalent, that is, in any state
+  $\omega$, one is true if and only if the other is.  For the reasons explained
+  above, you should do this using the definition of $\omega \models P$ and other
+  semantic definitions such as $\omega \lbb \alpha \rbb \nu$ and
+  $\omega \lbb \alpha \rbb \lightning$.
+\end{task}
+
+\begin{framed}
+% Write your solution here.
+\end{framed}
+
+\clearpage
+\section{Safety of Output [55 points]}
+
+In this problem we consider a more complex safety policy than division by zero
+or array access out of bounds.  We add three new commands to our language: one
+to open a stream for writing, one to print to a stream, and one to close a
+stream.  To keep complexity manageable, we imagine there is just one stream
+(e.g., the terminal) that we can open, print to, and close:
+\[
+  \begin{array}{llcl}
+    \mbox{Programs} & \alpha, \beta & ::= & \ldots \mid \mb{open} \mid \mb{print}\; e \mid \mb{close}
+  \end{array}
+\]
+In this problem we assume this is the only source of unsafe behavior, that is,
+we exclude division and memory access from consideration.
+
+As an example, here is a program that prints the numbers 0 to 9.
+\begin{tabbing}
+\qquad \= $\mb{open} \semi$ \\
+\> $i := 0 \semi$ \\
+\> $\mb{while}\; (i < 10)\; \{$ \\
+\> \quad \= $\mb{print}\; i \semi$ \\
+\>\> $i := i+1$ \\
+\> $\} \semi$ \\
+\> $\mb{close}$
+\end{tabbing}
+We have the following safety conditions:
+\begin{enumerate}
+\item \label{item:pre} When a program starts to execute, we should assume the stream is closed.
+\item \label{item:post} When a program finishes, we should verify that the stream is closed.
+\item Only when the stream is closed can we open it.
+\item Only when the stream is open can we print to it. 
+\item Only when the stream is open can we close it.
+\end{enumerate}
+In order to define the meaning of these programs, we introduce a new \emph{ghost
+  variable} ``$\mi{status}$'' that is used to track the status of the stream.
+It is called a ghost variable because it is only introduced to reason about the
+safety of the program and may not appear directly in a source program.  When
+$\mi{status} = 0$ the stream is not open, and when $\mi{status} \neq 0$ then the
+stream is open.
+
+\begin{task}[5 pts]\rm
+  The sample program above should be safe.  State each of the following (by
+  necessity using the ghost variable $\mi{status}$):
+  \begin{enumerate}[(a)]
+  \item The precondition required for its safety (see \autoref{item:pre})
+  \item The postcondition required for its safety (see \autoref{item:post})
+  \item The loop invariant needed to prove safety
+  \end{enumerate}
+\end{task}
+
+\begin{framed}
+% Write your solution here.
+\end{framed}
+
+In order to model the output of a program, the state now \emph{should} contain a
+sequence of values that have been printed.  However, since we are only
+interested in safety we are content to \emph{approximate} the true meaning of a
+program and ignore the values actually printed.
+
+\begin{task}[15 pts]\rm
+  \label{task:semantics}
+  Give definitions for $\omega \lbb \alpha \rbb \nu$ and
+  $\omega \lbb \alpha \rbb \lightning$ for each of the three new constructs.
+
+  Make sure to model the prescribed safety conditions accurately.  In other
+  words $\omega \lbb \alpha \rbb \lightning$ should be true exactly when the
+  program is unsafe, and no unsafe program should have a poststate.
+\end{task}
+
+\begin{framed}
+% Write your solution here.
+\end{framed}
+
+\begin{task}[15 pts]\rm
+  Give \emph{right} rules in the sequent calculus for $\mb{open}$,
+  $\mb{print}$, and $\mb{close}$.
+
+  You do not need to show left rules or axioms, and you do not need to prove
+  their soundness.
+\end{task}
+
+\begin{framed}
+% Write your solution here.
+\end{framed}
+
+\begin{task}[5 pts]\rm
+  Give a biconditional (iff) axiom for reasoning about $\mb{print}\; e$
+  of the form
+  \[
+    [\mb{print}\; e]Q \leftrightarrow {??}
+  \]
+\end{task}
+
+\begin{framed}
+% Write your solution here.
+\end{framed}
+
+\begin{task}[10 pts]\rm
+  Prove the validity of your axiom with respect to the semantics in
+  \autoref{task:semantics}.
+\end{task}
+
+\begin{framed}
+% Write your solution here.
+\end{framed}
+
+Consider the following program schema (with $P(i)$ and $R(i)$ some formulas of
+pure arithmetic that may refer to $i$):
+
+\begin{tabbing}
+  $\mb{while}\; P(i)\; \{$ \\
+  \quad $\mb{if}\; R(i)\; \mb{then}\; \mb{close}\; \mb{else}\; \mb{open} \semi$ \\
+  \quad $\mb{print}\; i \semi$ \\
+  \quad $\mb{if}\; R(i)\; \mb{then}\; \mb{open}\; \mb{else}\; \mb{close} \semi$ \\
+  \quad $i := i + 1$ \\
+  $\}$
+\end{tabbing}
+
+\begin{task}[5 pts]\rm
+  Assume suitable pre- and post-conditions to satisfy \autoref{item:pre} and
+  \autoref{item:post} in the informal definition of safety.
+
+  State conditions relating $P(i)$ and $R(i)$ that would guarantee safety of
+  this program.  They should be as general as possible (yes, we realize that
+  $P(i) = \bot$ guarantees safety regardless of $R(i)$).
+\end{task}
+
+\begin{framed}
+% Write your solution here.
+\end{framed}
+
+% \bibliographystyle{alpha}
+% \bibliography{fp,lfs}
+
+\end{document}
