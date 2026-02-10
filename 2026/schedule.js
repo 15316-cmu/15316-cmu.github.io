@@ -51,8 +51,8 @@ schedule = [
   {
     date: "Thu 02/05",
     topic: "Symbolic Evaluation",
-    pdf: "",
-    tex: "",
+    pdf: "08-symbolic.pdf",
+    tex: "08-symbolic.tex",
     comments: "",
   },
   {
