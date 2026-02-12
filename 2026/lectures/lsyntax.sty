@@ -1,0 +1,384 @@
+\ProvidesPackage{lsyntax}
+\NeedsTeXFormat{LaTeX2e}
+%%
+%% Copyright (c) 2003-2016 Andre Platzer
+%%
+%% The logic package provides very useful tools for writing logical formulas.
+%% This submodule provides the syntax of logic.
+%%
+\RequirePackage{amsmath,amssymb}
+\RequirePackage{ifthen}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% optional parameters to this package
+%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Logical language
+%%
+\newif\if@signstyle
+\@signstyletrue
+%% Whether to use modern style signs \rightarrow, or conservative \supset
+\DeclareOption{conservativesign}{\global\@signstylefalse}
+\DeclareOption{modernsign}{\global\@signstyletrue}
+
+\newif\if@quantifiertype
+\@quantifiertypetrue
+%% Suppress types at quantifiers
+\DeclareOption{noquantifiertype}{\global\@quantifiertypefalse}
+%% Show types at quantifiers if specified
+\DeclareOption{quantifiertype}{\global\@quantifiertypetrue}
+
+% single \dbox and \ddiamond modalities
+\providecommand*{\useoperatordbox}[1]{{[{#1}]}} %{\mathop{[{#1}]}}
+\providecommand*{\useoperatorddiamond}[1]{{\langle{#1}\rangle}}%{\mathop{\langle{#1}\rangle}}
+\DeclareOption{dmodality}{}
+% double \dbox and \ddiamond modalities
+\DeclareOption{Dmodality}{\renewcommand*{\useoperatordbox}[1]{\mathop{\lenvelope{#1}\renvelope}}%
+\renewcommand*{\useoperatorddiamond}[1]{\mathop{\Langle{#1}\Rangle}}}
+
+
+\newif\if@substopmode
+%\@substopmodefalse
+\@substopmodetrue  % Default changed to [substopindex] on 2013/08/19
+\newif\if@substopfracmode
+\@substopfracmodefalse
+%% Whether to use inline substitution operator [_->_]
+\DeclareOption{substopinline}{\global\@substopmodefalse}
+%% Whether to use index substitution operator _x^{f(x) with  super/subscripts
+\DeclareOption{substopindex}{\global\@substopmodetrue}
+%% Whether to use fractional notation f(x)/x for substitution operator
+\DeclareOption{substopfrac}{\global\@substopfracmodetrue}
+
+\newif\if@satisfactionlabel
+\@satisfactionlabelfalse
+%% Use @_i operators for nominal satisfaction
+\DeclareOption{satisfactionmodal}{\global\@satisfactionlabelfalse}
+%% Use i: label prefixes for nominal satisfaction
+\DeclareOption{satisfactionlabel}{\global\@satisfactionlabeltrue}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Notation for sets of formulas Fml and terms Trm etc.
+%%
+\global\def\@termsetnotation{{\cup}}
+\newif\if@termsetnotationabbreviated
+\@termsetnotationabbreviatedfalse
+%% Whether to use shorter notation for the set of terms/formulas etc.
+\DeclareOption{longterms}{\global\def\@termsetnotation{\cup}}
+\DeclareOption{shortterms}{\global\def\@termsetnotation{{\cup}}}
+\DeclareOption{septerms}{\global\def\@termsetnotation{,}}
+\DeclareOption{abbrterms}{\global\@termsetnotationabbreviatedtrue}
+
+\newif\if@termvarnotation
+%\@termvarnotationtrue
+\@termvarnotationfalse % Default changed to [novarterms] on 2013/08/19
+%% Whether to include the variables V in the notation for the set of terms/formulas etc.
+\DeclareOption{novarterms}{\global\@termvarnotationfalse}
+\DeclareOption{varterms}{\global\@termvarnotationtrue}
+\newif\if@termsigmanotation
+%\@termsigmanotationtrue
+\@termsigmanotationfalse % Default changed to [nosigmaterms] on 2013/08/19
+%% Whether to include the signature \Sigma in the notation for the set of terms/formulas etc.
+\DeclareOption{nosigmaterms}{\global\@termsigmanotationfalse}
+\DeclareOption{sigmaterms}{\global\@termsigmanotationtrue}
+
+
+\DeclareOption*{\PackageError{lsyntax}{Unknown option to logic subpackages `\CurrentOption'}}
+\ProcessOptions\relax
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% implicit parameters to this package
+%%
+%% Defines the name of the sets of terms
+\def\ltermsname{\operatorname{Trm}}
+%% Defines the name of the sets of formulas
+\def\lformulasname{\operatorname{Fml}}
+%% Defines the name of the sets of programs
+\def\lprogramsname{\operatorname{Prg}}
+%% Defines the name of the sets of interpretations
+\def\linterpretationsname{\mathcal{S}}  %{\operatorname{Int}}
+
+
+%% alternative command for \(\) with a non-breakable box
+\providecommand{\m}[1]{\mbox{$#1$}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% logical language
+%%
+
+%%%%%%%%%%%%%%%
+%%
+%% Propositional Logic
+%%
+\if@signstyle
+    \newcommand{\ltrue}{\mathit{true}}
+    \newcommand{\lfalse}{\mathit{false}}
+    \let\limply\rightarrow
+    \let\lreverseimply\leftarrow
+    \let\lylpmi\lreverseimply
+    \let\lbisubjunct\leftrightarrow
+\else
+    \let\ltrue\top
+    \let\lfalse\bot
+    \let\limply\supset
+    \let\lreverseimply\subset
+    \let\lylpmi\lreverseimply
+    \let\lbisubjunct\leftrightarrow
+\fi
+\let\landfold\bigwedge
+\let\lorfold\bigvee
+
+
+%%%%%%%%%%%%%%%
+%%
+%% First-Order Logic
+%%
+% quantifier \lforall[type]{x}{\phi}
+\newcommand{\lforall}[3][]{\lquantifier{\forall}{#1}{#2}{#3}}
+\newcommand{\lexists}[3][]{\lquantifier{\exists}{#1}{#2}{#3}}
+\newcommand{\lexistsUnique}[3][]{\lquantifier{{\mathop{\mathrel{\exists}\joinrel\mathrel{\,!}}}}{#1}{#2}{#3}}
+\if@quantifiertype
+\newcommand{\lquantifier}[4]
+           {#1%
+           \ifthenelse{\equal{#2}{}}
+           {#3{\,}}
+           {{#3}\,{:}\,{#2}{~}}%
+           #4}
+%            {#1%
+%            \ifthenelse{\equal{#2}{}}
+%            {#3\ifthenelse{\equal{#4}{}}{}{\,}}
+%            {{#3}\,{:}\,{#2}\ifthenelse{\equal{#4}{}}{}{~}}%
+%            #4}
+\else
+\newcommand{\lquantifier}[4]
+           {#1%
+           #3{\,}
+           #4}
+\fi
+%% \lanyquantifier[format]{variable}{formula} schematic for any logical quantifier
+\newcommand{\lanyquantifier}[3][]
+{\lquantifier{\mathop{\mathpalette\superimpose{{\forall}{\hspace{1pt}\exists}}}}{#1}{#2}{#3}}
+
+% Hilbert \epsilon-operator \lepsilon{x}{\phi} denoting an arbitray
+% element satisfying \phi, and undefined if no such element exists.
+\newcommand{\lepsilon}[2]
+           {\epsilon #1 \, #2}
+% \iota-operator \liota{x}{\phi} denoting the unique
+% element satisfying \phi, and undefined if no or more than one such element exists.
+\newcommand{\liota}[2] {\iota #1 \, #2}
+%% \llambda{x}{t} \lambda-operator for functional abstraction
+\newcommand{\llambda}[2]
+%{\lambdaup #1 . #2} \RequirePackage{txfonts}
+{\lambda #1 . #2}
+
+
+%%%%%%%%%%%%%%%
+%%
+%% Modal Logic
+%%
+% modality \lbox[multimodality]{\phi}
+\newcommand{\lbox}[2][]{\square_{#1}{#2}}
+\newcommand{\ldiamond}[2][]{\lozenge_{#1}{#2}}
+
+
+%%%%%%%%%%%%%%%
+%%
+%% Quantified Modal Logic
+%% actualist quantification
+%%
+
+%% actual existence and designation of object in current world. Definable as $\lexists{y}{#1=y}$
+\newcommand*{\laexisting}[1]{\rotatebox[origin=c]{180}{$\exists$}(#1)}%
+\newcommand*{\lpaexisting}[1]{\laexisting{#1}\,{=}\,1}%
+%% actual non-existence \lnot\laexisting{1}
+\newcommand*{\lnaexisting}[1]{\rotatebox[origin=c]{180}{$\exists$}(#1)\,{=}\,0}%
+\newcommand*{\laetype}[1]{#1!}%
+%% actualist universal quantifier - actual existence universal quantifier
+\newcommand*{\laforall}[3][]{\lforall[\laetype{#1}]{#2}{#3}}%
+%% actualist existential quantifier - actual existence existential quantifier
+\newcommand*{\laexists}[3][]{\lexists[\laetype{#1}]{#2}{#3}}%
+%% the truth-value true for \laexisting
+\newcommand{\laetrue}{1}%{\ltrue}%{1}%
+%% the truth-value false for \laexisting
+\newcommand{\laefalse}{0}%{\lfalse}%{0}%
+
+%% makes #1 actually exist (it's not necessarily new, because #1 might have existed before)
+\newcommand*{\paexisting}[1]{\umod{\laexisting{#1}}{\laetrue}}%
+\newcommand*{\daexisting}[2]{\dmodality{\paexisting{#1}}{#2}}%
+
+
+%%%%%%%%%%%%%%%
+%%
+%% Dynamic Logic
+%%
+%% \dbox[format]{program}{formula} for the box modality with program
+%% applied on formula.
+%% format=f : formatted output with brackets around formula
+%% format=d : direct output of formula as is
+%% format=lr : \left< .... \right> left right notation
+\providecommand{\dbox}[3][d]
+{\ensuremath{%
+  \ifthenelse{\equal{#1}{lr}}{\left[{#2}\right]}
+  \useoperatordbox{#2}%
+  \ifthenelse{\equal{#1}{f}}{(#3)}{#3}%
+}}
+\providecommand{\ddiamond}[3][d]
+{\ensuremath{%
+  \ifthenelse{\equal{#1}{lr}}{\left\langle{#2}\right\rangle}{\useoperatorddiamond{#2}}%
+  \ifthenelse{\equal{#1}{f}}{(#3)}{#3}%
+}}
+%% \dmodality[format]{program}{formula} schematic for any dynamic logic modality
+\providecommand{\dmodality}[3][d]
+{\ensuremath{\lstrike{#2}\rstrike\ifthenelse{\equal{#1}{f}}{(#3)}{#3}}}
+%%{\ensuremath{[\!\langle{#2}\rangle\!]\ifthenelse{\equal{#1}{d}}{#3}{(#3)}}}
+%%{\langle\ifx\blank#1\else\textrm{\lstinline{#1}}\fi\rangle}
+
+%%%%%%%%%%%%%%%
+%%
+%% Hybrid-nominal Logic
+%%
+
+%% marks symbol #1 as a nominal
+\newcommand{\nominal}[1]{\mathnormal{#1}}
+%% \lat{i}{F} says that formula F is true at state labelled with nominal i. \lat is the satisfaction operator.
+\if@satisfactionlabel
+  \newcommand{\lat}[2]{\nominal{#1}:#2}
+\else
+  \newcommand{\lat}[2]{\mathop{@_{\nominal{#1}}}#2}
+\fi
+%% \lnow{i}{F} evaluates F in the current state, with the current state labelled by nominal \nominal{i}.
+%% \lnow{i}{F} is definable by nominal-quantification \lforall{\nominal{i}}{(\nominal{i}\limply F)}.
+\newcommand{\lnow}[2]{\mathop{\downarrow}\nominal{#1}\,#2}
+%% \lthen{i}{F} evaluates F in the state previously bound by \lnow{i}{G} (in the outer scope that is when \lthen{i}{F} occurs in G). 
+%% \lthen{i}{F} is definable by \lat{i}{F}.
+\newcommand{\lthen}[2]{\mathop{\uparrow}\nominal{#1}\,#2}
+
+
+
+%%%%%%%%%%%%%%%
+%%
+%% $\mu$-calculus
+%%
+
+%% \lfp{Z}{P} is the least fixpoint Z for with P(Z),
+%% where Z is a variable and P a predicate transformer
+\newcommand{\lfp}[2]{\mu#1.#2}
+%% \gfp{Z}{P} is the greatest fixpoint Z for with P(Z)
+\newcommand{\gfp}[2]{\nu#1.#2}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Variation
+%%
+
+%% syntactic substitution \subst[s]{x}{t} of x in s by t.
+\if@substopmode
+  \newcommand{\subst}[3][]
+  {\ifthenelse{\equal{#1}{}}{\substl[]{#2}{#3}}{{#1}_{#2}^{#3}}}
+\else
+  \newcommand{\subst}[3][]
+  {\substl[#1]{#2}{#3}}
+\fi
+\if@substopfracmode
+  \newcommand{\substl}[3][]
+           {{#1}\{#3/#2\}}
+\else
+  \newcommand{\substl}[3][]
+           {{#1}[#2\mapsto#3]}
+\fi
+%% \applysubst{\sigma}{t} denotes application of a substitution \sigma to a term t
+\newcommand{\applysubst}[2]
+           {#1#2}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Variation meta arguments
+%%
+
+%% for meta arguments to formulas defined by substitution
+\newcommand{\margument}[1]
+           {(#1)}
+%% \mapply{f}{x} meta-application of the function or predicate f to x
+%% \mapply[z]{f}{x} meta-application of the function or predicate f to x for parameter z
+\newcommand{\mapply}[3][]{#2\margument{#3}}
+%% \mrapply{p}{x}{y} meta-application of the predicate p to x and y
+\newcommand{\mrapply}[3]
+           {#2#1#3}
+%% for implicit formal parameters of formulas on the meta-level
+\newcommand{\mparameter}[1]
+           {\lambda_{#1}}
+%% meta variable type
+\newcommand{\metavar}[1]{\mathit{#1}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Names for types, sets and classes
+%%
+
+\newcommand{\@formatsignatures}[2]{%
+ \if@termsigmanotation%
+    (#1
+   \if@termvarnotation%
+     \if@termsetnotationabbreviated\else\ifx\blank#2\else\@termsetnotation #2\fi\fi%
+   \else%
+   \fi%
+   )%
+ \else%
+   \if@termvarnotation%
+      (#2)
+   \else%
+   \fi%
+ \fi%
+}
+
+%% \lformulas[L]{\Sigma}{V} the set of logical formulas with variables of V over
+%% the signature \Sigma of the logic L
+\newcommand{\lformulas}[3][]{\ensuremath{{\lformulasname}_{#1}\@formatsignatures{#2}{#3}}}
+%% \lterms[L]{\Sigma}{V} the set of logical terms with variables of V over
+%% the signature \Sigma of the logic L
+%% @see \ltermss and \ltermsp
+\newcommand{\lterms}[3][]{\ensuremath{{\ltermsname}_{#1}\@formatsignatures{#2}{#3}}}
+%% \ltermss[L]{\Sigma}{V}{\tau} the set of terms of a subtype of \tau
+%% with variables of V over the signature \Sigma of the logic L
+%% @see \ltermsp
+\newcommand{\ltermss}[4][]{\ensuremath{{\ltermsname}_{#1}{\@formatsignatures{#2}{#3}}_{\leq#4}}}
+%% \ltermsp[L]{\Sigma}{V}{\tau} the set of terms of a proper
+%% most-specific type \tau
+%% with variables of V over the signature \Sigma of the logic L
+%% @note that this still produces preliminary notation, which will
+%% be changed for the final release.
+%% @see \ltermss
+\newcommand{\ltermsp}[4][]{\ensuremath{{\ltermsname}_{#1}{\@formatsignatures{#2}{#3}}_{=#4}}}
+%% terms about which it is rather irrelevant whether they are \ltermss
+%% or \ltermsp
+\let\ltermsi\ltermss
+
+%% \lprograms[L]{\Sigma}{V} the set of programs with variables of V over
+%% the signature \Sigma
+\newcommand{\lprograms}[3][]{\ensuremath{{\lprogramsname}_{#1}\@formatsignatures{#2}{#3}}}
+
+%% \types the set of types
+\newcommand{\types}[0]{\ensuremath{\textsc{Typ}}\xspace}
+
+%% the type for names of a logic
+\newcommand{\logic}[1]{\mathcal{#1}}
+
+%% skolem functions
+\newcommand{\skolem}[1]{#1}%%{\mathfrak{#1}}
+
+
+%% \linterpretations[L]{\Sigma}{V} the class of (logical) interpretations of
+%% the signature \Sigma
+%% @xxx really belongs to lsemantics.tex but this is a more convenient place
+\newcommand{\linterpretations}[3][]{\ensuremath{{\linterpretationsname}_{#1}\@formatsignatures{#2}{#3}}}

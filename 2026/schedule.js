@@ -57,16 +57,16 @@ schedule = [
   },
   {
     date: "Tue 02/10",
-    topic: "Program Analysis",
-    pdf: "",
-    tex: "",
+    topic: "Safety Analysis",
+    pdf: "09-analysis.pdf",
+    tex: "09-analysis.tex",
     comments: "Asst 3 due",
   },
   {
     date: "Thu 02/12",
     topic: "Security Automata",
-    pdf: "",
-    tex: "",
+    pdf: "10-automata.pdf",
+    tex: "10-automata.tex",
     comments: "",
   },
   {
