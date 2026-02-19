@@ -79,8 +79,8 @@ schedule = [
   {
     date: "Thu 02/19",
     topic: "Beyond Safety Properties",
-    pdf: "",
-    tex: "",
+    pdf: "11-beyondsafety.pdf",
+    tex: "11-beyondsafety.tex",
     comments: "",
   },
   {
