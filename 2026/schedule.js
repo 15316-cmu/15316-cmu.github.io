@@ -118,7 +118,7 @@ schedule = [
     topic: "Termination-Sensitive Noninterference",
     pdf: "",
     tex: "",
-    comments: "Asst 4 due",
+    comments: "",
   },
   {
     date: "Thu 03/12",
@@ -132,7 +132,7 @@ schedule = [
     topic: "Authorization Logic",
     pdf: "",
     tex: "",
-    comments: "Asst 5 due",
+    comments: "Asst 4 due",
   },
   {
     date: "Thu 03/19",
@@ -146,7 +146,7 @@ schedule = [
     topic: "Proof Representation",
     pdf: "",
     tex: "",
-    comments: "Asst 6 due",
+    comments: "Asst 5 due",
   },
   {
     date: "Thu 03/26",
