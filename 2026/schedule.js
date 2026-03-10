@@ -86,8 +86,8 @@ schedule = [
   {
     date: "Tue 02/24",
     topic: "Declassification",
-    pdf: "",
-    tex: "",
+    pdf: "13-declassification.pdf",
+    tex: "13-declassification.tex",
     comments: "Lab 1 due",
   },
   {
