@@ -95,7 +95,8 @@ schedule = [
     topic: "No class",
     pdf: "",
     tex: "",
-    comments: "success",
+    comments: "",
+    color: "success",
   },
   {
     date: "Tue 03/03",

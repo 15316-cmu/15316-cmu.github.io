@@ -1,0 +1,215 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.0in]{geometry}
+\usepackage{lecnotes}
+\input{lmacros}
+
+\newcommand{\course}{15-316: Software Foundations of Security \& Privacy}
+\newcommand{\lecturer}{}
+\newcommand{\lecdate}{Due Tue, Mar 17, 2026}
+\newcommand{\lecnum}{4}
+\newcommand{\lectitle}{Homework 4}
+\newcommand{\courseurl}{https://15316-cmu.github.io/2026/}
+
+\title{Assignment \lecnum \\ Information Flow}
+\date{\lecdate \\ 90 points + 20 points extra credit}
+
+\lhead[\fancyplain{}{\bfseries A\lecnum.\thepage}]%
+      {\fancyplain{}{\bfseries\lectitle}}
+\chead[]{}
+\rhead[\fancyplain{}{\bfseries\lectitle}]%
+      {\fancyplain{}{\bfseries A\lecnum.\thepage}}
+\lfoot[{\small\scshape Assignments}]{{\small\scshape Assignments}}
+\cfoot[]{}
+\rfoot[{\small\scshape\lecdate}]{{\small\scshape\lecdate}}
+
+\begin{document}
+
+\maketitle
+
+Your solution should be handed in as a file \texttt{hw4.pdf} to Gradescope.  If
+at all possible, write your solutions in \LaTeX.  The handout
+\texttt{hw4-infoflow.zip} includes the \LaTeX\ sources for Lectures 12 and 13 and
+the necessary style files which provide some examples for rules, derivations,
+and proofs.  You may use up to two late days as usual.
+
+\section{Implicit Flows [60 points + 20 points extra credit]}
+\label{sec:implicit}
+
+\newcommand{\trycatch}{\mb{try/catch}}
+\newcommand{\try}[2]{\mb{try}\; #1\; \mb{catch}\; #2}
+
+Consider adding a new construct to our language \textsc{SafeTiny},
+$\mb{try}\; \alpha\; \mb{catch}\; \beta$.  Note that in \textsc{SafeTiny} all
+commands are safe, but we have $\mb{test}\; P$ which aborts if $P$ is false.  We
+do not consider division, memory read/write, or $\mb{assert}$.  In order to
+simplify matters further, we also exclude loops from consideration, but see
+the extra credit tasks at the end of this problem.
+
+$\try{\alpha}{\beta}$ is supposed to execute as follows:
+\begin{enumerate}
+\item Execute $\alpha$ in the current state $\omega$
+\item If $\alpha$ \textbf{does not abort}, the $\mb{try}/\mb{catch}$ construct
+  finishes in the poststate of $\alpha$
+\item If $\alpha$ \textbf{aborts}, we continue by executing $\beta$ in the
+  prestate $\omega$.  In this case, the poststate of $\beta$ will be the
+  poststate of $\try{\alpha}{\beta}$.
+\end{enumerate}
+$\trycatch$ is not easy to implement efficiently in a compiler since we have to
+either save the prestate $\omega$, or track assignments so we can roll back the
+state when a test fails.  As we see in \autoref{task:eval}, it is not so
+difficult in an interpreter.
+
+Here are some examples:
+\[
+  \begin{array}{lcl}
+    \eval\; \omega\; (\try{\mb{test}\; \bot}{x := 0})
+    & = & \omega[x \mapsto 0] \\
+    \eval\; \omega\; (\try{\mb{test}\; \top}{x := 0})
+    & = & \omega \\
+    \eval\; \omega\; (\try{\mb{test}\; \bot}{\mb{test}\; \bot})
+    & & \mbox{aborts} \\
+    \eval\; \omega\; (\try{(x := 0 \semi \try{(\mb{test}\; x > 0)}{x := 1})}{x := 2})
+    & = & \omega[x \mapsto 1]
+  \end{array}
+\]
+
+\begin{task}[10 points]\rm
+  Give a semantic definition of $\omega \lbb \try{\alpha}{\beta} \rbb \nu$ and
+  $\mb{test}\; P$ that models the intended behavior based on the informal
+  description above.  You should model a program that aborts (and is not caught)
+  as one that has no poststate.
+\end{task}
+
+With this understanding, we can update our definition of $\eval$ so that it
+explicitly returns either a state $\nu$ or $\ms{abort}$.  We show the cases for
+sequential composition, $\mb{skip}$, and assignment.
+\[
+  \begin{array}{lcll}
+    \eval\; \omega\; (\alpha \semi \beta) & = & \ms{abort}
+    & \mbox{if $\eval\; \omega\; \alpha = \ms{abort}$} \\
+    \eval\; \omega\; (\alpha \semi \beta) & = & \ms{abort}
+    & \mbox{if $\eval\; \omega\; \alpha = \mu$ and $\eval\; \mu\; \beta = \ms{abort}$} \\
+    \eval\; \omega\; (\alpha \semi \beta) & = & \nu
+    & \mbox{if $\eval\; \omega\; \alpha = \mu$ and $\eval\; \mu\; \beta = \nu$} \\[1ex]
+    \eval\; \omega\; (\mb{skip}) & = & \omega \\
+    \eval\; \omega\; (x := e) & = & \omega[x \mapsto c]
+    & \mbox{where $\evalz\; \omega\; e = c$}
+  \end{array}
+\]
+
+\begin{task}[15 points]\rm
+  \label{task:eval}
+  Complete the definition of $\eval$ with the cases for conditionals,
+  tests, and $\trycatch$.
+\end{task}
+
+\begin{task}[10 points]\rm
+  Conjecture an axiom of equivalence for $[\try{\alpha}{\beta}]Q$, or explain
+  briefly why you believe no such axiom is possible in dynamic logic (as we have
+  constructed it so far).  Note that your axiom only needs to be sound in the
+  language without loops.
+\end{task}
+
+\begin{task}[5 points]\rm
+  Give an example of a security policy $\Sigma_0$ and program $\alpha_0$
+  demonstrating that $\mb{test}$ and $\trycatch$ create a new possibility for
+  implicit information flow.  For this question, you should work with a security
+  lattice with just two elements $\ms{H}$ and $\ms{L}$ with
+  $\ms{L} \sqsubset \ms{H}$ and the definition of termination-insensitive
+  noninterference from \href{\courseurl/lectures/12-infoflow.pdf}{Lecture 12}.
+\end{task}
+
+\begin{task}[10 points]\rm
+  Prove that your example from the previous task violates
+  termination-insensitive noninterference, that is,
+  $\Sigma_0 \models \alpha_0\; \ms{secure}$ is \textbf{not} true.
+\end{task}
+
+In order to prevent the implicit flows enabled by $\trycatch$ we introduce a new
+ghost variable $\mi{handler}$ into the information flow type system.  The
+security level of $\mi{handler}$ should be that of the $\mb{catch}$ that would
+be invoked should the current program abort.  It should be $\bot$ (the least
+element of the security lattice) at the beginning of evaluation.
+
+\begin{task}[10 points]\rm
+  Give rules for $\trycatch$ and $\mb{test}$ in the information flow type
+  system.  You do not need to prove their soundness.
+\end{task}
+
+\begin{quote}\it
+  \color{red}The remainder of Problem 1 is for extra credit.
+\end{quote}
+
+\noindent
+In order to support loops, we assume a global bound $\ms{b}$ on the number of
+iterations for each while loop, after which it aborts.  For example, with
+$\ms{b} = 0$ the program aborts if it ever attempts to enter the body of a loop,
+with $\ms{b} = 1$ each loop $\mb{while}\; P\; \alpha$ is equivalent to
+$\mb{if}\; P\; \mb{then}\; (\alpha \semi \mb{test}\; (\lnot P)) \; \mb{else}\;
+\mb{skip}$.
+
+\begin{task}[\color{red}5 bonus points]\rm
+  Give a semantic definition of $\omega \lbb \mb{while}\; P\; \alpha\rbb \nu$
+  that models the intended behavior of bounded loops based on the informal
+  description above.
+\end{task}
+
+\begin{task}[\color{red}5 bonus points]\rm
+  Complete the definition $\eval$ by providing a clause for $\mb{while}$ loops
+  bounded by $\ms{b}$.  Feel free to use auxiliary functions.
+\end{task}
+
+In order the conjecture suitable axioms in dynamic logic assume that each loop
+$\mb{while}\; P\; \alpha$ with loop invariant $J$ is written explicitly as
+$\mb{while}_J^{\ms{b}}\; P\; \alpha$.
+
+\begin{task}[\color{red}10 bonus points]\rm
+  Conjecture axioms in dynamic logic for $\mb{while}^{\ms{b}}_J$ and
+  $\trycatch$, or explain why you think that bounded loops and $\trycatch$
+  cannot be axiomatized in the framework of dynamic logic (as we have
+  constructed it so far).
+\end{task}
+
+\section{Declassification [30 points]}
+
+Consider the formulation of termination-insensitive noninterference in the
+presence of declassification under the two-level security lattice
+($\ms{L} \sqsubset \ms{H}$).
+
+\begin{quote}
+  Assume $\alpha$ contains a single occurrence of $\mb{declassify}_{\ms{L}}(e)$
+  where $x \in \ms{use}\; e$ implies $x \not\in \ms{maydef}\; \alpha$.
+  \par \medskip For such programs we define
+  $\Sigma \models \alpha\; \ms{secure}$ iff \newline whenever
+  $\Sigma \vdash \omega_1 \approx_{\ms{L}} \omega_2$ \newline and
+  $\eval\; \omega_1\; e = \eval\; \omega_2\; e$ \newline then
+  $\Sigma \vdash \eval\; \omega_1\; \alpha \approx_{\ms{L}} \eval\; \omega_2\;
+  \alpha$
+\end{quote}
+
+\begin{task}[20 points]\rm
+  Assume you are given a security policy $\Sigma$ and a program $\alpha$ that
+  contains a single occurrence of $\mb{declassify}_{\ms{L}}(e)$ satisfying the
+  use/maydef condition.  Show how to construct a formula $R$ in dynamic logic
+  such that the validity of $R$ implies $\Sigma \models \alpha\; \ms{secure}$.
+  Your starting point should be the construction in Section 2 of
+  \href{\courseurl/lectures/13-declassification.pdf}{Lecture 13}.
+\end{task}
+
+\begin{task}[5 points]\rm
+  Give an example policy $\Sigma_0$ and program $\alpha_0$ that is \textbf{not}
+  secure due to incorrect use of declassification, that is, the use/maydef
+  condition is violated.  Show the encoding of the example in dynamic logic and
+  determine whether it is valid.  Explain your finding.
+\end{task}
+
+\begin{task}[5 points]\rm
+  Give an example policy $\Sigma_1$ and a program $\alpha_1$ that uses
+  declassification and is secure.  Show the encoding of the example in dynamic
+  logic and demonstrate that it is valid.  This is usually done most directly by
+  constructing a weakest precondition, if the formula is in the class that
+  permits it.  You don't need to show intermediate steps.
+\end{task}
+
+\end{document}
