@@ -1,0 +1,522 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.5in]{geometry}
+\usepackage{lecnotes}
+% \usepackage{mpass}
+% \lstset{style=verb,language=mpass}
+\input{lmacros}
+
+\newcommand{\course}{15-316: Software Foundations of Security \& Privacy}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecdate}{March 10, 2026}
+\newcommand{\lecnum}{14}
+\newcommand{\lectitle}{Termination-Sensitive Noninterference}
+\newcommand{\courseurl}{https://15316-cmu.github.io/2026/}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+Our assumption so far in the semantic definition of information flow has been
+that an attacker can only compare the values of low-security variables in the
+poststates.
+\begin{quote}
+  We define $\Sigma \models \alpha\; \ms{secure}$ (program $\alpha$ satisfies
+  \emph{termination-insensitive noninterference with respect to policy
+    $\Sigma$}) \newline iff
+  \begin{enumerate}[]
+  \item for all $\ell$, $\omega_1$, $\omega_2$, $\nu_1$, and $\nu_2$,
+  \item whenever $\Sigma \vdash \omega_1 \approx_\ell \omega_2$,
+  \item and $\omega_1 \lbb \alpha \rbb \nu_1$,
+  \item and $\omega_2 \lbb \alpha \rbb \nu_2$
+  \item then $\Sigma \vdash \nu_1 \approx_\ell \nu_2$.
+  \end{enumerate}
+\end{quote}
+This ignores that possibility that an attacker might notice that a program
+does not terminate.  For example, with $(x : \ms{H})$ and $\ms{L} \sqsubset \ms{H}$
+\begin{tabbing}
+  \qquad $\mb{if}\; x > 5\; \mb{then}\; (\mb{while}\; \top\; \mb{skip})\; \mb{else}\; \mb{skip}$
+\end{tabbing}
+an observer can tell if $x > 5$ based on whether the program terminates.  But
+according to our policy it is secure at level $\ms{L}$!  In this example, that's
+easy to see because whenever $\nu_1$ and $\nu_2$ both exist, then
+$\nu_1 \approx_{\ms{L}} \nu_2$ because there aren't even any low-security
+variables.  If $\alpha$ does not terminate (that is, has no poststate) in one or
+both of the two initial states, then the implication is vacuously true.
+
+The first goal of today's lecture is to sharpen our definition of
+noninterference so that nontermination is considered observable, and the example
+above would be rejected.  The second goal will be to revise the information flow
+type system so it is sound with respect to the sharpened definition.  For
+general expositions of today's topic, see~\citet{Hedin12sss,Sabelfeld03comm},
+and earlier seminal work by \citet{Volpano97csfw}.
+
+This lecture is also a preparation for the next lecture where we talk about
+\emph{timing attacks} where information can leak by observing how long a program
+takes to execute.  These kind of attacks are quite common and real concerns in
+actual systems \citep{Brumley05cn}, so it is important to study them from the
+programming perspective.
+
+\section{Termination-Sensitive Noninterference}
+
+Intuitively, we'd like to say that if $\omega_1 \lbb \alpha \rbb \nu_1$ and
+$\omega_2 \lbb \alpha \rbb \nu_2$ both hold, then the poststates still must be
+equivalent to an observer at level $\ell$.  Moreover, if $\alpha$ has no
+poststate starting from $\omega_1$, then it should also have no poststate
+starting from $\omega_2$.  In this latter case, there are no poststates
+to compare.  The traditional definition \citep{Volpano97csfw} captures this by stating that
+if $\omega_1 \lbb \alpha \rbb \nu_1$ then there must also be a $\nu_2$ such
+that $\omega_2 \lbb \alpha \rbb \nu_2$, and the two poststates must be
+observably equivalent.  This slightly asymmetric definition is correct due to
+the symmetry of the $\approx_\ell$ relation.  If $\alpha$ terminates in prestate
+$\omega_1$ but does not in $\omega_2$, then we can just swap the two prestates
+to show that such a program is not secure.  We write
+$\Sigma \models \alpha\; \ms{secure}^\infty$ for termination-sensitive
+noninterference.
+
+\begin{quote}
+  We define $\Sigma \models \alpha\; \ms{secure}^\infty$ (program $\alpha$
+  satisfies \emph{termination-sensitive noninterference with respect to policy
+    $\Sigma$}) \newline iff
+  \begin{enumerate}[]
+  \item for all $\ell$, $\omega_1$, $\omega_2$, and $\nu_1$,
+  \item whenever $\Sigma \vdash \omega_1 \approx_\ell \omega_2$,
+  \item and $\omega_1 \lbb \alpha \rbb \nu_1$,
+  \item then $\omega_2 \lbb \alpha \rbb \nu_2$ for some $\nu_2$
+  \item such that $\Sigma \vdash \nu_1 \approx_\ell \nu_2$.
+  \end{enumerate}
+\end{quote}
+
+Let's make sure our example program (let's call it $\alpha_0$) is not secure
+under this definition.  For this purpose we have to find a counterexample, that
+is, two states $\omega_1$ and $\omega_2$ that are low-security equivalent such
+that $\alpha_0$ terminates in state $\omega_1$ but not in $\omega_2$.
+Fortunately, that is easy: for
+\[
+  \qquad \alpha_0 = (\mb{if}\; x > 5\; \mb{then}\; (\mb{while}\; \top\; \mb{skip})\; \mb{else}\; \mb{skip})
+\]
+we can use
+\[
+  \begin{array}{l@{\hspace{3em}}l}
+    \omega_1 = (x \mapsto 0) & \omega_1 \lbb \alpha_0 \rbb (x \mapsto 0) \\
+    \omega_2 = (x \mapsto 7) & \mbox{there exists no $\nu_2$ with $\omega_2 \lbb \alpha_0 \rbb \nu_2$}
+  \end{array}
+\]
+
+\section{Sharpening the Information Flow Type System}
+
+\newcommand{\secureinf}{\ms{secure}^\infty}
+
+The information flow type system so far will admit the program $\alpha_0$ as
+secure.  The idea is now to revisit the rules to determine how we might need to
+update them to enforce termination-sensitive noninterference.
+To parallel the definition of noninterference, we write $\Sigma \vdash
+\alpha\; \secureinf$.
+
+The first thing we note is that the security level of expressions and formulas
+do not change---they remain the least upper bound of the levels of all variables
+occurring in them.  This is due to our decision that expressions and Boolean
+conditions always terminate (and are always safe).
+
+So we can focus our attention on the program constructs.  In the fragment we
+treat, every command will be safe, that is, we handle \textsc{SafeTiny}.
+
+\paragraph{Assignment.}  We first show the prior (termination-insensitive)
+version of the rule.
+\begin{rules}
+  \infer[\mb{:=}F]
+  {\Sigma \vdash x := e\; \ms{secure}}
+  {\Sigma \vdash e : \ell
+    & \ell' = \Sigma(\mi{pc}) \sqcup \ell
+    & \ell' \sqsubseteq \Sigma(x)}
+\end{rules}
+Because expressions are not involved with nontermination, this rule remains
+unchanged!  This is not a proof, of course, it is not difficult to update the
+one from the termination-insensitive case.  If $x := e$ terminates in $\omega_1$
+then it also will in $\omega_2$, so the two formulations are equivalent in this
+case.
+\begin{rules}
+  \infer[\mb{:=}F^\infty]
+  {\Sigma \vdash x := e\; \ms{secure}^\infty}
+  {\Sigma \vdash e : \ell
+    & \ell' = \Sigma(\mi{pc}) \sqcup \ell
+    & \ell' \sqsubseteq \Sigma(x)}
+\end{rules}
+
+\paragraph{Sequential Composition.}  Our previous rule can be summarized
+as saying that termination-insensitive information flow is \emph{compositional}.
+\begin{rules}
+  \infer[\mb{\semi}F]
+  {\Sigma \vdash \alpha \semi \beta\; \ms{secure}}
+  {\Sigma \vdash \alpha\; \ms{secure}
+    & \Sigma \vdash \beta\; \ms{secure}}
+\end{rules}
+Is that still the case, that is, is termination-sensitive information
+flow also compositional?  It is not entirely obvious when $\alpha$
+does not terminate, but we conjecture:
+\begin{rules}
+  \infer[\mb{\semi}F^\infty]
+  {\Sigma \vdash \alpha \semi \beta\; \ms{secure}^\infty}
+  {\Sigma \vdash \alpha\; \ms{secure}^\infty
+    & \Sigma \vdash \beta\; \ms{secure}^\infty}
+\end{rules}
+Let's try to prove or refute the soundness of this.  So we set up:
+\begin{tabbing}
+  $\Sigma \models \alpha\; \secureinf$ \` (1, first premise) \\
+  $\Sigma \models \beta\; \secureinf$ \` (2, second premise) \\
+  $\Sigma \vdash \omega_1 \approx_\ell \omega_2$ \` (3, assumption) \\
+  $\omega_1 \lbb \alpha \semi \beta \rbb \nu_1$ \` (4, assumption) \\
+  $\ldots$ \\
+  $\omega_2 \lbb \alpha \semi \beta \rbb \nu_2$ for some $\nu_2$ \` (to show) \\
+  with $\Sigma \vdash \nu_1 \approx_\ell \nu_2$ \` (to show)
+\end{tabbing}
+We start by expanding the definition of the relational semantics for sequential
+composition.  We show the new lines in {\color{blue}blue} after each
+step.
+\begin{tabbing}
+  $\Sigma \models \alpha\; \secureinf$ \` (1, first premise) \\
+  $\Sigma \models \beta\; \secureinf$ \` (2, second premise) \\
+  $\Sigma \vdash \omega_1 \approx_\ell \omega_2$ \` (3, assumption) \\
+  $\omega_1 \lbb \alpha \semi \beta \rbb \nu_1$ \` (4, assumption) \\
+  \color{blue}$\omega_1 \lbb \alpha \rbb \mu_1$ for some $\mu_1$ \` (5 and) \\
+  \color{blue}and $\mu_1 \lbb \beta \rbb \nu_1$ \` (6, from (4) by defn.\ of $\lbb{-}\rbb$) \\
+  $\ldots$ \\
+  $\omega_2 \lbb \alpha \semi \beta \rbb \nu_2$ for some $\nu_2$ \` (to show) \\
+  with $\Sigma \vdash \nu_1 \approx_\ell \nu_2$ \` (to show)
+\end{tabbing}
+At this point we can use the assumption (coming from the first premise)
+that $\alpha$ is secure.
+\begin{tabbing}
+  $\Sigma \models \alpha\; \secureinf$ \` (1, first premise) \\
+  $\Sigma \models \beta\; \secureinf$ \` (2, second premise) \\
+  $\Sigma \vdash \omega_1 \approx_\ell \omega_2$ \` (3, assumption) \\
+  $\omega_1 \lbb \alpha \semi \beta \rbb \nu_1$ \` (4, assumption) \\
+  $\omega_1 \lbb \alpha \rbb \mu_1$ for some $\mu_1$ \` (5, and) \\
+  and $\mu_1 \lbb \beta \rbb \nu_1$ \` (6, from (4) by defn.\ of $\lbb{-}\rbb$) \\
+  \color{blue}$\omega_2 \lbb \alpha \rbb \mu_2$ for some $\mu_2$ \` (7 and)\\
+  \color{blue}with $\Sigma \vdash \mu_1 \approx_\ell \mu_2$ \` (8, from (1), (3), and (5)) \\
+  $\ldots$ \\
+  $\omega_2 \lbb \alpha \semi \beta \rbb \nu_2$ for some $\nu_2$ \` (to show) \\
+  with $\Sigma \vdash \nu_1 \approx_\ell \nu_2$ \` (to show)
+\end{tabbing}
+At this point we have an evaluation of $\beta$ from a prestate $\mu_1$ and a
+state $\mu_2$ that is $\ell$-equivalent to it.  So we can use the security
+for $\beta$ (coming from the second premise).
+\begin{tabbing}
+  $\Sigma \models \alpha\; \secureinf$ \` (1, first premise) \\
+  $\Sigma \models \beta\; \secureinf$ \` (2, second premise) \\
+  $\Sigma \vdash \omega_1 \approx_\ell \omega_2$ \` (3, assumption) \\
+  $\omega_1 \lbb \alpha \semi \beta \rbb \nu_1$ \` (4, assumption) \\
+  $\omega_1 \lbb \alpha \rbb \mu_1$ for some $\mu_1$ \` (5, and) \\
+  and $\mu_1 \lbb \beta \rbb \nu_1$ \` (6, by defn.\ of $\lbb{-}\rbb$) \\
+  $\omega_2 \lbb \alpha \rbb \mu_2$ for some $\mu_2$ (7 and) \\
+  with $\Sigma \vdash \mu_1 \approx_\ell \mu_2$ \` (8, from (1), (3), and (5)) \\
+  \color{blue}  $\mu_2 \lbb \beta \rbb \nu_2$ for some $\nu_2$ \` (9 and) \\
+  \color{blue}  with $\Sigma \vdash \nu_1 \approx_\ell \nu_2$ \` (10, from (2), (6), and (8)) \\
+  $\ldots$ \\
+  $\omega_2 \lbb \alpha \semi \beta \rbb \nu_2$ for some $\nu_2$ \` (to show) \\
+  with $\Sigma \vdash \nu_1 \approx_\ell \nu_2$ \` (to show)
+\end{tabbing}
+At this point we have evaluations of $\alpha$ and $\beta$ in corresponding
+states so we can close the gap simply by composing them.  The $\nu_2$ we
+had to find is (not surprisingly) the poststate of $\beta$ when evaluated
+in prestate $\mu_2$.
+\begin{tabbing}
+  $\Sigma \models \alpha\; \secureinf$ \` (1, first premise) \\
+  $\Sigma \models \beta\; \secureinf$ \` (2, second premise) \\
+  $\Sigma \vdash \omega_1 \approx_\ell \omega_2$ \` (3, assumption) \\
+  $\omega_1 \lbb \alpha \semi \beta \rbb \nu_1$ \` (4, assumption) \\
+  $\omega_1 \lbb \alpha \rbb \mu_1$ for some $\mu_1$ \` (5, and) \\
+  and $\mu_1 \lbb \beta \rbb \nu_1$ \` (6, by defn.\ of $\lbb{-}\rbb$) \\
+  $\omega_2 \lbb \alpha \rbb \mu_2$ for some $\mu_2$ (7 and) \\
+  with $\Sigma \vdash \mu_1 \approx_\ell \mu_2$ \` (8, from (1), (3), and (5)) \\
+  $\mu_2 \lbb \beta \rbb \nu_2$ for some $\nu_2$ \` (9 and) \\
+  with $\Sigma \vdash \nu_1 \approx_\ell \nu_2$ \` (10, from (2), (6), and (8)) \\
+  $\omega_2 \lbb \alpha \semi \beta \rbb \nu_2$ \` \color{blue}(by defn.\ of $\lbb{-}\rbb$) \\
+  with $\Sigma \vdash \nu_1 \approx_\ell \nu_2$ \` \color{blue}(copied from (10))
+\end{tabbing}
+Good.  Our intuition that even termination-sensitive noninterference
+is compositional has been confirmed.
+
+\paragraph{Skip.}  This does nothing, so the rule trivially remains
+the same.
+\begin{rules}
+  \infer[\mb{skip}F^\infty]
+  {\Sigma \vdash \mb{skip}\; \ms{secure}^\infty}
+  {\mathstrut}
+\end{rules}
+
+\paragraph{Conditionals.}  The if-then-else construct somehow doesn't seem to be
+involved in nontermination, only loops are.  We therefore expect that the rule
+doesn't change.
+\begin{rules}
+  \infer[\mb{if}F^\infty]
+  {\Sigma \vdash \mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta\; \ms{secure}^\infty}
+  {\Sigma \vdash P : \ell
+    & \ell' = \Sigma(\mi{pc}) \sqcup \ell
+    & \Sigma' = \Sigma[\mi{pc} \mapsto \ell']
+    & \Sigma' \vdash \alpha\; \ms{secure}^\infty
+    & \Sigma' \vdash \beta\; \ms{secure}^\infty}
+\end{rules}
+The proof is just like before, in the termination-insensitive case.  The fact
+that we now have to account for the nontermination of $\alpha$ or $\beta$
+changes the details of reasoning, of course, but the possibility of
+nontermination just comes from the nontermination of each branch.  So
+we omit this case.
+
+\paragraph{Loops.}  Here, we'd expect the crux of the changes because loops
+introduce nontermination into the language.  First, the earlier rule:
+\begin{rules}
+  \infer[\mb{while}F]
+  {\Sigma \vdash \mb{while}\; P\; \alpha\; \ms{secure}}
+  {\Sigma \vdash P : \ell
+    & \ell' = \Sigma(\mi{pc}) \sqcup \ell
+    & \Sigma' = \Sigma[\mi{pc} \mapsto \ell']
+    & \Sigma' \vdash \alpha\; \ms{secure}}
+\end{rules}
+We see that there are essentially two reasons why a while loop
+may leak information using nontermination (with $(x : \ms{H})$)
+\begin{enumerate}
+\item In the example
+  $\mb{if}\; x > 5\; \mb{then}\; (\mb{while}\; \top\; \mb{skip})\; \mb{else}\;
+  \mb{skip}$ it is because the loop is in a context where we have
+  $\mi{pc} : \ms{H}$.
+\item In the example $\mb{while}\; x = 8\; \mb{skip}$ it is because the loop
+  guard is of high security.
+\end{enumerate}
+Since nontermination is observed ``at the outermost level'' and not by a
+variable in the local context, it seems we have to require that both the
+security level of the $\mi{pc}$ and the guard are $\bot$, that is, the least
+element of the lattice.  This means that $\ell' = \Sigma(\mi{pc}) \sqcup \ell$
+should also be $\bot$, and we don't need to update the security level of
+$\mi{pc}$.
+\begin{rules}
+  \infer[\mb{while}F^\infty]
+  {\Sigma \vdash \mb{while}\; P\; \alpha\; \ms{secure}^\infty}
+  {\Sigma \vdash P : \bot
+    & \Sigma(\mi{pc}) = \bot
+    & \Sigma \vdash \alpha\; \ms{secure}^\infty}
+\end{rules}
+Is this sufficient to guarantee termination-sensitive noninterference?
+We set up:
+\begin{tabbing}
+  $\Sigma \models \alpha\; \secureinf$ \` (1, premise) \\
+  $\Sigma \vdash \omega_1 \approx_\ell \omega_2$ \` (2, assumption) \\
+  $\omega_1 \lbb \mb{while}\; P\; \alpha \rbb \nu_1$ \` (3, assumption) \\
+  $\ldots$ \\
+  $\omega_2 \lbb \mb{while}\; P\; \alpha \rbb \nu_2$ for some $\nu_2$ \` (to show) \\
+  with $\Sigma \vdash \nu_1 \approx_\ell \nu_2$ \` (to show)
+\end{tabbing}
+At this point, there is a small hiccup: the evaluation of a loop may refer back
+again to the evaluation of the same loop.  We therefore use an auxiliary
+induction on the number of times we iterate the loop when computing the
+poststate $\nu_1$ from $\omega_1$.  We know it does
+compute a poststate, so the number of steps is finite and the induction makes
+sense.  Let's call that number $n$ (which is also the notation we chose in the
+semantic definition of $\omega \lbb \mb{while}\; P\; \alpha\rbb^n \nu$, see
+\href{\courseurl/lectures/02-semantics.pdf}{Lecture 2}).
+\begin{description}
+\item[Case:] $n = 0$.  Then $\omega_1 \not\models P$ and
+  $\nu_1 = \omega_1$.  Because $P$ only contains variables of security level
+  $\bot \sqsubseteq \ell$ and $\Sigma \vdash \omega_1 \approx_\ell \omega_2$, we
+  also have $\omega_2 \not\models P$.  (See Lemma 2 in
+  \href{\courseurl/lectures/12-infoflow.pdf}{Lecture 12}.)  Therefore
+  $\nu_2 = \omega_2$ will satisfy the requirements of the theorem.
+\item[Case:] $n > 0$.  Then $\omega_1 \models P$ and
+  $\omega_1 \lbb \alpha \semi \mb{while}\; P\; \alpha \rbb \nu_1$.  As in the
+  previous case $\omega_2 \models P$ and it remains to show that
+  $\omega_2 \lbb \alpha \semi \mb{while}\; P\; \alpha \rbb \nu_2$ for some
+  $\nu_2$ with $\Sigma \vdash \nu_1 \approx_\ell \nu_2$.
+
+  As in the case for composition (and exploiting the security of $\alpha$ that
+  comes from the premise) this reduces to showing that
+  $\mu_1 \lbb \mb{while}\; P\; \alpha \rbb \nu_1$ implies
+  $\mu_2 \lbb \mb{while}\; P\; \alpha \rbb \nu_2$ for some $\nu_2$
+  indistinguishable from $\nu_1$ at level $\ell$, with the knowledge that
+  $\Sigma \vdash \mu_1 \approx_\ell \mu_2$.  This is true because of the
+  induction hypothesis on $n-1 < n$, which is the remaining number of times the
+  loop is traversed.
+\end{description}
+
+\paragraph{Tests.}  Recall that $\mb{test}\; P$ aborts if $P$ is false.  This
+means it represents another type of program (besides a loop) that does not have a
+poststate.  Lumping together aborting a program and nontermination may be
+questionable in practice, but if we consider ``nontermination'' simply as
+representing the absence of a poststate, we would have defined
+\[
+  \mb{test}\; P \triangleq \mb{while}\; \lnot P\; \mb{skip}
+\]
+Then the rule derived from these considerations would be:
+\begin{rules}
+  \infer[\mb{test}F^\infty]
+  {\Sigma \vdash \mb{test}\; P\; \ms{secure}^\infty}
+  {\Sigma \vdash P : \bot & \Sigma(\mi{pc}) = \bot}
+\end{rules}
+
+All together we obtain soundness.
+
+\begin{theorem}[Soundness of termination-sensitive information flow types]
+  If $\Sigma \vdash \alpha\; \secureinf$ then $\Sigma \models \alpha\; \secureinf$
+\end{theorem}
+\begin{proof}
+  All the rules are \emph{sound}, that is, the preserve semantic validity of the
+  premises.  By a trivial induction over the derivation of $\Sigma \vdash \alpha\; \secureinf$,
+  every program judged secure satisfies termination-sensitive noninterference.
+\end{proof}
+
+\section{Further Discussion}
+
+The soundness of all rules for $\Sigma \vdash \alpha\; \secureinf$ guarantees
+that it implies $\Sigma \models \alpha\; \secureinf$, that is,
+termination-sensitive information flow.  The other direction (completeness) is
+not true, and there are simple counterexamples.
+
+We also have the intuition that it should be \emph{stricter} than the
+termination-insensitive one.  That should be true syntactically, in the type system,
+and semantically, with respect to noninterference.  Let's check that:
+
+\begin{theorem}
+  If $\Sigma \models \alpha\; \secureinf$ then $\Sigma \models \alpha\; \ms{secure}$.
+\end{theorem}
+\begin{proof}
+  We set up:
+  \begin{tabbing}
+    $\Sigma \models \alpha\; \secureinf$ \` (1, assumption) \\
+    $\Sigma \vdash \omega_1 \approx_\ell \omega_2$ \` (2, assumption) \\
+    $\omega_1 \lbb \alpha \rbb \nu_1$ \` (3, assumption) \\
+    $\omega_2 \lbb \alpha \rbb \nu_2$ \` (4, assumption) \\
+    $\ldots$ \\
+    $\Sigma \vdash \nu_1 \approx_\ell \nu_2$ \` (to show)
+  \end{tabbing}
+  We can now apply the definition of $\secureinf$.
+  \begin{tabbing}
+    $\Sigma \models \alpha\; \secureinf$ \` (1, assumption) \\
+    $\Sigma \vdash \omega_1 \approx_\ell \omega_2$ \` (2, assumption) \\
+    $\omega_1 \lbb \alpha \rbb \nu_1$ \` (3, assumption) \\
+    $\omega_2 \lbb \alpha \rbb \nu_2$ \` (4, assumption) \\
+    \color{blue}$\omega_2 \lbb \alpha \rbb \nu_2'$ for some $\nu_2'$ with \` (5 and) \\
+    \color{blue}$\Sigma \vdash \nu_1 \approx_\ell \nu_2'$ \` (6, from (1), (2), and (3)) \\
+    $\ldots$ \\
+    $\Sigma \vdash \nu_1 \approx_\ell \nu_2$ \` (to show)
+  \end{tabbing}
+  Since our language is deterministic, we have $\nu_2 = \nu_2'$ and the
+  proof is complete.
+  \begin{tabbing}
+    $\Sigma \models \alpha\; \secureinf$ \` (1, assumption) \\
+    $\Sigma \vdash \omega_1 \approx_\ell \omega_2$ \` (2, assumption) \\
+    $\omega_1 \lbb \alpha \rbb \nu_1$ \` (3, assumption) \\
+    $\omega_2 \lbb \alpha \rbb \nu_2$ \` (4, assumption) \\
+    \color{blue}$\omega_2 \lbb \alpha \rbb \nu_2'$ for some $\nu_2'$ with \` (5 and) \\
+    \color{blue}$\Sigma \vdash \nu_1 \approx_\ell \nu_2'$ \` (6, from (1), (2), and (3)) \\
+    $\Sigma \vdash \nu_1 \approx_\ell \nu_2$ \` \color{blue}(7, from (4), (5), and (6) by determinism)
+  \end{tabbing}
+\end{proof}
+
+Any syntactic (decidable) type system for a Turing-complete language may be
+considered an approximation of a true semantic property.  This is the essence of
+Rice's theorem.  Any type system that restricts information flow then represents
+a tradeoff between the kind of programs that are allowed, and the simplicity and
+uniformity of the system.  This is difficult to discuss in the abstract, so in
+Lab 2 you will have the opportunity to explore it a bit yourself.  The
+information flow type systems from the last three lectures all seems to
+represent reasonable compromises: the rules are sound and quite simple, and many
+programs can be written (even if some require declassification).
+
+Perhaps the most significant issue is that there exist further \emph{side
+  channels} by which high-security information can be obtained, most notably by
+observing program runtime.  We will complete this investigation in the next
+lecture.
+
+\section{Practice Problems}
+
+These problems are for self-study and are not to be handed in.
+
+\subsection{Classifying Programs [3 parts]}
+
+Consider the two-level security lattice with $\ms{L} \sqsubset \ms{H}$ and
+the following security policy:
+\[
+  \Sigma = (x : \ms{H},\; y : \ms{L},\; z : \ms{L})
+\]
+For each of the following programs, determine whether it satisfies (a)
+termination-insensitive noninterference ($\Sigma \models \alpha\; \ms{secure}$),
+(b) termination-sensitive noninterference
+($\Sigma \models \alpha\; \secureinf$), and (c) whether it can be derived in the
+corresponding type system ($\Sigma \vdash \alpha\; \ms{secure}$ or
+$\Sigma \vdash \alpha\; \secureinf$).  Justify each answer with either a
+derivation, a brief argument, or a counterexample as appropriate.
+
+\begin{task}\rm
+  \label{task:p1a}
+  $\alpha_1 = (\mb{while}\; y > 0\; (y := y - 1))$
+\end{task}
+
+\begin{task}\rm
+  \label{task:p1b}
+  $\alpha_2 = (\mb{while}\; y > 0\; (y := y - x))$
+\end{task}
+
+\begin{task}\rm
+  \label{task:p1c}
+  $\alpha_3 = (\mb{if}\; x > 0\; \mb{then}\; (\mb{while}\; y > 0\; (y := y - 1))\; \mb{else}\; z := 0)$
+\end{task}
+
+\subsection{Bounded Loops [4 parts]}
+
+We add a new construct $\mb{repeat}\; e\; \alpha$ to our language, where $e$ is
+an integer expression.  Its intended behavior is to execute the body $\alpha$
+exactly $\omega \lbb e \rbb$ times when $\omega \lbb e \rbb \geq 0$, and to
+behave as $\mb{skip}$ when $\omega \lbb e \rbb < 0$.
+
+For example, if $\omega = (n \mapsto 3, y \mapsto 0)$ then
+\[
+  \omega \lbb \mb{repeat}\; n\; (y := y + 1) \rbb (n \mapsto 3, y \mapsto 3)
+\]
+Note that unlike $\mb{while}$, the bound $e$ is evaluated \emph{once} in the
+initial state, and $\mb{repeat}$ always terminates.
+
+\begin{task}\rm
+  \label{task:p2a}
+  Give a semantic definition of
+  $\omega \lbb \mb{repeat}\; e\; \alpha \rbb \nu$.  You may use an auxiliary
+  definition indexed by the number of remaining iterations.
+\end{task}
+
+\begin{task}\rm
+  \label{task:p2b}
+  Propose a rule for $\mb{repeat}$ in the termination-sensitive information flow
+  type system:
+  \[
+    \infer[\mb{repeat}F^\infty]
+    {\Sigma \vdash \mb{repeat}\; e\; \alpha\; \secureinf}
+    {\ldots}
+  \]
+  Your rule should be as permissive as possible while remaining sound.
+  In particular, consider whether $\mb{repeat}$ requires the same restrictions
+  on $e$ and $\Sigma(\mi{pc})$ as $\mb{while}$.
+\end{task}
+
+\begin{task}\rm
+  \label{task:p2c}
+  Give a brief argument for the soundness of your rule, following the structure
+  of the while loop case from this lecture.  You do not need to write a
+  complete formal proof, but you should identify the key property of
+  $\mb{repeat}$ that makes the argument go through.
+\end{task}
+
+\begin{task}\rm
+  \label{task:p2d}
+  Give a concrete program using $\mb{repeat}$ and a security policy $\Sigma$
+  such that $\Sigma \vdash \alpha\; \secureinf$ is derivable using your rule
+  from \autoref{task:p2b}, but would \textbf{not} be derivable if
+  $\mb{repeat}\; e\; \alpha$ were desugared to
+  $i := 0 \semi \mb{while}\; (i < e)\; (\alpha \semi i := i + 1)$ using the
+  $\mb{while}F^\infty$ rule.  Briefly explain why.
+\end{task}
+
+\bibliographystyle{plainnat}
+\bibliography{bibliography}
+
+\end{document}

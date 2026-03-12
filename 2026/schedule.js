@@ -117,8 +117,8 @@ schedule = [
   {
     date: "Tue 03/10",
     topic: "Termination-Sensitive Noninterference",
-    pdf: "",
-    tex: "",
+    pdf: "14-termination.pdf",
+    tex: "14-termination.tex",
     comments: "",
   },
   {
