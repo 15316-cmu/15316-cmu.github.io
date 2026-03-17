@@ -1,0 +1,168 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.0in]{geometry}
+\usepackage{lecnotes}
+\input{lmacros}
+
+\newcommand{\course}{15-316: Software Foundations of Security \& Privacy}
+\newcommand{\lecturer}{}
+\newcommand{\lecdate}{Due Tue, Mar 24, 2026}
+\newcommand{\lecnum}{5}
+\newcommand{\lectitle}{Homework 5}
+\newcommand{\courseurl}{https://15316-cmu.github.io/2026/}
+
+% HW1 : 70 pts
+% HW2 : 80 pts
+% HW3 : 75 pts
+% HW4 : 90 pts + 20 pts EC
+% HW5 : 85 pts
+% ------------
+%      400 pts
+
+
+\title{Assignment \lecnum \\ Proof-Carrying Authorization}
+\date{\lecdate \\ 85 points}
+
+\lhead[\fancyplain{}{\bfseries A\lecnum.\thepage}]%
+      {\fancyplain{}{\bfseries\lectitle}}
+\chead[]{}
+\rhead[\fancyplain{}{\bfseries\lectitle}]%
+      {\fancyplain{}{\bfseries A\lecnum.\thepage}}
+\lfoot[{\small\scshape Assignments}]{{\small\scshape Assignments}}
+\cfoot[]{}
+\rfoot[{\small\scshape\lecdate}]{{\small\scshape\lecdate}}
+
+\begin{document}
+
+\maketitle
+
+Your solution should be handed in as a file \texttt{hw5.pdf} to Gradescope.  If
+at all possible, write your solutions in \LaTeX.  The handout
+\texttt{hw5-pca.zip} includes the \LaTeX\ sources for some lectures and the
+necessary style files which provide some examples for rules, derivations, and
+proofs.  You may use up to two late days as usual.
+
+\section{Authorization Logic [25 points]}
+
+For each of the following, either give a derivation in the sequent calculus or
+give a counterexample.  In the latter case, use $p$ and $q$ as atomic formulas
+and demonstrate that the counterexample is not derivable.
+
+\begin{task}[5 pts]
+ $(A \says P) \land (A \says Q) \vdash A \says (P \land Q)$
+\end{task}
+
+\begin{task}[5 pts]
+ $A \says (P \land Q) \vdash (A \says P) \land (A \says Q)$
+\end{task}
+
+\begin{task}[5 pts]
+ $(A \says P) \lor (A \says Q) \vdash A \says (P \lor Q)$
+\end{task}
+
+\begin{task}[5 pts]
+ $A \says (P \lor Q) \vdash (A \says P) \lor (A \says Q)$
+\end{task}
+
+\begin{task}[5 pts]
+ $A \says \forall x.\, P(x) \vdash \forall x.\, A \says P(x)$
+\end{task}
+
+\section{Trust [30 points]}
+\newcommand{\trusts}{\mathrel{\mb{trusts}}}
+
+We informally define that $A \trusts B$ if whenever $B$ affirms $P$ then $A$
+also affirms $P$.  Unfortunately, we cannot express this directly in our
+authorization logic because the right-hand side of the definition
+\[
+  A \trusts B \triangleq \forall P.\, B \says P \arrow A \says P
+\]
+quantifies over all possible propositions.  In authorization logic, quantifiers
+only range over principals and constants from some finite domain (like rooms or
+files or homework assignments, etc.).
+
+Instead we assume that there is a \emph{fixed preorder of principals} where
+$A \leq B$ means that $A$ trusts $B$.  We assume that this relation is reflexive
+and transitive.
+
+\begin{task}[15 pts]\rm
+  Define rules in the sequent calculus for authorization logic that incorporate
+  the trust relationship.  Your premises may directly refer to $A \leq B$ for
+  principals $A$ and $B$.  You may modify existing rules ${\says}R$, ${\says}L$,
+  and ${\aff}$, and you may add new rules.  Other inference rules should
+  remain unchanged.
+\end{task}
+
+\begin{task}[5 pts]\rm
+  Prove $A \says P \land B \says Q \vdash A \says (P \land Q)$ in your system,
+  provided $A \leq B$.
+\end{task}
+
+\begin{task}[10 pts]\rm
+  Give a counterexample to
+  $A \says P \land B \says Q \vdash B \says (P \land Q)$ provided
+  $B \not\leq A$.  You should be able to use your rules to prove that the
+  counterexample cannot be derived.  If not, explain for partial credit why it
+  is difficult or impossible.
+\end{task}
+
+\section{Groups and Access Control [30 points]}
+
+In the AFS file system used on the \verb'linux.andrew' machines there are two
+kinds of principals: individuals (identified by their Andrew id) and groups
+(identified by a name distinct from an individual id).  We formalize a variant
+of the Andrew file system access control with the following policies:
+\begin{enumerate}[(i)]
+\item Any principal may create a new group they own simply by saying so.  Assume
+  that adding such an affirmation to the policy would fail if the group already
+  exists.
+\item The owner of a group is always one of its members.
+\item Only the owner of a group may add members to it.  We are not concerned
+  with revoking group membership.
+\item The owner of a file may grant a principal read or write access simply by
+  saying so.
+\item If a group has read or write access to a file, each member of the group
+  has read or write access, respectively, to the file.
+\end{enumerate}
+In order to formalize this policy in authorization logic, we
+use the following vocabulary:
+\begin{itemize}
+\item Principals $A, B, C, \ldots$ could denote an individual or a group.
+\item Groups $G, \ldots$ if we know a principal must be a group.
+\item $\mi{admin}$. The principal who administers policy, affirming rules for
+  groups and access control.  Depending on the configuration, $\mi{admin}$ could be a
+  group or an individual.
+\item Mode $M$, which is either $\mi{read}$ or $\mi{write}$.
+\item File names $F$.
+\item $\ms{ownsGroup}(A, G)$.  Principal $A$ owns group $G$.
+\item $\ms{ownsFile}(A, F)$.  Principal $A$ owns file $F$.
+\item $\ms{member}(A, G)$.  Principal $A$ is a member of group $G$.
+\item $\ms{mayOpen}(A, F, M)$.  Principal $A$ may open file $F$ in mode $M$.
+\end{itemize}
+
+\begin{task}[10 points]\rm
+  Write out the access control policy explained above in authorization logic.
+  Label your affirmations so they can be used in proof terms.
+\end{task}
+
+\begin{task}[10 points]\rm
+  Write out the necessary affirmations by $\mi{mfredrik}$ or $\mi{admin}$ to
+  express each of the following.  Label your affirmations so they
+  can be used in proof terms.
+  \begin{enumerate}
+  \item Individual $\mi{mfredrik}$ owns group $\mi{316\_ta}$
+    and files $\mi{316\_roster}$ and $\mi{316\_grades}$.
+  \item Individuals $\mi{kmann}$ and $\mi{jzou}$ are members of $\mi{316\_ta}$.
+  \item Group $\mi{316\_ta}$ may read file $\mi{316\_roster}$ and read and write file
+    $\mi{316\_grades}$.
+  \end{enumerate}
+\end{task}
+
+\begin{task}[10 points]\rm
+  Write out a proof term (as defined in
+  \href{\courseurl/lectures/18-proofrep.pdf}{Lecture 18}) showing $\mi{kmann}$
+  may write file $\mi{316\_grades}$.  You should use labels from the
+  affirmations in the two previous tasks.
+\end{task}
+
+\end{document}

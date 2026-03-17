@@ -1,0 +1,540 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.5in]{geometry}
+\usepackage{lecnotes}
+% \usepackage{mpass}
+% \lstset{style=verb,language=mpass}
+\input{lmacros}
+
+\newcommand{\course}{15-316: Software Foundations of Security \& Privacy}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecdate}{March 17, 2026}
+\newcommand{\lecnum}{16}
+\newcommand{\lectitle}{Authorization Logic}
+\newcommand{\courseurl}{https://15316-cmu.github.io/2026/}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+We started the course with an analysis of \emph{safety properties} of
+computations, and how to account for them statically (via verification conditions in
+dynamic logic) or dynamically (via sandboxing).  Then we moved on to the more
+complex \emph{information flow properties}.  An attacker may discover secrets
+via particular programs or inputs in a variety of ways, with side-channel
+attacks (for example, timing attacks) being the most sophisticated.
+Countermeasures are mostly via information-flow type systems.
+
+With this lecture we are starting a new section of the course, considering
+\emph{authentication} (you are who you say you are) and \emph{authorization}
+(you are allowed to perform the actions you are trying to perform).
+Authentication and authorization are pervasive in today's computing environment,
+from shared file systems like AFS and cloud services like Github, to shopping
+and banking services.  Today's and the next lecture will focus on
+\emph{authorization}, followed in later lectures by authentication.  In many
+cases, authorization is just embedded in code.  Once authorization becomes
+complex, this can easily be compromised by bugs since flow of the authorization
+checks through a program can be difficult to audit.  It can also be difficult to
+even understand what the authorization policy actually is, which then means it
+is hard to compare it against the code.
+
+In this lecture we take a very general approach, expressing policy in an
+\emph{authorization logic}.  Like in other applications we have seen, the logic
+is the interface between policy and implementation.  It expresses, at a high
+level of abstraction, who is allowed to do what in a complex system.  On one
+side, this serves as a specification one can reason about rigorously, divorced
+from an implementation.  On the other side, we can use it directly to enforce
+authorization policies in an implementation by using formal proofs of
+authorization.  \citet{Abadi03lics} gives a general overview of authorization
+logics.  The architecture where formal proofs are used was pioneered by
+\citet{Bauer03phd} under the name of \emph{proof-carrying authorization} (PCA).
+
+Among the direct applications of PCA are the Grey systems~\citep{Bauer05isc} for
+access to offices in Cylab at CMU, and a \emph{proof-carrying file system} that
+particularly explored issues of efficiency~\citep{Garg09phd,Garg10oakland}.  We
+ignore here a number of practically relevant issues, such as revocation and
+temporal aspects of authorization.  Once added~\citep{DeYoung07tr},
+authorization logic is expressive enough, for example, to express the rules
+governing access to classified information in the American intelligence
+community~\citep{Garg09trpolicy}.
+
+\section{Affirmations}
+
+Early on this class, we introduced and reasoning in Boolean logic, with
+connectives such as conjunction, disjunction, implication, etc.  Then we
+introduced so-called \emph{modal operators}, $[\alpha]Q$,
+$\langle\alpha\rangle Q$ that speak about programs, and $\Box P$ that guarantees
+validity of $P$ (that is, truth in all possible states).
+
+In order to express access control policies \emph{logically}, we need a new kind
+of modal operator that expresses an affirmation, $A \says P$ (\emph{principal
+  $A$ says proposition $P$}).  Principals $A$, $B$, $C$, etc.\ can stand for
+user ids like $\mi{admin}$, $\mi{mfredrik}$, or $\mi{saranyav}$. Propositions include
+atomic propositions, conjunction, implication, quantifiers, and other
+connectives as we need them.
+
+As an example, we use the Grey~\citep{Bauer05isc} system that is used to control
+access to offices in Cylab at CMU\@.  There is an administrator (principal
+$\mi{admin}$) that sets policies, and individual professors and students
+identified by their Andrew id.  There are also resources, like offices and
+conference rooms.  Among the atomic propositions are the following:
+\begin{itemize}
+\item $\ms{mayOpen}(A, R)$.  Principal $A$ may open room $R$.
+\item $\ms{owns}(A, R)$.  Principal $A$ owns office $R$.
+\item $\ms{studentOf}(B, A)$.  Principal $B$ is a student of $A$.
+\end{itemize}
+Here are some examples.  The administrator may say that $\mi{mfredrik}$ owns
+$\mi{cic2126}$.
+\begin{tabbing}
+  \quad $\mi{admin} \says \ms{owns}(\mi{mfredrik}, \mi{cic2126})$
+\end{tabbing}
+This is a basic affirmation.  A general rule could state that the owner of a
+room may open it.
+\begin{tabbing}
+  \quad $\mi{admin} \says (\forall A.\, \forall R.\, \ms{owns}(A, R) \arrow \ms{mayOpen}(A, R))$
+\end{tabbing}
+An even more complex policy component would be that any student of the owner of
+an office, may also open the office.  The twist here is that the
+$\ms{studentOf}$ relationship should be affirmed by the owner, rather than the
+administrator.
+\begin{tabbing}
+  \quad $\mi{admin} \says (\forall A.\, \forall B.\, \forall R.\, \ms{owns}(A, R)
+  \land A \says \ms{studentOf}(B, A) \arrow \ms{mayOpen}(B, R))$
+\end{tabbing}
+The scope of $A \says$ here is intended to be only the $\ms{studentOf}$
+proposition.  When the scope is larger, we enclose it in parentheses.  We can
+combine this policy with the affirmation by $\mi{mfredrik}$ that $\mi{saranyav}$ is
+his student:
+\begin{tabbing}
+  \quad $\mi{mfredrik} \says \ms{studentOf}(\mi{saranyav}, \mi{mfredrik})$
+\end{tabbing}
+Under this policy $\mi{saranyav}$ should be able to access $\mi{cic2126}$.  We can
+formulate the question whether this is allowed as a sequent in authorization
+logic, with the policy as antecedents (assumptions) and the query as the
+succedent.  In this particular situation, we would try to prove the sequent
+\begin{tabbing}
+  \quad $(1) : \mi{admin} \says (\forall A.\, \forall R.\, \ms{owns}(A, R) \arrow \ms{mayOpen}(A, R))$, \\
+  \quad $(2) : \mi{admin} \says (\forall A.\, \forall B.\, \forall R.\, \ms{owns}(A, R)
+  \land A \says \ms{studentOf}(B, A) \arrow \ms{mayOpen}(B, R))$, \\[1ex]
+  \quad $(3) : \mi{admin} \says \ms{owns}(\mi{mfredrik}, \mi{cic2126})$, \\
+  \quad $(4) : \mi{mfredrik} \says \ms{studentOf}(\mi{saranyav}, \mi{mfredrik})$ \\[1ex]
+  \quad $\vdash$ \\[1ex]
+  \quad $\mi{admin} \says \ms{mayOpen}(\mi{saranyav}, \mi{cic2126})$
+\end{tabbing}
+Here, we have labeled the assumptions so we can reference them in the
+proof.  Reasoning entirely intuitively (to be formalized later in the
+lecture) we can deduce:
+\begin{tabbing}
+  \quad $(5) : \mi{admin} \says \ms{mayOpen}(\mi{mfredrik}, \mi{cic2126})$ \` from $(1)$ and $(3)$ \\
+  \quad $(6) : \mi{admin} \says \ms{mayOpen}(\mi{saranyav}, \mi{cic2126})$ \` from $(2)$, $(3)$, and $(4)$
+\end{tabbing}
+The last line $(6)$ is exactly what we are trying to prove.  So we have
+confirmed that $\mi{saranyav}$ may open my office, according to the policy.
+
+\section{Constructive Logic}
+
+The Boolean logic of the earlier lectures (including propositional logic and
+dynamic logic) are based on a semantics where every formula has one of two truth
+values: $\top$ or $\bot$.  This is not a good match for authorization logic, as
+remarked by \citet{Abadi03lics}.  The first issue that we may be ``agnostic''
+about a proposition.  Any proposition that is affirmed should be seen as
+\emph{extending} what we can deduce, but not be in conflict with what we know so
+far.  Another example is given by
+\[
+  A \says P \arrow (P \lor A \says Q)
+\]
+We can read this: if $A$ affirms $P$ then either $P$ must be true, or $A$
+affirms any proposition (including $\bot$).  If we worked with just two truth
+values, why would this be valid?  Let's assume $A \says P$.  Now we distinguish
+two cases for $P$.  If $P$ is true, then $P \lor A \says Q$.  If $P$ is false,
+then $\lnot P$ is true.  $A$ would affirm any true proposition, so
+$A \says \lnot P$.  But if $A \says P$ and $A \says \lnot P$, $A$ is mired in a
+state of internal contradiction and would have to affirm anything.  Not good.
+
+In order to avoid these kind of paradoxes, we use an \emph{intutionistic logic}
+as the basis for reasoning.  Intuitionistic logic does not allow us to reason
+with the law of excluded middle, or to prove $P$ by assuming $\lnot P$ and
+deriving a contradiction (using an indirect proof).  Instead, we want the reason
+access to a resource is granted to be as clear and direct as possible, which is
+what intuitionistic logic provides.  Actually, we go a step further and
+rule out negation $\lnot P$ and falsehood $\bot$ entirely, because it is easy to
+make intuitively meaningful statements that are wrong.  For example, principal
+$\mi{mfredrik}$ does \textbf{not} want $\mi{saranyav}$ to access his office.  Stating
+$\mi{mfredrik} \says \lnot \ms{mayOpen}(\mi{saranyav}, \mi{cic2126})$ turns out to be
+the wrong way to say this.  Because if the rest of the policy says that
+$\ms{mayOpen}(\mi{saranyav}, \mi{cic2126})$ then suddenly $\mi{mfredrik}$ affirms
+\emph{everything}, including that every principal in the system may access his
+office---clearly not the desired effect.
+
+This change in perspective, from two-valued Boolean logic (also called
+\emph{classical logic}) to a richer intuitionstic logic has two consequences,
+one semantic and one syntactic.  Semantically, we need to generalize to a
+so-called \emph{Kripke semantics} where we consider multiple \emph{worlds} in
+which different propositions may be true.  This is a good match for a logic of
+authorization since at the very least each principal defines a world, and
+different principals will affirm different propositions.  For such a semantics,
+see, for example, \citet{Garg08imla}.  Syntactically, it is surprisingly simple: we
+restrict the succedent of a sequent to be exactly one formula.  We therefore
+write $\Gamma \vdash \delta$.  That this actually works was one of
+Gentzen's~\citeyearpar{Gentzen35} profound insights.
+
+We actually make the lack of a mathematical semantics a philosophical principle.
+We think of the meanings of formulas as given by their possible derivations in
+the sequent calculus.  In other words, the right and left rules of the sequent
+calculus themselves define the meaning of each logical constant, connective, and
+modality.  In the context of authorization, this can be justified since it is
+ultimately a formal proof that is used to claim and check authorization---we
+don't appeal to an external semantics.  For a fuller development of this
+viewpoint, see, for example, \citet{Dummett91} and \citet{MartinLof83}.
+
+As we will in particular see in the next lecture, the properties of the logic
+change in fundamental ways when we restrict the succedents to be just a single
+formula.  The rules we get otherwise just reflect the earlier ones.
+\begin{rules}
+  \infer[\ms{id}]
+  {\Gamma, P \vdash P}
+  {}
+  \\[1em]
+  \infer[{\arrow}R]
+  {\Gamma \vdash P \arrow Q}
+  {\Gamma, P \vdash Q}
+  \hspace{3em}
+  \infer[{\arrow}L]
+  {\Gamma, P \arrow Q \vdash \delta}
+  {\Gamma \vdash P
+    & \Gamma, Q \vdash \delta}
+  \\[1em]
+  \infer[{\land}R]
+  {\Gamma \vdash P \land Q}
+  {\Gamma \vdash P
+    & \Gamma \vdash Q}
+  \hspace{3em}
+  \infer[{\land}L]
+  {\Gamma, P \land Q \vdash \delta}
+  {\Gamma, P, Q \vdash \delta}
+  \\[1em]
+  \infer[{\forall}R^y]
+  {\Gamma \vdash \forall x.\, P(x)}
+  {\Gamma \vdash P(y) & \mbox {$y \not\in (\Gamma, \forall x.\, P(x))$}}
+  \hspace{3em}
+  \infer[{\forall}L]
+  {\Gamma, \forall x.\, P(x) \vdash \delta}
+  {\Gamma, P(c) \vdash \delta}
+  \\[1em]
+  \infer[{\lor}R_1]
+  {\Gamma \vdash P \lor Q}
+  {\Gamma \vdash P}
+  \hspace{1em}
+  \infer[{\lor}R_2]
+  {\Gamma \vdash P \lor Q}
+  {\Gamma \vdash Q}
+  \hspace{3em}
+  \infer[{\lor}L]
+  {\Gamma, P \lor Q \vdash \delta}
+  {\Gamma, P \vdash \delta
+    & \Gamma, Q \vdash \delta}
+\end{rules}
+For the quantifiers, recall our convention of writing $P(x)$ and then $P(c)$ for
+the result of substituting $c$ for $x$ in $P(x)$.  Quantification was previously
+over integers, but here we think of principals, rooms, etc.  $c$ could also be a
+variable $y$ that was introduced by a ${\forall}R$ rule.
+
+The most immediate effect of reasoning intuitionistically is perhaps on
+disjunction.  We can no longer prove, for example $p \lor (p \arrow q)$ because
+we have to decide between one of the disjuncts instead of carrying both as
+succedents.
+
+In these rules there is a main formula among the antecedents to which a left
+rule is applied.  This formula may be needed again so it can be kept among the
+antecedents if so desired.  This is particularly useful for ${\forall}L$.  To
+anticipate a bit the next lecture, it is no longer the case that all rules are
+invertible, the way it is in Boolean propositional logic.  So proof search is
+significantly more difficult than in Boolean logic, and not just because of the
+quantifiers.
+
+\section{Affirmations}
+\label{sec:affirmations}
+
+We haven't yet discussed $A \says P$, the central modality of authorization
+logic.  The key insight is that when we try to prove $\Gamma \vdash A \says P$
+we need to proceed with our reasoning from the perspective of principal $A$.
+But what does this mean?  First, principal $A$ should be willing to affirm any
+proposition that is \emph{true}.  Second, anything that $A$ says is also
+available to reason with.  On the other hand, if $B \says Q$ is in $\Gamma$ for
+some $B \neq A$, the proposition $Q$ is not available to $A$: this is something
+that $B$ affirms, but not necessarily $A$.
+
+Formalizing this reasoning is not entirely straightforward, and there are
+different approaches.  The one we choose is due to \citet{Garg06csfw}, primarily
+due to it simplicity.  We distinguish a succedent expressing that a proposition
+is true (written $P\; \ms{true}$) and another that $A$ affirms a proposition $P$
+(written $A \aff P$).  We often omit the ``$\ms{true}$'' notation, but always
+write $A \aff P$ to use an affirmation.  Formally:
+\[
+  \begin{array}{llcl}
+    \mbox{Succedent} & \delta & ::= & P\; \ms{true} \mid A \aff P
+  \end{array}
+\]
+The first rule says that in order to prove that $A \says P$ is true,
+we need to prove that $A$ affirms $P$.
+\begin{rules}
+  \infer[{\mb{says}}R]
+  {\Gamma \vdash (A \says P)\; \ms{true}}
+  {\Gamma \vdash A \aff P}
+\end{rules}
+This may seem redundant, but it exposes the principal $A$ and the proposition
+$P$.  It is similar to the rule ${\arrow}R$, where the implication $P \arrow Q$
+is turned into $P \vdash Q$, opening up $P$ and $Q$ to further inferences.
+
+The next rule expresses that if $P$ is true, then $A$ is willing to affirm that.
+\begin{rules}
+  \infer[\mb{aff}]
+  {\Gamma \vdash A \aff P}
+  {\Gamma \vdash P\; \ms{true}}
+\end{rules}
+This rule is like ``peeling an onion'', moving entirely now into $A$'s head,
+reasoning from their perspective.
+
+The left rule for $A \says P$ jumps directly to $P$, both of which are
+propositions and therefore can appear among the antecedents.  But we can
+make this transition only if we are currently reasoning from $A$'s perspective,
+that is, if the succedent is $A \aff Q$ for some $Q$.
+\begin{rules}
+  \infer[{\mb{says}}L]
+  {\Gamma, A \says P \vdash A \aff Q}
+  {\Gamma, P \vdash A \aff Q}
+\end{rules}
+
+\section{Some Axioms}
+
+Before we go back to our motivating example, we can analyze some of the
+properties of affirmations.
+\begin{tabbing}
+  \qquad $\vdash P \arrow A \says P$
+\end{tabbing}
+As we have said, any principal (here $A$) is willing to affirm any true
+proposition (here $P$), so we should be able to prove this.  As usual,
+we build the proof bottom-up; we show here only the result.
+\[
+  \infer[{\arrow}R]
+  {\cdot \vdash P \arrow A \says P}
+  {\infer[{\says}R]
+    {P \vdash A \says P}
+    {\infer[{\aff}]
+      {P \vdash A \aff P}
+      {\infer[\ms{id}]{P \vdash P}{}}}}
+\]
+The implication in the other direction should not be valid: just because
+$A$ says $P$ that doesn't mean $P$ is actually true.  We show that it is not
+derivable.
+\begin{tabbing}
+  \qquad $\not\vdash (A \says p) \arrow p$
+\end{tabbing}
+\[
+  \infer[{\arrow}R]
+  {\cdot \vdash (A \says p) \arrow p}
+  {\deduce[\ms{XXX}]{A \says p \vdash p}{}}
+\]
+As a first step, only ${\arrow}R$ is applicable; for the second no rule is.
+
+We can also ``distribute'' $A \says \null$ over an implication.  This captures
+that if $A$ affirms $P \arrow Q$ and $P$, then it also affirms $Q$.
+\begin{tabbing}
+  \qquad $\vdash A \says (P \arrow Q) \arrow (A \says P \arrow A \says Q)$
+\end{tabbing}
+\[
+  \infer[{\arrow}R \times 2]
+  {\vdash A \says (P \arrow Q) \arrow (A \says P \arrow A \says Q)}
+  {\infer[{\says}R]
+    {A \says (P \arrow Q), A \says P \vdash A \says Q}
+    {\infer[{\says}L \times 2]
+      {A \says (P \arrow Q), A \says P \vdash A \aff Q}
+      {\infer[\mb{aff}]
+        {P \arrow Q, P \vdash A \aff Q}
+        {\infer[{\arrow}L]
+          {P \arrow Q, P \vdash Q}
+          {\infer[\ms{id}]{P \vdash P}{}
+            & \infer[\ms{id}]{Q \vdash Q}{}}}}}}
+\]
+Iterating $A \says \null$ twice is the same as just affirming just once.
+\begin{tabbing}
+  \qquad $\vdash A \says (A \says P) \arrow A \says P$
+\end{tabbing}
+\[
+  \infer[{\arrow}R]
+  {\vdash A \says (A \says P) \arrow A \says P}
+  {\infer[{\says}R]
+    {A \says (A \says P) \vdash A \says P}
+    {\infer[{\says}L]
+      {A \says (A \says P) \vdash A \aff P}
+      {\infer[{\says}L]
+        {A \says P \vdash A \aff P}
+        {\infer[\aff]
+          {P \vdash A \aff P}
+          {\infer[\ms{id}]{P \vdash P}{}}}}}}
+\]
+The other direction of this implication is an instance of the first axiom.  On
+the other hand, for different principals $A$ and $B$ we cannot prove
+\[
+  \qquad \not\vdash A \says p \arrow B \says p
+\]
+These axioms (together with those for intuitionistic logic) are complete for
+implication and affirmation and identify this as a generalization of \emph{lax
+  logic} \citep{Fairtlough97ic}.  Instead of a single modality $\bigcirc P$ we
+have a whole family of such modalities, indexed by principals.  From the
+perspective of functional programming, each modality ``$A \says {-}$'' is a strong
+monad \citep{Moggi89,Wadler92popl}.  Here, it relativizes reasoning to each
+principal; in functional programming monads can isolate the pure part of the
+language from effects.  The connection to modal logics is further explored by
+\citet{Pfenning01mscs}.  A summary of the axioms is in \autoref{fig:axioms}.
+
+\begin{figure}[ht]
+  \begin{tabbing}
+  \qquad $\vdash P \arrow A \says P$ \\
+  \qquad $\vdash A \says (P \arrow Q) \arrow (A \says P \arrow A \says Q)$ \\
+  \qquad $\vdash A \says (A \says P) \arrow A \says P$ \\[1em]
+  \qquad $\not\vdash (A \says p) \arrow p$
+  \end{tabbing}
+  \caption{Axioms for Authorization Logic}
+  \label{fig:axioms}
+\end{figure}
+
+\section{An Example of Authorization}
+
+We return to our motivating example, where we have labeled each of the
+antecedents as before.
+\begin{tabbing}
+  \quad $(1) : \mi{admin} \says (\forall A.\, \forall R.\, \ms{owns}(A, R) \arrow \ms{mayOpen}(A, R))$, \\
+  \quad $(2) : \mi{admin} \says (\forall A.\, \forall B.\, \forall R.\, \ms{owns}(A, R)
+  \land A \says \ms{studentOf}(B, A) \arrow \ms{mayOpen}(B, R))$, \\[1ex]
+  \quad $(3) : \mi{admin} \says \ms{owns}(\mi{mfredrik}, \mi{cic2126})$, \\
+  \quad $(4) : \mi{mfredrik} \says \ms{studentOf}(\mi{saranyav}, \mi{mfredrik})$ \\[1ex]
+  \quad $\vdash$ \\[1ex]
+  \quad ${\color{blue}\mi{admin} \says\null} \ms{mayOpen}(\mi{saranyav}, \mi{cic2126})$
+\end{tabbing}
+We highlighted in blue the focus of the next inference.  Using $\mb{says}R$, we
+reduce this in one step to proving the sequent
+\begin{tabbing}
+  \quad $(1) : {\color{blue}\mi{admin} \says\null} (\forall A.\, \forall R.\, \ms{owns}(A, R) \arrow \ms{mayOpen}(A, R))$, \\
+  \quad $(2) : {\color{blue}\mi{admin} \says\null} (\forall A.\, \forall B.\, \forall R.\, \ms{owns}(A, R)
+  \land A \says \ms{studentOf}(B, A) \arrow \ms{mayOpen}(B, R))$, \\[1ex]
+  \quad $(3) : {\color{blue}\mi{admin} \says\null} \ms{owns}(\mi{mfredrik}, \mi{cic2126})$, \\
+  \quad $(4) : \mi{mfredrik} \says \ms{studentOf}(\mi{saranyav}, \mi{mfredrik})$ \\[1ex]
+  \quad $\vdash$ \\[1ex]
+  \quad $\mi{admin} \aff \ms{mayOpen}(\mi{saranyav}, \mi{cic2126})$
+\end{tabbing}
+This unlocks the affirmations by $\mi{admin}$ among the antecedents, so
+applying $\mb{says}L$ three times we get
+\begin{tabbing}
+  \quad $(1)' : \forall A.\, \forall R.\, \ms{owns}(A, R) \arrow \ms{mayOpen}(A, R)$, \\
+  \quad $(2)' : {\color{blue}\forall A.\, \forall B.\, \forall R.}\, \ms{owns}(A, R)
+  \land A \says \ms{studentOf}(B, A) \arrow \ms{mayOpen}(B, R)$, \\[1ex]
+  \quad $(3)' : \ms{owns}(\mi{mfredrik}, \mi{cic2126})$, \\
+  \quad $(4) : \mi{mfredrik} \says \ms{studentOf}(\mi{saranyav}, \mi{mfredrik})$ \\[1ex]
+  \quad $\vdash$ \\[1ex]
+  \quad $\mi{admin} \aff \ms{mayOpen}(\mi{saranyav}, \mi{cic2126})$
+\end{tabbing}
+Note that $\mi{mfredrik}$'s affirmation cannot be unlocked, since
+$\mi{admin} \neq \mi{mfredrik}$.  Now we can apply ${\forall}L$ three times, instantiating
+$A$, $B$, and $R$ with $\mi{mfredrik}$, $\mi{saranyav}$, and $\mi{cic2126}$, respectively.
+\begin{tabbing}
+  \quad $(1)' : \forall A.\, \forall R.\, \ms{owns}(A, R) \arrow \ms{mayOpen}(A, R)$, \\
+  \quad $(2)'' : {\color{blue}\ms{owns}(\mi{mfredrik}, \mi{cic2126})
+  \land \mi{mfredrik} \says \ms{studentOf}(\mi{saranyav}, \mi{mfredrik})} \arrow \ms{mayOpen}(\mi{saranyav}, \mi{cic2126})$, \\[1ex]
+  \quad $(3)' : {\color{blue}\ms{owns}(\mi{mfredrik}, \mi{cic2126})}$, \\
+  \quad $(4) : {\color{blue}\mi{mfredrik} \says \ms{studentOf}(\mi{saranyav}, \mi{mfredrik})}$ \\[1ex]
+  \quad $\vdash$ \\[1ex]
+  \quad $\mi{admin} \aff \ms{mayOpen}(\mi{saranyav}, \mi{cic2126})$
+\end{tabbing}
+At this point we can apply ${\arrow}L$ to the antecedent $(2)''$, proving
+the conjunction by $(3)'$ and $(4)$ and obtaining the new line $(5)$.
+\begin{tabbing}
+  \quad $(1)' : \forall A.\, \forall R.\, \ms{owns}(A, R) \arrow \ms{mayOpen}(A, R)$, \\
+  \quad $(2)'' : \ms{owns}(\mi{mfredrik}, \mi{cic2126})
+  \land \mi{mfredrik} \says \ms{studentOf}(\mi{saranyav}, \mi{mfredrik}) \arrow \ms{mayOpen}(\mi{saranyav}, \mi{cic2126})$, \\[1ex]
+  \quad $(3)' : \ms{owns}(\mi{mfredrik}, \mi{cic2126})$, \\
+  \quad $(4) : \mi{mfredrik} \says \ms{studentOf}(\mi{saranyav}, \mi{mfredrik})$ \\
+  \quad $(5) : {\color{blue}\ms{mayOpen}(\mi{saranyav}, \mi{cic2126})}$ \\[1ex]
+  \quad $\vdash$ \\[1ex]
+  \quad ${\color{blue}\mi{admin} \aff \ms{mayOpen}(\mi{saranyav}, \mi{cic2126})}$
+\end{tabbing}
+Now we can apply the rule of affirmation, followed by the identity to complete
+the proof.
+
+\section{Summary}
+
+\[
+  \begin{array}{llcl}
+    \mbox{Principals} & A, B, C \\
+    \mbox{Formulas} & P, Q & ::= & p \mid P \land Q \mid P \arrow Q \mid P \lor Q \mid \forall x.\, P(x) \mid A \says P \\
+    \mbox{Succedents} & \delta & ::= & P\; \ms{true} \mid A \aff P
+  \end{array}
+\]
+
+\begin{figure}[ht]
+  \begin{rules}
+  \infer[\ms{id}]
+  {\Gamma, P \vdash P\; \ms{true}}
+  {}
+  \\[1em]\hline\\[1ex]
+  \infer[{\arrow}R]
+  {\Gamma \vdash P \arrow Q\; \ms{true}}
+  {\Gamma, P \vdash Q\; \ms{true}}
+  \hspace{3em}
+  \infer[{\arrow}L]
+  {\Gamma, P \arrow Q \vdash \delta}
+  {\Gamma \vdash P
+    & \Gamma, Q \vdash \delta}
+  \\[1em]
+  \infer[{\land}R]
+  {\Gamma \vdash P \land Q\; \ms{true}}
+  {\Gamma \vdash P\; \ms{true}
+    & \Gamma \vdash Q\; \ms{true}}
+  \hspace{3em}
+  \infer[{\land}L]
+  {\Gamma, P \land Q \vdash \delta}
+  {\Gamma, P, Q \vdash \delta}
+  \\[1em]
+  \infer[{\forall}R^y]
+  {\Gamma \vdash \forall x.\, P(x)\; \ms{true}}
+  {\Gamma \vdash P(y)\; \ms{true} & \mbox {$y \not\in (\Gamma, \forall x.\, P(x))$}}
+  \hspace{3em}
+  \infer[{\forall}L]
+  {\Gamma, \forall x.\, P(x) \vdash \delta}
+  {\Gamma, P(c) \vdash \delta}
+  \\[1em]
+  \infer[{\lor}R_1]
+  {\Gamma \vdash P \lor Q\; \ms{true}}
+  {\Gamma \vdash P\; \ms{true}}
+  \hspace{1em}
+  \infer[{\lor}R_2]
+  {\Gamma \vdash P \lor Q\; \ms{true}}
+  {\Gamma \vdash Q\; \ms{true}}
+  \hspace{3em}
+  \infer[{\lor}L]
+  {\Gamma, P \lor Q \vdash \delta}
+  {\Gamma, P \vdash \delta
+    & \Gamma, Q \vdash \delta}
+  \\[1em]\hline\\[1ex]
+  \infer[{\mb{says}}R]
+  {\Gamma \vdash (A \says P)\; \ms{true}}
+  {\Gamma \vdash A \aff P}
+  \hspace{3em}
+  \infer[{\mb{says}}L]
+  {\Gamma, A \says P \vdash A \aff Q}
+  {\Gamma, P \vdash A \aff Q}
+  \\[1em]
+  \infer[\mb{aff}]
+  {\Gamma \vdash A \aff P}
+  {\Gamma \vdash P\; \ms{true}}
+  \end{rules}
+  \caption{Affirmation Logic}
+\end{figure}
+
+
+\bibliographystyle{plainnat}
+\bibliography{bibliography}
+
+\end{document}

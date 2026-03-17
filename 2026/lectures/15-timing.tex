@@ -1,0 +1,598 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.5in]{geometry}
+\usepackage{lecnotes}
+% \usepackage{mpass}
+% \lstset{style=verb,language=mpass}
+\input{lmacros}
+% \usepackage[clock]{ifsym}
+% \newcommand{\tm}{\Interval}
+\newcommand{\tm}{t}
+
+\newcommand{\course}{15-316: Software Foundations of Security \& Privacy}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecdate}{March 12, 2026}
+\newcommand{\lecnum}{15}
+\newcommand{\lectitle}{Timing Attacks}
+\newcommand{\courseurl}{https://15316-cmu.github.io/2026/}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+Deducing secrets (like passwords or private keys) by observing how long a
+program runs is a commonly used attack on computer security.  This is true
+despite the uncertainties about how long a program will actually run (which is
+only stochastically connected to the source code).  For example,
+\citet{Brumley05cn} demonstrate that remote timing attacks are quite feasible
+and can be launched against security-critical code such as an implementation of
+SSL\@.  They had to run a program many times, but in the end they were
+successful in exploiting data-dependent optimizations in the cryptographic
+primitives underlying SSL\@.  Due to the serious nature of such security
+threats, defenses have been devised.  The primary ones are (1) introduce
+randomness into the computation so that the time variations don't give away the
+secret information, and (2) sharpen the information flow type system to ensure
+``constant-time'' computation.  We explore the second and briefly touch on the
+first.  Timing attacks against cryptographic primitives are still being
+discovered even today.
+
+There are other so-called \emph{side channels} for information.  Here are
+some:
+\begin{itemize}
+\item Power consumption
+\item Memory access patterns
+\item Sequence of instructions executed
+\item Electromagnetic radiation emitted from the hardware
+\end{itemize}
+Some of them require direct access to some hardware, other can be launched
+remotely.  What they have in common in that they use physical properties of what
+takes place in a computer when code is executed that is outside of the usual
+abstract model of computation we work with when reasoning about our code.  This
+is a significant difference between functional correctness (e.g., ``this code
+will sort a list'') and security.  In the latter case we can only prove security
+against a policy and a particular threat model---we can't make any blanket
+statements about attacks that might fall outside the model.
+
+As an example of the complexity of side-channel attacks that occur in real life,
+we briefly consider Spectre \citep{Kocher19sp}.  It exploits a some features of
+a modern processor, namely speculative execution, together with timing attack on
+the memory cache.  They use the following sample code to illustrate their
+technique:
+\begin{verbatim}
+  if (x < array1_size)
+      y = array2[array1[x] * 4096];
+\end{verbatim}
+This code tries to guard access to \verb'array1' to prevent out-of-bounds
+access.  In the first phase of the attack, it is given many valid values for
+\verb'x', training the processor's branch prediction algorithm to believe that
+this branch will usually be taken.  In the second phase, it is given and input
+that is out of bounds, that is, greater than \verb'array1_size'.  Branch
+prediction will assume the test turns out to be true and starts executing
+\verb'y = array2[array1[x] * 4096]'.  When the processor discovers that the
+condition is actually false, it will abandon all the actions taken, such as
+retrieving \verb'array1[x]', multiplying it to obtain some address \verb'addr',
+retrieving a value from \verb'array2[addr]', and any other registers, condition,
+codes, etc.  However, one thing it does \textbf{not} undo is storing some
+fetched data in the memory cache.  Note that the ``secret'' data at
+\verb'array1[x]' are used as an address, so the data at this address might still
+be in the cache.  Now in the third phase the attacker launches a timing attack
+against the cache to determine which memory region is now in the cache, which
+can reveal the underlying data at \verb'array1[x]'.
+
+\section{Some Simple Timing Attacks}
+
+Real timing attacks \citep{Brumley05cn} are complex, among other things due to
+timing variations in processor execution.  We abstract away from these details
+and it turns out that the main defenses, like ``constant-time programming'', are
+ultimately the same.  Here are some timing attacks, intentionally somewhat
+hypothetical (slightly outside our language) to give you the opportunity to
+devise your own in Lab 2.
+
+With $\Sigma_0 = (\mi{pin} : \ms{H})$, we write
+\[
+  \mb{while}\; (\mi{pin} > 0)\; \mi{pin} := \mi{pin} - 1
+\]
+Assuming the original value of $\mi{pin}$ (say $c$) is positive, this will take
+something like $4 * c + 2$ steps to terminate.  Here we count every arithmetic
+operation or comparison as 1 step, the assignment as 1 step, and processing of
+$\mb{while}$ as another step.  While details may vary with the cost model, it
+should be clear that it is easy to determine the secret value of $\mi{pin}$ from
+the running time.
+
+This code, however, does not represent a very useful attack, because it is too
+slow, for example, if the pin has 256 bits.  But we can modify it into a
+standard strawman example (omitting any details regarding possibly necessary
+declassification):
+\begin{tabbing}
+  \quad $\mi{auth} := 1 \semi$ \\
+  \quad $i := 0 \semi$ \\
+  \quad $\mb{while}\; (i < \mi{len})$ \\
+  \qquad $\mb{if}\; \mi{pin}[i] = \mi{guess}[i]$ \\
+  \qquad $\mb{then}\; i := i+1$ \\
+  \qquad $\mb{else}\; (\mi{auth} := 0 \semi i = \mi{len})$
+\end{tabbing}
+Here $\mi{str}[i]$ could either access the $i$th character of a string
+$\mi{str}$ or the $i$th bit of the number.  $\mi{len}$ would represent either
+the length of the string or the width of the pin in bits.
+
+Let's assume there are nonnegative integers, and $\mi{len}$ is the number of
+bits.  If the lowest bit of the guess is incorrect, the program will terminate
+with $\mi{auth}$ almost immediately.  If it is correct, it will go around the
+loop at least one more time, and therefore take longer.  That will allow us to
+infer the lowest bit of the secret pin.  Our next guess will have that bit
+correct and now find the next bit, etc.  With at most $2 * \mi{len}$ experiments
+we should be able to determine all bits.
+
+\section{Time-Sensitive Noninterference}
+
+As in the last lecture, our first job will be to define the correct semantic
+notion of noninterference and measure it against the examples.  We would like
+that if both programs terminate from prestates that are indistinguishable for a
+low-security observer, they take the same number of steps and terminate in
+low-security equivalent states.  In order to express the number of steps, we
+change our evaluation function to return not only a poststate, but also the
+number of steps taken.  The latter will be defined shortly.
+\begin{quote}
+  We define $\Sigma \models \alpha\; \ms{secure}^\tm$ (program $\alpha$
+  satisfies \emph{time-sensitive noninterference with respect to policy
+    $\Sigma$}) \newline iff
+  \begin{enumerate}[]
+  \item for all $\ell$, $\omega_1$, $\omega_2$, $\nu_1$, $\nu_2$, $n_1$, and $n_2$,
+  \item whenever $\Sigma \vdash \omega_1 \approx_\ell \omega_2$,
+  \item and $\eval\; \omega_1\; \alpha = (n_1, \nu_1)$,
+  \item and $\eval\; \omega_2\; \alpha = (n_2, \nu_2)$,
+  \item then $\Sigma \vdash \nu_1 \approx_\ell \nu_2$ and $n_1 = n_2$.
+  \end{enumerate}
+\end{quote}
+Note that we have disregarded nontermination in this definition.  It is easy to
+combine it with the requirement to be termination-sensitive, but we prefer to
+separate these concerns for now.
+
+Now our first example (with $\Sigma_0 = (\mi{pin} : \ms{H})$) clearly does not
+satisfy this definition, which is what we would hope.
+\[
+  \alpha_0 = (\mb{while}\; (\mi{pin} > 0)\; \mi{pin} := \mi{pin} - 1)
+\]
+A simple counterexample is
+\[
+  \begin{array}{l@{\hspace{3em}}l}
+    \omega_1 = (\mi{pin} \mapsto 0) & \eval\; \omega_1\; \alpha_0 = (2, \mi{pin} \mapsto 0) \\
+    \omega_2 = (\mi{pin} \mapsto 1) & \eval\; \omega_2\; \alpha_0 = (6, \mi{pin} \mapsto 0)
+  \end{array}
+\]
+We have $\Sigma_0 \vdash \omega_1 \approx_{\ms{L}} \omega_2$ (since
+$\mi{pin} : \ms{H}$), and the poststates are indistinguishable (not only for a
+low-security observer, but in general), but the steps $n_1 = 2 \neq 6 = n_2$.
+
+The second example is subject to a similar analysis, but we'd need to be careful
+about declassification which we would like to avoid.
+
+\section{Evaluation with Time}
+
+Next we should define evaluation with step-counting. This is quite
+straightforward, just a bit tedious.  You can find the summary of this exercise
+in \autoref{fig:timed-eval}.  We have to recognize that this form of timing
+isn't realistic and hope that to some extent the design of the information flow
+type system can make up for this lack of realism.
+
+One point about the Boolean operations: we do not want their running times to be
+data-dependent.  This means that evaluating $\top \land P$ and $\bot \land P$
+should take the same amount of time.  In other words, the Boolean operations
+should not be ``short-circuiting''.  Recall that in a previous lecture we
+determined that it didn't matter whether they were short-circuiting or not since
+all expressions and formulas are safe and terminating.  In this context it does
+matter, and steps may need to be taken to ensure data independence.
+
+Timing considerations raise another point about abstractions.  So far we have
+said that variables can hold arbitrary integers.  However, this means that the
+running times of many operations like addition cannot be data-independent.  So
+we assume instead that integers are implemented with a fixed range, like 64 bits
+or 256 bits and that arithmetic is modular.  This creates a number of
+complications when reasoning about the correctness of code, but it actually
+makes reasoning about certain security properties (especially those that are
+timing-sensitive) both more realistic and simpler.
+
+\begin{figure}[ht]
+  \[
+    \begin{array}{lcll}
+      \evalz\; \omega\; c & = & (0, c) \\
+      \evalz\; \omega\; x & = & (1, \omega(x)) \\
+      \evalz\; \omega\; (e_1 + e_2) & = & (n_1 + n_2 + 1, c_1 + c_2) \\
+                          & & \mbox{where $\evalz\; \omega\; e_1 = (n_1, c_1)$} \\
+                          & & \mbox{and $\evalz\; \omega\; e_2 = (n_2, c_2)$}
+      \\[1em]
+      \evalb\; \omega\; (e_1 \leq e_2) & = & (n_1 + n_2 + 1, c_1 \leq c_2) \\
+                          & & \mbox{where $\evalz\; \omega\; e_1 = (n_1, c_1)$} \\
+                          & & \mbox{and $\evalz\; \omega\; e_2 = (n_2, c_2)$} \\
+      \evalb\; \omega\; (\top) & = & (0, \top) \\
+      \evalb\; \omega\; (\bot) & = & (0, \bot) \\
+      \evalb\; \omega\; (P \land Q) & = & (n_1 + n_2 + 1, b_1 \land b_2) \\
+                          & & \mbox{where $\evalb\; \omega\; P = (n_1, b_1)$} \\
+                          & & \mbox{and $\land \evalb\; \omega\; Q = (n_2, b_2)$}
+      \\[1em]
+      \eval\; \omega\; (x := e) & = & (n + 1, \omega[x \mapsto c]) \\
+                          & & \mbox{where $\evalz\; \omega\; e = (n, c)$}
+      \\[1ex]
+      \eval\; \omega\; (\alpha \semi \beta) & = & (n_1 + n_2 + 1, \nu) \\
+                          & & \mbox{where $\eval\; \omega\; \alpha = (n_1, \mu)$} \\
+                          & & \mbox{and $\eval\; \mu\; \beta = (n+1, \nu)$}
+      \\[1ex]
+      \eval\; \omega\; (\mb{skip}) & = & (1, \omega) \\
+      \\[1ex]
+      \eval\; \omega\; (\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta)
+                          & = & (k + n + 1, \nu) \\
+                          & & \mbox{where $\eval\; \omega\; P = (k, \top)$ and $\eval\; \omega\; \alpha = (n, \nu)$} \\
+                          & & \mbox{or $\eval\; \omega\; P = (k, \bot)$ and $\eval\; \omega\; \beta = (n, \nu)$}
+      \\[1ex]
+      \eval\; \omega\; (\mb{while}\; P\; \alpha) & = & (k + n + 1, \nu) \\
+                          & & \mbox{where $\eval\; \omega\; P = (k, \bot)$ and $n = 0$ and $\nu = \omega$} \\
+                          & & \mbox{or $\eval\; \omega\; P = (k, \top)$
+                              and $\eval\; \omega\; (\alpha \semi \mb{while}\; P\; \alpha) = (n, \nu)$}
+    \end{array}
+  \]
+  \caption{Timed Evaluation}
+  \label{fig:timed-eval}
+\end{figure}
+
+\section{A Type System for Constant-Time Computation}
+
+Next comes the task to develop a type system that enforces time-sensitive
+noninterference, which is usually called ``\emph{constant-time}''.  However, it
+isn't actually constant time, it is just that the running time can only depend
+on low-security inputs.  In order to formalize that, we once again proceed
+construct by construct.  We write $\Sigma \vdash \alpha\; \ms{secure}^\tm$ for
+time-sensitive security with respect to signature $\Sigma$.
+
+\paragraph{Assignment.}  For now, there doesn't seem to be any reason to change
+our rule for assignment.  The point is that the time for the evaluation of an
+expression $e$ is some $n$, regardless of the state $\omega$.  So it just once
+again comes down to the basic information flow properties.
+\begin{rules}
+  \infer[\mb{:=}F^\tm, \mbox{preliminary version}]
+    {\Sigma \vdash x := e\; \ms{secure}^\tm}
+    {\Sigma \vdash e : \ell
+      & \ell' = \Sigma(\mi{pc}) \sqcup \ell
+      & \ell' \sqsubseteq \Sigma(x)}
+\end{rules}
+See the end of this section for further thoughts on assignment.
+
+\paragraph{Sequential Composition and $\mb{skip}$.}  If $\alpha$ and $\beta$ are
+indistinguishable even via a timing channel, then their composition should not
+be, either.  The proof is straightforward and follows familiar patterns, so we
+omit it here.  $\mb{skip}$ is trivial, as usual.
+\begin{rules}
+  \infer[\mb{\semi}F^\tm]
+  {\Sigma \vdash \alpha \semi \beta\; \ms{secure}^\tm}
+  {\Sigma \vdash \alpha\; \ms{secure}^\tm
+    & \Sigma \vdash \beta\; \ms{secure}^\tm}
+  \hspace{3em}
+  \infer[\mb{skip}F^\tm]
+  {\Sigma \vdash \mb{skip}\; \ms{secure}^\tm}
+  {\mathstrut}
+\end{rules}
+
+\paragraph{Conditionals.}  The first instinct might be that in a conditional,
+both branches need to take the same amount of time.  Under such a discipline,
+we could rewrite our motivating example as follows:
+\begin{tabbing}
+  \quad $\mi{auth} := 1 \semi$ \\
+  \quad $i := 0 \semi$ \\
+  \quad $\mb{while}\; (i < \mi{len})$ \\
+  \qquad $\mb{if}\; \mi{pin}[i] = \mi{guess}[i]$ \\
+  \qquad $\mb{then}\; \mi{auth} := \mi{auth}$ \\
+  \qquad $\mb{else}\; \mi{auth} := 0 \semi$ \\
+  \qquad $i := i+1$
+\end{tabbing}
+The good part here is that we go around the loop the same number of times,
+regardless whether the guess is correct or not.  The bad part is that
+even though the two branches, abstractly, take the same amount of time
+that is unlikely to be case in practice.  Any reasonable compiler would
+optimize $\mi{auth} := \mi{auth}$ into a no-op and the loop would leak
+some timing information.
+
+The problem actually goes deeper: in order to have a \emph{type system} for
+time-sensitive information flow that allows such a program, the type system
+would have to capture exactly how long an expression or command takes to
+evaluate.  Not only would this be inaccurate with respect to the actually
+running code, it would also require our type-checker to perform arithmetic
+reasoning.  This would just be too brittle a design.
+
+Instead, we take a more drastic step: for any conditional, we require that the
+formula $P$ depends only on low-security variables.  This rules out our sample
+program above, because the comparison $\mi{pin}[i] = \mi{guess}[i]$ depends on
+$\mi{pin}$ which is of high security.
+
+Intuitively, we are repeating the solution for termination-sensitive information
+flow from the last lecture, but with conditionals instead of loops.  Here is the
+first formulation: we just require $\ell'$ to be $\bot$, the least element of
+the security lattice.
+\begin{rules}
+  \infer[\mb{if}F^\tm]
+  {\Sigma \vdash \mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta\; \ms{secure}^\tm}
+  {\Sigma \vdash P : \ell
+    & \bot = \ell' = \Sigma(\mi{pc}) \sqcup \ell
+    & \Sigma' = \Sigma[\mi{pc} \mapsto \ell']
+    & \Sigma' \vdash \alpha\; \ms{secure}^\tm
+    & \Sigma' \vdash \beta\; \ms{secure}^\tm}
+\end{rules}
+We notice that this requires $\ell = \Sigma(\mi{pc}) = \bot$.  And if
+$\ell' = \bot = \ell$, there is no need to update the $\mi{pc}$, so we
+can use $\Sigma' = \Sigma$.
+\begin{rules}
+  \infer[\mb{if}F^\tm]
+  {\Sigma \vdash \mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta\; \ms{secure}^\tm}
+  {\Sigma \vdash P : \bot
+    & \Sigma \vdash \alpha\; \ms{secure}^\tm
+    & \Sigma \vdash \beta\; \ms{secure}^\tm}
+\end{rules}
+At this point we realize we don't need $\mi{pc}$ at all, since we only
+introduced it to track the implicit flow from the condition into the branches of
+an if-then-else.
+
+With this simplification, we have drastically reduced the range of programs that
+are considered secure.  So how do we rewrite our example?  We have to ``inline''
+the conditional as an ordinary operation.  Note that the number of bit (or
+maximal length of the string) would have to be a low-security variable.
+\begin{tabbing}
+  \quad $\mi{auth} := 1 \semi$ \\
+  \quad $i := 0 \semi$ \\
+  \quad $\mb{while}\; (i < \mi{len})$ \\
+  \qquad $\mi{auth} := \mi{auth} \land (\mi{pin}[i] = \mi{guess}[i]) \semi$ \\
+  \qquad $i := i+1$
+\end{tabbing}
+This is just outside the range of what our language permits in that equality
+produces a Boolean, and conjunction takes two Booleans, but here they are
+integers.  This could be solved any number of ways.  Perhaps the simplest is
+that the Boolean operators are overloaded to also work on integers, for example,
+with $\bot$ represented by $0$ and $\top$ by $1$, or by anything nonzero.
+
+Also, we go back and think of $\mi{pin}$ and $\mi{guess}$ as strings rather
+than nonnegative integers, this code still makes sense and is not subject
+to timing attacks.
+
+Let's prove the soundness of this rule.  We set up:
+\begin{tabbing}
+  $\Sigma \models P : \bot$ \` (1, first premise) \\
+  $\Sigma \models \alpha\; \ms{secure}^\tm$ \` (2, second premise) \\
+  $\Sigma \models \beta\; \ms{secure}^\tm$ \` (3, third premise) \\
+  $\Sigma \vdash \omega_1 \approx_\ell \omega_2$ \` (4, assumption) \\
+  $\eval\; \omega_1\; (\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta) = (n_1, \nu_1)$ \` (5, assumption) \\
+  $\eval\; \omega_2\; (\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta) = (n_2, \nu_2)$ \` (6, assumption) \\
+  $\ldots$ \\
+  $\Sigma \vdash \nu_1 \approx_\ell \nu_2$ and \` (to show) \\
+  $n_1 = n_2$ \` (to show)
+\end{tabbing}
+Because $\Sigma \vdash \omega_1 \approx_\ell \omega_2$ and
+$\bot \sqsubseteq \ell$, we have that
+$\eval\; \omega_1\; P = \eval\; \omega_2\; P = (k, b)$ for some nonnegative time
+$k$ and Boolean $b$.  We consider the case where $b = \top$; the other is
+symmetric.  Then
+\[
+  \eval\; \omega_1\; (\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta) = (k + m_1
+  + 1, \nu_1)
+\]
+where $\eval\; \omega_1\; \alpha = (m_1, \nu_1)$ and $n_1 = k + m_1 + 1$.
+
+Also
+\[
+  \eval\; \omega_2\; (\mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta) = (k + m_2
+  + 1, \nu_2)
+\]
+where $\eval\; \omega_2\; \alpha = (m_2, \nu_2)$ and $n_2 = k + m_2 + 1$.
+
+Since $\alpha$ is secure (that is, $\Sigma \models \alpha\; \ms{secure}^\tm$,
+which comes from the second premise) we get
+$\Sigma \vdash \nu_1 \approx_\ell \nu_2$ (which is one of the two properties we
+needed to prove) and $m_1 = m_2$.
+
+Therefore, also $n_1 = k + m_1 + 1 = k + m_2 + 1 = n_2$, which is the second
+property we needed to prove.
+
+\paragraph{Loops.}  For the same reason as conditionals, we require
+the loop guard to be of low security.
+\begin{rules}
+  \infer[\mb{while}F^\tm]
+  {\Sigma \vdash \mb{while}\; P\; \alpha\; \ms{secure}^\tm}
+  {\Sigma \vdash P : \bot
+    & \Sigma \vdash \alpha\; \ms{secure}^\tm}
+\end{rules}
+
+\paragraph{Tests.} If the test fails and the program aborts we have a different
+kind of channel.  Again, the simplest condition that avoid information flow here
+(even if outside of the definition) is to require the test to be of low
+security.
+\begin{rules}
+  \infer[\mb{test}F]
+  {\Sigma \vdash \mb{test}\; P\; \ms{secure}^\tm}
+  {\Sigma \vdash P : \bot}
+\end{rules}
+
+\paragraph{Assignment Revisited.}  Since we eliminated the ghost variable $\mi{pc}$,
+we simplify the rule for assignment.
+\begin{rules}
+  \infer[\mb{:=}F^\tm]
+    {\Sigma \vdash x := e\; \ms{secure}^\tm}
+    {\Sigma \vdash e : \ell
+      & \ell \sqsubseteq \Sigma(x)}
+\end{rules}
+
+\begin{figure}[ht]
+  \begin{rules}
+    \infer[\mb{:=}F^\tm]
+    {\Sigma \vdash x := e\; \ms{secure}^\tm}
+    {\Sigma \vdash e : \ell
+      & \ell \sqsubseteq \Sigma(x)}
+    \\[1em]
+    \infer[\mb{\semi}F^\tm]
+    {\Sigma \vdash \alpha \semi \beta\; \ms{secure}^\tm}
+    {\Sigma \vdash \alpha\; \ms{secure}^\tm
+      & \Sigma \vdash \beta\; \ms{secure}^\tm}
+    \hspace{3em}
+    \infer[\mb{skip}F^\tm]
+    {\Sigma \vdash \mb{skip}\; \ms{secure}^\tm}
+    {\mathstrut}
+    \\[1em]
+    \infer[\mb{if}F^\tm]
+    {\Sigma \vdash \mb{if}\; P\; \mb{then}\; \alpha\; \mb{else}\; \beta\; \ms{secure}^\tm}
+    {\Sigma \vdash P : \bot
+      & \Sigma \vdash \alpha\; \ms{secure}^\tm
+      & \Sigma \vdash \beta\; \ms{secure}^\tm}
+    \hspace{3em}
+    \infer[\mb{while}F^\tm]
+    {\Sigma \vdash \mb{while}\; P\; \alpha\; \ms{secure}^\tm}
+    {\Sigma \vdash P : \bot
+      & \Sigma \vdash \alpha\; \ms{secure}^\tm}
+    \\[1em]
+    \infer[\mb{test}F]
+    {\Sigma \vdash \mb{test}\; P\; \ms{secure}^\tm}
+    {\Sigma \vdash P : \bot}
+  \end{rules}
+  \caption{Timing Sensitive Information Flow Typing}
+  \label{fig:timing-sensitive}
+\end{figure}
+
+A summary of the rules can be found in \autoref{fig:timing-sensitive}.  It is
+remarkably simple because it is not afraid to rule out many programs.  The
+soundness of all the rules taken together gives us the soundness of the whole
+type system.
+
+\begin{theorem}[Soundness of timing-sensitive information flow typing]
+  \mbox{}\newline
+  If $\Sigma \vdash \alpha\; \ms{secure}^\tm$ then
+  $\Sigma \models \alpha\; \ms{secure}^\tm$
+\end{theorem}
+\begin{proof}
+  All the rules are sound in the sense that they preserve semantic validity of
+  the premises.  By a trivial induction over the derivation of
+  $\Sigma \vdash \alpha\; \ms{secure}^\tm$ we obtain
+  $\Sigma \models \alpha\; \ms{secure}^\tm$.
+\end{proof}
+
+Comparing the type system against the one from the last lecture for
+termination-sensitive noninterference, we see that it actually enforces that as
+well.  One can update the definition of noninterference and statement of the
+above theorem to account for that.
+
+\section{Randomization}
+
+Another defense against timing attacks is to introduce randomization into the
+program.  Even though an observer might still be able to observe timing, this
+information will then be insufficient to determine the secret.  In our example
+(using the interpretation of pins and guesses as large integers) we could write
+something like:
+\begin{tabbing}
+  \quad $r := \ms{random}() \semi$ \\
+  \quad $\mi{pin} := \mi{pin} + r \semi$ \\
+  \quad $\mi{guess} := \mi{guess} + r \semi$ \\
+  \quad $\mi{auth} := 1 \semi$ \\
+  \quad $i := 0 \semi$ \\
+  \quad $\mb{while}\; (i < \mi{len})$ \\
+  \qquad $\mb{if}\; \mi{pin}[i] = \mi{guess}[i]$ \\
+  \qquad $\mb{then}\; i := i+1$ \\
+  \qquad $\mb{else}\; (\mi{auth} := 0 \semi i = \mi{len})$
+\end{tabbing}
+Every time this program is run, it is like to use a different random number,
+essentially making it impossible to draw useful conclusions from the running
+times.  Some care must be taken for the randomization and its result to be
+sufficiently uniform.
+
+\section{Practice Problems}
+
+These problems are for self-study and are not to be handed in.
+
+\subsection{Timing Analysis [3 parts]}
+
+Consider the two-level security lattice with $\ms{L} \sqsubset \ms{H}$ and
+the following security policy:
+\[
+  \Sigma = (\mi{pin} : \ms{H},\; \mi{guess} : \ms{L},\; \mi{auth} : \ms{L},\; i : \ms{L},\; n : \ms{L})
+\]
+For each of the following programs, determine whether it satisfies
+time-sensitive noninterference ($\Sigma \models \alpha\; \ms{secure}^\tm$) and
+whether it is derivable in the timing-sensitive type system
+($\Sigma \vdash \alpha\; \ms{secure}^\tm$).  Justify each answer with either
+a derivation, a brief argument, or a counterexample as appropriate.  Assume
+that the timed evaluation semantics from \autoref{fig:timed-eval} are used.
+
+\begin{task}\rm
+  \label{task:p1a}
+  $\alpha_1 = (n := \mi{pin} + \mi{guess} \semi \mi{auth} := \mi{guess})$
+\end{task}
+
+\begin{task}\rm
+  \label{task:p1b}
+  $\alpha_2 = (\mb{if}\; \mi{guess} > 0\; \mb{then}\; \mi{auth} := 1\;
+  \mb{else}\; (\mi{auth} := 0 \semi \mi{auth} := \mi{auth}))$
+\end{task}
+
+\begin{task}\rm
+  \label{task:p1c}
+  $\alpha_3 = (\mb{while}\; (i < n)\;
+  (\mi{auth} := \mi{auth} \land (\mi{pin} + i) \semi i := i + 1))$
+\end{task}
+
+\subsection{Constant-Time Conditional [4 parts]}
+
+In constant-time programming, conditionals that depend on secret data are
+typically replaced by \emph{conditional moves} or \emph{select} operations.
+We add a new construct $\mb{csel}(P,\; e_1,\; e_2)$ to our expression language.
+Its semantics are: $\evalz\; \omega\; \mb{csel}(P, e_1, e_2) = (n_P + n_1 + n_2 + 1, c)$
+where $\evalb\; \omega\; P = (n_P, b)$, $\evalz\; \omega\; e_1 = (n_1, c_1)$,
+$\evalz\; \omega\; e_2 = (n_2, c_2)$, and
+$c = c_1$ if $b = \top$, $c = c_2$ if $b = \bot$.
+
+The key feature of $\mb{csel}$ is that it \emph{always evaluates both
+  expressions}, so the time cost $n_P + n_1 + n_2 + 1$ does not depend on which
+branch is taken.
+
+\begin{task}\rm
+  \label{task:p2a}
+  What is the security level of $\mb{csel}(P, e_1, e_2)$?  That is, propose a
+  rule of the form
+  \[
+    \infer{\Sigma \vdash \mb{csel}(P, e_1, e_2) : \ell}
+    {\ldots}
+  \]
+  Your rule should be as permissive as possible.  In particular, consider
+  whether $P$ needs to be of level $\bot$ as it does for $\mb{if}$ in the
+  timing-sensitive type system.
+\end{task}
+
+\begin{task}\rm
+  \label{task:p2b}
+  Prove that your rule for $\mb{csel}$ is sound for time-sensitive
+  noninterference.  That is, show that if $\Sigma \vdash \mb{csel}(P, e_1, e_2)
+  : \ell$ and $\Sigma \vdash \omega_1 \approx_\ell \omega_2$, then
+  $\evalz\; \omega_1\; \mb{csel}(P, e_1, e_2)$ and
+  $\evalz\; \omega_2\; \mb{csel}(P, e_1, e_2)$ yield the same time cost and
+  the same value.
+\end{task}
+
+\begin{task}\rm
+  \label{task:p2c}
+  Consider the following program under the policy
+  $\Sigma' = (\mi{pin} : \ms{H},\; \mi{guess} : \ms{L},\; r : \ms{L})$:
+  \[
+    r := \mb{csel}(\mi{pin} > 0,\; \mi{guess} + 1,\; \mi{guess})
+  \]
+  Does this program satisfy $\Sigma' \models \alpha\; \ms{secure}^\tm$?  Is it
+  derivable as $\Sigma' \vdash \alpha\; \ms{secure}^\tm$ using the
+  timing-sensitive type system extended with your rule from \autoref{task:p2a}?
+  Justify your answers.
+\end{task}
+
+\begin{task}\rm
+  \label{task:p2d}
+  Give an example of a program that uses $\mb{csel}$ and satisfies time-sensitive
+  noninterference semantically ($\Sigma \models \alpha\; \ms{secure}^\tm$), but
+  which would \emph{not} satisfy it if $\mb{csel}(P, e_1, e_2)$ were replaced
+  by $\mb{if}\; P\; \mb{then}\; x := e_1\; \mb{else}\; x := e_2$ (under the same
+  policy).  Briefly explain the difference.
+\end{task}
+
+\bibliographystyle{plainnat}
+\bibliography{bibliography}
+
+\end{document}

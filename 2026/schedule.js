@@ -124,15 +124,15 @@ schedule = [
   {
     date: "Thu 03/12",
     topic: "Timing Attacks",
-    pdf: "",
-    tex: "",
+    pdf: "15-timing.pdf",
+    tex: "15-timing.tex",
     comments: "",
   },
   {
     date: "Tue 03/17",
     topic: "Authorization Logic",
-    pdf: "",
-    tex: "",
+    pdf: "16-authlogic.pdf",
+    tex: "16-authlogic.tex",
     comments: "Asst 4 due",
   },
   {
