@@ -142,13 +142,13 @@ use the following vocabulary:
 
 \begin{task}[10 points]\rm
   Write out the access control policy explained above in authorization logic.
-  Label your affirmations so they can be used in proof terms.
+  Label your affirmations so they can be referenced in later tasks.
 \end{task}
 
 \begin{task}[10 points]\rm
   Write out the necessary affirmations by $\mi{mfredrik}$ or $\mi{admin}$ to
   express each of the following.  Label your affirmations so they
-  can be used in proof terms.
+  can be referenced in later tasks.
   \begin{enumerate}
   \item Individual $\mi{mfredrik}$ owns group $\mi{316\_ta}$
     and files $\mi{316\_roster}$ and $\mi{316\_grades}$.
@@ -159,10 +159,17 @@ use the following vocabulary:
 \end{task}
 
 \begin{task}[10 points]\rm
-  Write out a proof term (as defined in
-  \href{\courseurl/lectures/18-proofrep.pdf}{Lecture 18}) showing $\mi{kmann}$
-  may write file $\mi{316\_grades}$.  You should use labels from the
-  affirmations in the two previous tasks.
+  Suppose we add the following affirmation to the policy:
+  \[
+    \mi{kmann} \says \ms{member}(\mi{studentA}, \mi{316\_ta})
+  \]
+  \begin{enumerate}
+  \item Can we derive that $\mi{studentA}$ may read file $\mi{316\_roster}$?
+    Explain why or why not, referring to specific policy rules from the
+    previous tasks.
+  \item What affirmation(s) would need to be added to authorize $\mi{studentA}$
+    to read $\mi{316\_roster}$?
+  \end{enumerate}
 \end{task}
 
 \end{document}
