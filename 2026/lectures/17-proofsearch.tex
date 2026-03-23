@@ -1,0 +1,544 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.5in]{geometry}
+\usepackage{lecnotes}
+% \usepackage{mpass}
+% \lstset{style=verb,language=mpass}
+\input{lmacros}
+
+\newcommand{\course}{15-316: Software Foundations of Security \& Privacy}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecdate}{March 19, 2026}
+\newcommand{\lecnum}{17}
+\newcommand{\lectitle}{Proof Search in Authorization Logic}
+\newcommand{\courseurl}{https://15316-cmu.github.io/2026/}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+In Boolean logic, the sequent calculus was a good basis for proof search (at
+least on the small scale) because all rules were sound and invertible.  This is
+no longer the case for intuitionistic logic, whether extended with affirmation
+or not.  In fact, Boolean propositional logic is just about the only logic where
+we can arrange for all rules to be invertible.  Our task then is to find out
+which rules \emph{are} invertible and which are not.  This gives rise to a
+classification of logical connectives based on the invertibility of their right
+and left rules.  This can be done generally for logics that admit a sequent
+calculus formulation.  It was first discovered for \emph{linear logic}
+\citep{Girard87tcs} by \citet{Andreoli92jlc} but since been applied to many
+other ones, including those with a lax modality \citep{Liang09tcs,Watkins02tr}.
+
+Our first order of business, then, is to identify invertibility properties,
+followed by proof strategies based on them.
+
+\section{Inversion}
+
+Since it is a pervasively used connective, we start with implication.
+\begin{rules}
+  \begin{array}[t]{c}
+    \infer[{\arrow}R]
+    {\Gamma \vdash P \arrow Q}
+    {\Gamma, P \vdash Q}
+    \\[1em]
+    \mbox{\color{red}invertible}
+  \end{array}
+  \hspace{3em}
+  \begin{array}[t]{c}
+    \infer[{\arrow}L]
+    {\Gamma, P \arrow Q \vdash \delta}
+    {\Gamma \vdash P
+    & \Gamma, Q \vdash \delta}
+    \\[1em]
+    \mbox{\color{red}not invertible}
+  \end{array}
+\end{rules}
+It turns out the right rule is invertible, while the left rule is not.  To see
+that the left rule is \emph{not} invertible, we only need a counterexample.
+Consider
+\[
+  p \arrow q, q \arrow r \vdash p \arrow r
+\]
+Trying to apply the left rule for implication to the first antecedent
+results in a sequent that cannot be derived.
+\[
+  \infer[{\arrow}L]
+  {p \arrow q, q \arrow r \vdash p \arrow r}
+  {\infer[{\arrow}L]
+    {q \arrow r \vdash p}
+    {\deduce[\ms{XXX}]{\cdot \vdash q}{}
+      & \deduce[\ms{XXX}]{r \vdash p}{}}
+    & \deduce[\ddd]{q, q \arrow r \vdash p \arrow r}{}}
+\]
+We suspect that the right rule for implication is invertible, but how do we
+prove it?  Previously, we used a \emph{semantic argument}, using the validity of
+a sequent.  Here, such a direct argument is not available---we would have to
+introduce a semantics which is not straightforward.  But there is also a
+syntactic technique, using the \emph{admissibility of cut}.  So we make a brief
+detour to introduce it.
+
+When presented as a rule
+\begin{rules}
+  \infer[\ms{cut}]
+  {\Gamma \vdash \delta}
+  {\Gamma \vdash P & \Gamma, P \vdash \delta}
+\end{rules}
+its meaning is clear: if we can prove $P$ we are allowed to assume it in further
+reasoning.  For bottom-up proof search it is somewhat problematic because we have
+to determine a useful $P$, which could be \emph{any} formula.  So we use it only
+under controlled circumstances.
+
+\citet{Gentzen35} showed that the rule of cut is redundant for both classical
+(Boolean) and intuitionistic logic.  What do we mean by ``redundant''?  More
+technically, we call a rule \emph{admissible} if it is both sound and whenever
+the premises can be derived, so can the conclusion \emph{without using the
+  rule}.  We write an admissible rule with a dashed line:
+\begin{rules}
+  \infer-[\ms{cut}]
+  {\Gamma \vdash \delta}
+  {\Gamma \vdash P & \Gamma, P \vdash \delta}
+\end{rules}
+We won't go into detail how to show that cut is admissible.  This is covered in
+many articles (including Gentzen's original one) and also in \emph{15-317
+  Constructive Logic} in somewhat more modern notation (see
+\href{https://www.cs.cmu.edu/~fp/courses/15317-s23/lectures/08-cutelim.pdf}{Lecture
+  8}).
+
+Here we concentrate on how to use the admissibility of cut to obtain other
+properties.  First, it is convenient to have an alternative version that is also
+admissible and more suitable to top-down reasoning.
+\begin{rules}
+  \infer-[\ms{cut}']
+  {\Gamma_1, \Gamma_2 \vdash \delta}
+  {\Gamma_1 \vdash P & \Gamma_2, P \vdash \delta}
+\end{rules}
+We want to prove that ${\arrow}R$ is invertible.  That is, we want to show that
+\[
+  \infer-[{\arrow}R^{-1}]
+  {\Gamma, P \vdash Q}
+  {\Gamma \vdash P \arrow Q}
+\]
+is admissible.  Step-by-step: first, we have a succedent $P \arrow Q$ in the
+premise, so we should try to cut it with a sequent with antecedent $P \arrow Q$
+with some $\Gamma'$ and $\delta$.
+\[
+  \infer-[\ms{cut}']
+  {\Gamma, P \vdash Q}
+  {\Gamma \vdash P \arrow Q
+    & \deduce[\ddd]{\Gamma', P \arrow Q \vdash \delta}{}}
+\]
+What could we choose for $\Gamma'$ and $\delta$?  It is pretty obvious from the
+conclusion: $\Gamma' = P$ and $\delta = Q$.  We can then complete the derivation
+of the second premise.
+\[
+  \infer-[\ms{cut}']
+  {\Gamma, P \vdash Q}
+  {\Gamma \vdash P \arrow Q
+    & \infer[{\arrow}L]
+    {P, P \arrow Q \vdash Q}
+    {\infer[\ms{id}]{P \vdash P}{}
+      & \infer[\ms{id}]{Q \vdash Q}{}}}
+\]
+We see in the second premise everything is proved, so this derivation shows that
+${\arrow}R^{-1}$ is admissible.
+
+We can prove other rules invertible as well, with clever uses of $\ms{cut}'$.
+On our fragment (excluding affirmation for now), the invertible rules are
+${\land}R$, ${\land}L$, ${\lor}L$, ${\forall}R$.  The noninvertible rules are
+${\arrow}L$, ${\lor}R_1$, ${\lor}R_2$, and ${\forall}L$.
+
+A first simple strategy emerges: apply all the invertible rules in some
+arbitrary, unspecified order until we reach a sequent where either identity
+applies, or we have to make a choice between noninvertible rules.  This choice
+typically then requires backtracking, in case we make a wrong choice.
+
+We can express such a strategy with three judgment forms, two that force only
+invertible rules to be used on the left or right, and one that requires a
+choice.  Since it is not our ultimate destination, we elide this here and refer
+the interest reader to
+\href{https://www.cs.cmu.edu/~fp/courses/15317-s23/lectures/15-inversion.pdf}{Lecture
+  15} of the course on
+\href{https://www.cs.cmu.edu/~fp/courses/15317-s23}{constructive logic}.
+
+\section{Inversion for Affirmation}
+
+An empirical observation is that if the right rule for a connective is
+invertible then the left rule is not and vice versa.  This is apparently
+violated by conjunction which is invertible on both sides.  This is because
+there are actually two forms of conjunction hiding under the symbol ``$\land$''
+that are indistinguishable with respect to provability.
+
+We call connectives whose right rule is invertible \emph{negative connectives}
+and the ones whole left rule is invertible are \emph{positive connectives}.  The
+inversion phase of proof search then applies negative right rules and positive
+left rules.
+
+But what about affirmation?  There is something rather strange going on because
+in the right rule we go from $(A \says P)\; \ms{true}$ to $A \aff P$ and in the
+left rule we jump directly from $A \says P$ to $P$.  It turns out that the
+affirmation modality signifies a change in polarity.  One way to state that is
+that $A \says P$ is negative, but the judgment underneath, $A \aff P$ is
+positive.  That means, the right rule is invertible, but the rule of affirmation
+is not.
+\begin{rules}
+  \begin{array}[t]{c}
+    \infer[{\mb{says}}R]
+    {\Gamma \vdash (A \says P)\; \ms{true}}
+    {\Gamma \vdash A \aff P}
+    \\[1em]
+    \mbox{\color{red}invertible}
+  \end{array}
+  \hspace{3em}
+  \begin{array}[t]{c}
+    \infer[\mb{aff}]
+    {\Gamma \vdash A \aff P}
+    {\Gamma \vdash P\; \ms{true}}
+    \\[1em]
+    \mbox{\color{red}not invertible}
+  \end{array}
+\end{rules}
+As for the left rules, because $A \says P$ is negative, it's left rules is not
+invertible.  However, if the succedent has the form $A \aff Q$ we can always
+apply the rule since $P$ is a stronger assumption than $A \says P$.  So we put
+``invertible'' in quotation: we can apply the rule when possible, but we cannot
+always apply it when $A \says P$ is an antecedent.
+\begin{rules}
+  \begin{array}[t]{c}
+    \infer[\mb{says}L]
+    {\Gamma, A \says P \vdash A \aff Q}
+    {\Gamma, P \vdash A \aff Q}
+    \\[1em]
+    \mbox{\color{red}``invertible''}
+  \end{array}
+\end{rules}
+Now we also see why $A \aff P$ does not appear as a judgment among the
+antecedents: it is positive, and therefore the corresponding rule can be applied
+immediately and the stepping stone be omitted.
+\begin{rules}
+  \infer[\mb{says}L]
+  {\Gamma, A \says P \vdash A \aff Q}
+  {\infer[]
+    {\Gamma, \mbox{``$A \aff P$''} \vdash A \aff Q}
+    {\Gamma, P \vdash A \aff Q}}
+\end{rules}
+
+\section{Focusing}
+
+If we look at the example from the last lecture we see that the only invertible
+step is the right rule for $\mb{says}$, followed by stripping the
+``$\mi{admin} \says \null$'' prefix from $(1)$, $(2)$, and $(3)$ using
+$\mb{says}L$.
+\begin{tabbing}
+  \quad $(1) : \mi{admin} \says (\forall A.\, \forall R.\, \ms{owns}(A, R) \arrow \ms{mayOpen}(A, R))$, \\
+  \quad $(2) : \mi{admin} \says (\forall A.\, \forall B.\, \forall R.\, \ms{owns}(A, R)
+  \land \mi{mfredrik} \says \ms{studentOf}(B, A) \arrow \ms{mayOpen}(B, R))$, \\[1ex]
+  \quad $(3) : \mi{admin} \says \ms{owns}(\mi{mfredrik}, \mi{cic2126})$, \\
+  \quad $(4) : \mi{mfredrik} \says \ms{studentOf}(\mi{saranyav}, \mi{mfredrik})$ \\[1ex]
+  \quad $\vdash$ \\[1ex]
+  \quad $\mi{admin} \says \ms{mayOpen}(\mi{saranyav}, \mi{cic2126})$
+\end{tabbing}
+
+\clearpage
+\noindent The resulting sequent below has no invertible rule we can blindly apply.
+\begin{tabbing}
+  \quad $(1)' : \forall A.\, \forall R.\, \ms{owns}(A, R) \arrow \ms{mayOpen}(A, R)$, \\
+  \quad $(2)' : \forall A.\, \forall B.\, \forall R.\, \ms{owns}(A, R)
+  \land \mi{mfredrik} \says \ms{studentOf}(B, A) \arrow \ms{mayOpen}(B, R)$, \\[1ex]
+  \quad $(3)' : \ms{owns}(\mi{mfredrik}, \mi{cic2126})$, \\
+  \quad $(4) : \mi{mfredrik} \says \ms{studentOf}(\mi{saranyav}, \mi{mfredrik})$ \\[1ex]
+  \quad $\vdash$ \\[1ex]
+  \quad $\mi{admin} \aff \ms{mayOpen}(\mi{saranyav}, \mi{cic2126})$
+\end{tabbing}
+For example, we could instantiate the quantifier $\forall A$ in $(1)'$.  But
+still, everything remains negative and we could instantiate either the
+$\forall R$ we have uncovered or the $\forall A$ quantifier in $(2)$.  We see
+that at every step we have to choose between a number of alternatives.  This can
+lead to a lot of backtracking if the choices are incorrect.
+
+\emph{Focusing} \citep{Andreoli92jlc} is the idea that we can pick a negative
+antecedent or a positive succedent and continue to apply noninvertible rules to
+this particular formula until we reach either an atomic formula or the polarity
+switches.  For example, if we guess $(2)'$ we would apply ${\forall}L$ three
+times, followed by ${\arrow}L$.  Let's treat conjunction as positive, which we
+continue with that as well and succeed when we find the needed
+assumptions.\footnote{Actually, not quite.  The affirmation ``$\mi{mfredrik} \says$''
+  forces us to stop and make another explicit choice.}  All that reasoning adds
+$\ms{mayOpen}(\mi{saranyav}, \mi{cic2126})$ to the assumptions and we have to make
+another choice.  At this point we want to choose the rule of affirmation
+followed by the identity to complete the proof.
+
+We don't write out the sequent calculus for focusing in its most general form,
+but you may refer to
+\href{https://www.cs.cmu.edu/~fp/courses/15317-s23/lectures/17-focusing.pdf}{Lecture
+  17} of the constructive logic course notes for details.  We write
+$\Gamma, [P] \vdash \delta$ for a formula $P$ in left focus and
+$\Gamma \vdash [Q]$ for a formula in right focus.  In this kind of sequent
+just one formula can be in focus, and rules can be applied only to the formula
+in focus.   The rules with no focus are the invertible rules.
+
+This gives us the following rules.  We work with following polarities below.
+Except for atoms and conjunction (which we choose to be positive), they are
+determined by the inversion properties of the connectives.
+\[
+  \begin{array}{llcl}
+    \mbox{Negative} & P^-, Q^- & ::= & P \arrow Q \mid \forall x.\, P(x) \mid A \says P \\
+    \mbox{Positive} & P^+, Q^+ & ::= & p \mid P \land Q \mid P \lor Q
+  \end{array}
+\]
+First the rules to \emph{initiate} a phase of focusing.
+\begin{rules}
+  \infer[\mb{focus}R]
+  {\Gamma \vdash Q^+}
+  {\Gamma \vdash [Q^+]
+    % & \mbox{($Q^+$ positive)}
+  }
+  \hspace{3em}
+  \infer[\mb{focus}L]
+  {\Gamma \vdash \delta}
+  {P^- \in \Gamma & \Gamma, [P^-] \vdash \delta
+    % & \mbox{($P^-$ negative)}
+  }
+\end{rules}
+In the left rule we focus on a \emph{copy} of $P^-$ because we may need this
+formula again.  In the examples we sometimes drop the extra copy if we
+anticipate (or know) it will not be needed again.
+
+The rule for affirmation is an additional transition rule.  Next, the logical
+rules.  For brevity, we mostly omit ``$\ms{true}$'' in the succedent if it is
+just a formula.  The judgment $\Gamma \vdash \delta$,
+$\Gamma, [P] \vdash \delta$ and $\Gamma \vdash [Q]$ are mutually exclusive, that
+is, there may be no focused formula in $\Gamma$ or $\delta$.
+\begin{rules}
+  \infer[\ms{id}]
+  {\Gamma, p \vdash [p]}
+  {}
+  \\[1em] % \hline\\[1ex]
+  \infer[{\arrow}R]
+  {\Gamma \vdash P \arrow Q}
+  {\Gamma, P \vdash Q}
+  \hspace{3em}
+  \infer[{\arrow}L]
+  {\Gamma, [P \arrow Q] \vdash \delta}
+  {\Gamma \vdash [P]
+    & \Gamma, [Q] \vdash \delta}
+  \\[1em]
+  \infer[{\land}R]
+  {\Gamma \vdash [P \land Q]}
+  {\Gamma \vdash [P]
+    & \Gamma \vdash [Q]}
+  \hspace{3em}
+  \infer[{\land}L]
+  {\Gamma, P \land Q \vdash \delta}
+  {\Gamma, P, Q \vdash \delta}
+  \\[1em]
+  \infer[{\forall}R^y]
+  {\Gamma \vdash \forall x.\, P(x)}
+  {\Gamma \vdash P(y) & \mbox{$y \not\in \Gamma, P(x)$}}
+  \hspace{3em}
+  \infer[{\forall}L]
+  {\Gamma, [\forall x.\, P(x)] \vdash \delta}
+  {\Gamma, [P(c)] \vdash \delta}
+  \\[1em]
+  \infer[{\lor}R_1]
+  {\Gamma \vdash [P \lor Q]}
+  {\Gamma \vdash [P]}
+  \hspace{1em}
+  \infer[{\lor}R_2]
+  {\Gamma \vdash [P \lor Q]}
+  {\Gamma \vdash [Q]}
+  \hspace{3em}
+  \infer[{\lor}L]
+  {\Gamma, P \lor Q \vdash \delta}
+  {\Gamma, P \vdash \delta
+    & \Gamma, Q \vdash \delta}
+\end{rules}
+Next, the rules to complete a focusing phase (still postponing affirmations).
+We say that we \emph{blur the focus}.
+\begin{rules}
+  \infer[\ms{blur}L]
+  {\Gamma, [P^+] \vdash \delta}
+  {\Gamma, P^+ \vdash \delta
+    % & \mbox{($P^+$ positive)}
+  }
+  \hspace{3em}
+  \infer[\ms{blur}R]
+  {\Gamma \vdash [Q^-]}
+  {\Gamma \vdash Q^-
+    % & \mbox{($Q^-$ negative)}
+  }
+\end{rules}
+Finally, the rules for affirmation.  They incorporate some phase transitions
+because of the polarity shift intrinsic to the modality.
+\begin{rules}
+  \infer[{\mb{says}}R]
+  {\Gamma \vdash (A \says P)\; \ms{true}}
+  {\Gamma \vdash A \aff P}
+  \hspace{3em}
+  \infer[{\mb{says}}L]
+  {\Gamma, [A \says P] \vdash A \aff Q}
+  {\Gamma, P \vdash A \aff Q}
+  \\[1em]
+  \infer[\mb{aff}]
+  {\Gamma \vdash A \aff P}
+  {\Gamma \vdash [P]\; \ms{true}}
+\end{rules}
+
+Our motivating example is too lengthy to write out formally with these rules for
+focusing, but we can try a small example and see how focusing reduces
+nondeterminism.  Consider
+\[
+  p \arrow q, p \arrow (q \arrow r) \vdash p \arrow r
+\]
+After the obligatory right inversion, we arrive at
+\[
+  p, p \arrow q, p \arrow (q \arrow r) \vdash r
+\]
+In this situation, we could in principle try to focus
+on $p \arrow q$, on $p \arrow (q \arrow r)$ or $r$.
+Let's try right focus first.  We immediately fail because
+$r$ is not among the antecedents.
+\[
+  \infer[\mb{focus}R]
+  {p, p \arrow q, p \arrow (q \arrow r) \vdash r}
+  {\deduce[\ms{XXX}]{p, p \arrow q, p \arrow (q \arrow r) \vdash [r]}{}}
+\]
+Next we try to focus on $p \arrow (q \arrow r)$.
+\[
+  \infer[\mb{focus}L]
+  {p, p \arrow q, p \arrow (q \arrow r) \vdash r}
+  {\infer[{\arrow}L]
+    {p, p \arrow q, [p \arrow (q \arrow r)] \vdash r}
+    {\infer[\ms{id}]
+      {p, p \arrow q \vdash [p]}
+      {}
+      & \infer[{\arrow}L]
+      {p, p \arrow q, [q \arrow r] \vdash r}
+      {\deduce[\ms{XXX}]{p, p \arrow q \vdash [q]}{}
+        & \deduce[\ddd]{p, p\arrow q, [r] \vdash r}{}}}}
+\]
+Note that after we decided which antecedent to focus on, everything was
+determined.  We fail, because $q$ is not among the antecedents.
+
+We cannot focus on $p$ on the left because it is positive, but we
+can try one final option, namely to focus on $p \arrow q$.
+\[
+  \infer[\mb{focus}L]
+  {p, p \arrow q, p \arrow (q \arrow r) \vdash r}
+  {\infer[{\arrow}L]
+    {p, [p \arrow q], p \arrow (q \arrow r) \vdash r}
+    {\infer[\ms{id}]
+      {p, p \arrow (q \arrow r) \vdash [p]}
+      {}
+      & \infer[\mb{blur}L]
+      {p, [q], p \arrow (q \arrow r) \vdash r}
+      {\deduce[\ddd]{p, q, p \arrow (q \arrow r) \vdash r}{}}}}
+\]
+Now it is possible to focus on $p \arrow (q \arrow r)$ because both $p$ and $q$
+are among the antecedents.  This will add $r$ to the antecedents and we can
+finally successfully focus on the succedent.
+
+Remarkably, with focusing there is just a single proof (assuming we don't copy
+the formula in focus).
+
+Using inversion and focusing is sound and complete with respect
+to the sequent calculus.  Soundness is important
+
+\begin{theorem}[Soundness and Completeness of Inversion and Focusing]
+  $\Gamma \vdash \delta$ in the sequent calculus if and only if
+  $\Gamma \vdash \delta$ in the calculus with inversion and focusing.
+\end{theorem}
+\begin{proof}
+  Soundness is straightforward, since we only restrict the application of
+  certain rules.
+
+  The proof of completeness is quite complex, and not just because of
+  affirmations.  See \citet{Liang09tcs} for a blueprint that can be adapted to
+  this authorization logic.
+\end{proof}
+
+In the architecture of proof-carrying authorization we have to contend with the
+fact that more complex policies engender more difficult theorem proving
+problems.  In the next lecture we will identify a fragment of authorization
+logic that represents a reasonable compromise between expressiveness and
+difficulty of proving.  It is inspired by Horn clauses, but goes beyond it due
+the presence of affirmations.
+
+\section{Practice Problems}
+
+These problems are for self-study and are not to be handed in.
+
+\subsection{Inversion and Focusing [4 parts]}
+
+Consider the following sequent:
+\[
+  p \arrow (q \land r),\; q \arrow s \;\vdash\; p \arrow s
+\]
+
+\begin{task}\rm
+  \label{task:inv1}
+  What are the invertible rules that apply to this sequent?  Apply them to
+  obtain a sequent where no more invertible rules apply.
+\end{task}
+
+\begin{task}\rm
+  \label{task:inv2}
+  Classify each formula in the resulting sequent as positive or negative.
+  Which formulas can you focus on?
+\end{task}
+
+\begin{task}\rm
+  \label{task:inv3}
+  Try focusing on $p \arrow (q \land r)$.  Write out the focused derivation.
+  Does it succeed?  If it gets stuck, explain where and why.
+\end{task}
+
+\begin{task}\rm
+  \label{task:inv4}
+  Find a focusing strategy that completes the proof.  How many choice points
+  are there in your derivation?
+\end{task}
+
+\subsection{Focusing with Affirmations [3 parts]}
+
+Consider the following sequent, where $\mi{mfredrik}$, $\mi{admin}$, and
+$\mi{saranyav}$ are principals:
+\[
+  \mi{admin} \says (\mi{mfredrik} \says \ms{approved}(\mi{saranyav}) \arrow \ms{access}(\mi{saranyav}))
+  \;\vdash\;
+  \mi{admin} \says (\mi{mfredrik} \says \ms{approved}(\mi{saranyav}) \arrow \ms{access}(\mi{saranyav}))
+\]
+
+\begin{task}\rm
+  \label{task:aff1}
+  This sequent is trivially provable by identity.  Now consider a more
+  interesting variant:
+  \begin{tabbing}
+    \quad $(1) : \mi{admin} \says (\forall B.\, \mi{mfredrik} \says \ms{approved}(B) \arrow \ms{access}(B))$, \\
+    \quad $(2) : \mi{mfredrik} \says \ms{approved}(\mi{saranyav})$ \\[1ex]
+    \quad $\vdash$ \\[1ex]
+    \quad $\mi{admin} \says \ms{access}(\mi{saranyav})$
+  \end{tabbing}
+  Apply all invertible rules.  What is the resulting sequent?  Pay attention
+  to which antecedents can be unwrapped via $\mb{says}L$ and which cannot.
+\end{task}
+
+\begin{task}\rm
+  \label{task:aff2}
+  Starting from the sequent you obtained in the previous task, identify the
+  formula to focus on.  Write out the focused derivation, showing each step.
+  Where does the polarity shift from focusing to inversion?
+\end{task}
+
+\begin{task}\rm
+  \label{task:aff3}
+  Explain why the affirmation $(2)$ from $\mi{mfredrik}$ does not need to be
+  unwrapped via $\mb{says}L$ in order for the proof to go through, even though
+  the policy in $(1)$ refers to $\mi{mfredrik} \says \ms{approved}(B)$.
+\end{task}
+
+\bibliographystyle{plainnat}
+\bibliography{bibliography}
+
+\end{document}

@@ -138,8 +138,8 @@ schedule = [
   {
     date: "Thu 03/19",
     topic: "Proof Search in Authorization Logic",
-    pdf: "",
-    tex: "",
+    pdf: "17-proofsearch.pdf",
+    tex: "17-proofsearch.tex",
     comments: "",
   },
   {
