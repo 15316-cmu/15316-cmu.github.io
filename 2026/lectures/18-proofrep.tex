@@ -486,6 +486,202 @@ Substituting this out in the original sequent, we get
 \end{tabbing}
 This proof term can now be communicated to and checked by the resource monitor.
 
+\subsection{Checking the Proof Term}
+
+Let us walk through how the resource monitor type-checks this proof term.
+Recall the complete term:
+\begin{tabbing}
+  \qquad ${?}Q_0 = \{\,$ \= $\mb{let}\; \{x_1\}_{\ms{admin}} = c_1\; \mb{in}$ \\
+  \> $\mb{let}\; \{x_2\}_{\ms{admin}} = c_2\; \mb{in}$ \\
+  \> $\mb{let}\; \{x_3\}_{\ms{admin}} = c_3\; \mb{in}$ \\
+  \> $x_2\; \mi{mfredrik}\; \mi{saranyav}\; \mi{cic2126}\; \langle x_3, c_4\rangle\,\}_{\ms{admin}}$
+\end{tabbing}
+The goal type is
+\[
+  \mi{admin} \says \ms{mayOpen}(\mi{saranyav}, \mi{cic2126})
+\]
+The term has the form $\{\cdots\}_{\ms{admin}}$, which is the right form for
+this goal: the checker now needs to verify that the inside has type
+\[
+  \ms{mayOpen}(\mi{saranyav}, \mi{cic2126})
+\]
+The first let-binding,
+\[
+  \mb{let}\; \{x_1\}_{\ms{admin}} = c_1\; \mb{in}\; \cdots
+\]
+opens $c_1$.  The checker confirms that $c_1$ has type
+\[
+  \mi{admin} \says (\forall A.\, \forall R.\, \ms{owns}(A, R) \arrow
+  \ms{mayOpen}(A, R))
+\]
+and since we are inside $\mi{admin}$'s scope, it unwraps this to bind
+\[
+  x_1 : \forall A.\, \forall R.\, \ms{owns}(A, R) \arrow \ms{mayOpen}(A, R)
+\]
+The second and third let-bindings do the same for $c_2$ and $c_3$.
+After all three, the checker's context contains:
+\begin{tabbing}
+  \quad $x_1 : \forall A.\, \forall R.\, \ms{owns}(A, R) \arrow \ms{mayOpen}(A, R)$, \\
+  \quad $x_2 : \forall A.\, \forall B.\, \forall R.\, \ms{owns}(A, R)
+  \land \mi{mfredrik} \says \ms{studentOf}(B, A) \arrow \ms{mayOpen}(B, R)$, \\[1ex]
+  \quad $x_3 : \ms{owns}(\mi{mfredrik}, \mi{cic2126})$, \\
+  \quad $c_4 : \mi{mfredrik} \says \ms{studentOf}(\mi{saranyav}, \mi{mfredrik})$
+\end{tabbing}
+Note that $x_1$ is never actually used in this proof---it was unlocked but the
+proof takes a different path through $x_2$.
+
+The checker now processes the core expression
+\[
+  x_2\; \mi{mfredrik}\; \mi{saranyav}\; \mi{cic2126}\; \langle x_3, c_4\rangle
+\]
+left to right.  Initially, $x_2$ has type
+\[
+  \forall A.\, \forall B.\, \forall R.\, \ms{owns}(A, R) \land \mi{mfredrik}
+  \says \ms{studentOf}(B, A) \arrow \ms{mayOpen}(B, R)
+\]
+Applying $x_2$ to $\mi{mfredrik}$ instantiates $A = \mi{mfredrik}$; applying
+the result to $\mi{saranyav}$ instantiates $B = \mi{saranyav}$; applying to
+$\mi{cic2126}$ instantiates $R = \mi{cic2126}$.  At this point the type is
+\begin{tabbing}
+  \qquad $\ms{owns}(\mi{mfredrik}, \mi{cic2126})$
+  $\land\; \mi{mfredrik} \says \ms{studentOf}(\mi{saranyav}, \mi{mfredrik})$ \\
+  \qquad\qquad\qquad\quad $\arrow \ms{mayOpen}(\mi{saranyav}, \mi{cic2126})$
+\end{tabbing}
+Finally, the checker applies this to the pair $\langle x_3, c_4 \rangle$.  It
+verifies that $x_3$ has type
+\[
+  \ms{owns}(\mi{mfredrik}, \mi{cic2126})
+\]
+(the first component) and $c_4$ has type
+\[
+  \mi{mfredrik} \says \ms{studentOf}(\mi{saranyav}, \mi{mfredrik})
+\]
+(the second component)---both check out.  The result type is
+\[
+  \ms{mayOpen}(\mi{saranyav}, \mi{cic2126})
+\]
+which, because we are in the scope of $\mi{admin}$, satisfies the authorization
+requirement.
+
+\subsection{What Happens When Authorization Fails}
+
+Suppose that some other individual $\mi{mal}$, not $\mi{mfredrik}$'s student,
+tries to open the door to $\mi{cic2126}$.  What happens?
+
+The answer is that $\mi{mal}$ simply cannot construct a valid proof term.  To
+see why, consider what she would need.  The policy rule $c_2$ requires a pair
+$\langle x_3, c_4 \rangle$ where $c_4$ must have type
+\[
+  \mi{mfredrik} \says \ms{studentOf}(\mi{mal}, \mi{mfredrik})
+\]
+This certificate can only come from $\mi{mfredrik}$: only the principal named
+in the $\mb{says}$ modality can issue such an affirmation.  If $\mi{mfredrik}$
+has not done so, then $\mi{mal}$ simply has no way to produce this certificate.
+(How certificates are issued and verified in practice is the subject of the
+next lecture.)
+
+What if $\mi{mal}$ tries to construct a proof term anyway?  Consider several
+attempts:
+\begin{enumerate}
+\item \emph{Use the wrong policy rule.}  She could try to use $x_1$
+  (the ownership rule) instead of $x_2$ (the student access rule).  But $x_1$
+  has type
+  \[
+    \ms{owns}(A, R) \arrow \ms{mayOpen}(A, R)
+  \]
+  which after instantiation would give
+  $\ms{mayOpen}(\mi{mal}, \mi{cic2126})$ only if she could show
+  $\ms{owns}(\mi{mal}, \mi{cic2126})$---but no such certificate exists.
+
+\item \emph{Substitute different arguments.}  She could instantiate $x_2$
+  with different values, but the only way to get
+  $\ms{mayOpen}(\mi{mal}, \mi{cic2126})$
+  in the result is to set $B = \mi{mal}$ and $R = \mi{cic2126}$, which
+  brings us back to needing the student certificate.
+
+\end{enumerate}
+
+The security of the approach rests on soundness of the logic: the
+type-checking rules correspond exactly to the sequent calculus rules, so a proof
+term that type-checks represents a genuine derivation from the policy.  If the
+policy does not entail the requested authorization, no well-typed proof term
+exists.  This, combined with a mechanism that ensures certificates can only be
+issued by the principals they name (which we will discuss in the next lecture),
+guarantees that the resource monitor grants access if and only if access
+genuinely follows from the policy and the authentic certificates presented.
+
+\section{Practice Problems}
+
+These problems are for self-study and are not to be handed in.
+
+\subsection{Proof Term Annotation [3 parts]}
+
+Consider the following sequent and its unannotated derivation:
+\[
+  \infer[{\arrow}R]
+  {\null \vdash (P \land Q) \arrow (Q \arrow P)}
+  {\infer[{\arrow}R]
+    {P \land Q \vdash Q \arrow P}
+    {\infer[{\land}L]
+      {P \land Q, Q \vdash P}
+      {\infer[\ms{id}]
+        {P, Q, Q \vdash P}
+        {}}}}
+\]
+
+\begin{task}\rm
+  Annotate the derivation with proof terms, following the step-by-step
+  process from the lecture.  Start by introducing variables for the
+  initial antecedents, then propagate proof terms upward through the
+  left rules and identity, and finally propagate the succedent proof
+  term downward through the right rules.  Write out the complete
+  annotated derivation.
+\end{task}
+
+\begin{task}\rm
+  What is the final proof term for the conclusion?  Describe in one
+  sentence what this term does when read as a program.
+\end{task}
+
+\begin{task}\rm
+  Now consider $\vdash (P \arrow Q) \arrow (Q \arrow R) \arrow (P \arrow R)$.
+  Without writing the full derivation, construct a proof term for this
+  sequent.  Verify informally that it type-checks.
+\end{task}
+
+\subsection{Proof Terms with Affirmations [3 parts]}
+
+Consider the following policy, where $\mi{admin}$ and $\mi{mfredrik}$ are
+principals:
+\begin{tabbing}
+  \quad $c_1 : \mi{admin} \says (\forall F.\, \ms{ownsFile}(\mi{mfredrik}, F) \arrow \ms{mayRead}(\mi{mfredrik}, F))$ \\
+  \quad $c_2 : \mi{admin} \says \ms{ownsFile}(\mi{mfredrik}, \mi{grades})$
+\end{tabbing}
+
+\begin{task}\rm
+  Construct a proof term showing
+  \[
+    c_1, c_2 \vdash \mi{admin} \says \ms{mayRead}(\mi{mfredrik}, \mi{grades})
+  \]
+  Write out each step: applying $\mb{says}R$, unwrapping certificates
+  with $\mb{says}L$, instantiating the quantifier, and applying the
+  implication.
+\end{task}
+
+\begin{task}\rm
+  Suppose we add a third certificate
+  $c_3 : \mi{mfredrik} \says \ms{ownsFile}(\mi{mfredrik}, \mi{notes})$.
+  Can you construct a proof term for
+  $c_1, c_3 \vdash \mi{admin} \says \ms{mayRead}(\mi{mfredrik}, \mi{notes})$?
+  If so, write it out.  If not, explain where the proof gets stuck.
+\end{task}
+
+\begin{task}\rm
+  Explain in a few sentences what goes wrong in the previous task,
+  and how the policy would need to change to allow $\mi{mfredrik}$'s
+  own file ownership claims to be accepted.
+\end{task}
+
 \bibliographystyle{plainnat}
 \bibliography{bibliography}
 

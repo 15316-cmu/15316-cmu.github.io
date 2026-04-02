@@ -153,22 +153,22 @@ schedule = [
   {
     date: "Thu 03/26",
     topic: "Proof Representation",
-    pdf: "",
-    tex: "",
+    pdf: "18-proofrep.pdf",
+    tex: "18-proofrep.tex",
     comments: "",
   },
   {
     date: "Tue 03/31",
     topic: "Bootstrapping Trust",
-    pdf: "",
-    tex: "",
+    pdf: "19-trust.pdf",
+    tex: "19-trust.tex",
     comments: "",
   },
   {
     date: "Thu 04/02",
     topic: "Trusted Computing",
-    pdf: "",
-    tex: "",
+    pdf: "20-tc.pdf",
+    tex: "20-tc.tex",
     comments: "",
   },
   {
