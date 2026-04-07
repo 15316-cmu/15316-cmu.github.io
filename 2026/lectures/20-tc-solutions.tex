@@ -1,0 +1,222 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.5in]{geometry}
+
+\usepackage{amsmath}
+\usepackage{lecnotes}
+\usetikzlibrary{automata,shapes,positioning,matrix,shapes.callouts,decorations.text,patterns,decorations.pathreplacing,matrix,arrows,chains,calc,tikzmark,petri,topaths}
+\pgfdeclarelayer{bg}
+\pgfsetlayers{bg,main}
+
+\usepackage{enumerate}
+
+\input{lmacros}
+
+\newcommand{\course}{15-316: Software Foundations of Security \& Privacy}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecdate}{April 2, 2026}
+\newcommand{\lecnum}{20}
+\newcommand{\lectitle}{Trusted Computing}
+\newcommand{\courseurl}{https://15316-cmu.github.io/2026/}
+
+% Keys and cryptographic operations
+\newcommand{\pk}[1]{\ensuremath{\mi{pk/#1}}}
+\newcommand{\sk}[1]{\ensuremath{\mi{sk/#1}}}
+\newcommand{\sign}[1]{\ms{sign}_{#1}}
+\newcommand{\verify}[1]{\ms{verify}_{#1}}
+\newcommand{\cert}[2]{\ms{cert}_{{#1} \arrow {#2}}}
+\newcommand{\enc}[1]{\ms{enc}_{{#1}}}
+
+\newcommand{\iskey}[2]{\ms{isKey}(#1,\, #2)}
+\newcommand{\pcr}[1]{\ms{PCR}_{#1}}
+\newcommand{\extend}[2]{\ms{extend}(#1,\, #2)}
+\newcommand{\seal}[3]{\ms{seal}(#1,\, #2,\, #3)}
+\newcommand{\readf}[1]{\ms{read}(#1)}
+
+\begin{document}
+
+\maketitle
+
+\noindent\textbf{Sample Solutions for Practice Problems}
+
+\section*{Hash Chains and Authenticated Boot [3 parts]}
+
+We are given that $\pcr{0}$ is initialized to $\mathbf{0}$ and
+extended with $D_F$, $D_{BL}$, and $D_{OS}$ in sequence during boot.
+
+\begin{task}\rm
+  Write an expression for the final value of $\pcr{0}$.  Explain
+  verification and why forgery is infeasible.
+\end{task}
+
+\noindent\textbf{Solution.}
+After the three extensions:
+\begin{align*}
+  \text{After } \extend{0}{D_F}: \quad
+    & \pcr{0} = H(\mathbf{0} \| D_F) \\
+  \text{After } \extend{0}{D_{BL}}: \quad
+    & \pcr{0} = H(H(\mathbf{0} \| D_F) \| D_{BL}) \\
+  \text{After } \extend{0}{D_{OS}}: \quad
+    & \pcr{0} = H(H(H(\mathbf{0} \| D_F) \| D_{BL}) \| D_{OS})
+\end{align*}
+The remote verifier knows the expected values $D_F$, $D_{BL}$, $D_{OS}$.
+It recomputes the hash chain from these values starting from $\mathbf{0}$
+and compares the result to the reported $\pcr{0}$.  If they match, the
+verifier accepts.
+
+An attacker who wants to claim a different sequence $E_F, E_{BL}, E_{OS}$
+(with at least one $E_i \neq D_i$) must find inputs that produce the same
+final hash.  This requires finding a second preimage for the composed hash
+function: given an input $x$, find $x' \neq x$ such that $H(x') = H(x)$.
+Since $H$ is a cryptographic hash function, this is computationally
+infeasible.
+
+This relies on the combination of two properties: the extend-only
+interface (preventing the attacker from directly writing $\pcr{0}$) and
+second preimage resistance (preventing the attacker from finding
+alternative inputs that converge to the same hash chain output).
+
+\begin{task}\rm
+  An attacker replaces the bootloader with a malicious version that
+  measures a fake hash.  Will the verifier accept?
+\end{task}
+
+\noindent\textbf{Solution.}
+\textbf{No.}  The key insight is that each stage is measured
+\emph{before} it runs.  The firmware (which is trusted as the CRTM)
+measures the bootloader binary and extends $\pcr{0}$ with
+$D'_{BL} = H(\text{malicious bootloader})$ before handing control to it.
+Since the malicious bootloader differs from the legitimate one,
+$D'_{BL} \neq D_{BL}$.
+
+After the firmware's extend, we have:
+\[
+  \pcr{0} = H(H(\mathbf{0} \| D_F) \| D'_{BL})
+\]
+Even though the malicious bootloader then extends with the ``correct''
+$D_{OS}$, the final value is:
+\[
+  \pcr{0} = H(H(H(\mathbf{0} \| D_F) \| D'_{BL}) \| D_{OS})
+\]
+This differs from the expected value because $D'_{BL} \neq D_{BL}$,
+and finding $D'_{BL}$ that produces the same intermediate hash would
+require breaking second preimage resistance.
+
+The malicious bootloader can lie about what it measures next, but it
+cannot hide the fact that \emph{it itself} was different, because the
+previous trusted stage already recorded its hash.
+
+\begin{task}\rm
+  The firmware is compromised: it measures the legitimate bootloader
+  but hands control to malicious code.  Will the verifier detect this?
+\end{task}
+
+\noindent\textbf{Solution.}
+\textbf{No.}  The compromised firmware extends $\pcr{0}$ with
+$D_F$ for itself, then records $D_{BL}$ for the legitimate bootloader.
+But instead of handing control to the legitimate bootloader, it hands
+control to malicious code.  The malicious code then extends with
+$D_{OS}$ to complete the expected chain.
+
+The final PCR value is:
+\[
+  \pcr{0} = H(H(H(\mathbf{0} \| D_F) \| D_{BL}) \| D_{OS})
+\]
+which matches the expected value exactly.  The verifier cannot
+distinguish this from a legitimate boot.
+
+This illustrates why the firmware is the root of trust for measurement:
+no earlier component measures it, so nothing prevents it from lying
+about itself or subsequent stages.  If the CRTM is compromised, the
+entire authenticated boot guarantee collapses.  This is precisely why
+it must be implemented in tamper-resistant hardware or firmware, and why
+it must be as small and simple as possible to minimize the attack
+surface.
+
+\clearpage
+
+\section*{Attestation Protocol Design [3 parts]}
+
+\begin{task}\rm
+  Describe two distinct attacks against the naive attestation protocol.
+\end{task}
+
+\noindent\textbf{Solution.}
+\begin{enumerate}
+\item \textbf{Replay attack.}  An adversary captures a valid signed
+  attestation from a properly configured machine, perhaps by
+  eavesdropping on a prior session.  Later, when connecting from a
+  compromised machine, the adversary presents the same signed message.
+  Since the signature is valid and the PCR value matches the expected
+  constant, the server accepts.  The adversary gains access to
+  resources intended only for trusted clients.
+
+\item \textbf{Session hijacking (man-in-the-middle).}  Even if the
+  attestation is genuine and fresh, the channel between client and
+  server is not cryptographically bound to the attestation.  An
+  attacker positioned between the two can forward the legitimate
+  attestation to the server, causing it to consider the channel
+  trusted.  The attacker then injects their own messages into the
+  session.  The server has no way to verify that subsequent messages
+  come from the same platform that performed the attestation.
+\end{enumerate}
+
+\begin{task}\rm
+  A nonce is added.  Which attack does it defeat, and which remains?
+\end{task}
+
+\noindent\textbf{Solution.}
+The nonce defeats the \textbf{replay attack}.  Because $R$ is freshly
+generated by the server for each session and is unpredictable, an
+attestation signed with a previous nonce will not match the current
+one.  The server checks that the hash includes the nonce it issued,
+so a captured attestation from a prior session is useless.
+
+The \textbf{session hijacking attack remains}.  After the client sends
+the signed attestation (which now includes the fresh nonce), the server
+considers the channel trusted.  But nothing binds subsequent messages
+to the attested platform.  A man-in-the-middle can relay the nonce to
+a legitimate client, collect its fresh attestation, forward it to the
+server, and then control the rest of the session.  The nonce proves
+the attestation was freshly generated, but does not authenticate
+subsequent communication.
+
+Defeating session hijacking requires establishing a shared session key
+bound to the attestation, as described in the lecture's full protocol.
+
+\begin{task}\rm
+  Explain the privacy concern with using $\sk{tpm}$ directly for two
+  unrelated services, and how AIKs address it.
+\end{task}
+
+\noindent\textbf{Solution.}
+The TPM's endorsement key pair $(\pk{tpm}, \sk{tpm})$ is unique to the
+physical hardware and is burned in at manufacture.  If the client uses
+$\sk{tpm}$ to sign attestations for both the corporate VPN and the
+personal cloud storage provider, then both services see the same
+$\pk{tpm}$ in the attestation.  This allows the two services to
+collude (or be compromised together) and determine that the same
+physical machine---and by extension, likely the same person---is using
+both services.  The user's corporate and personal activities become
+linkable, violating their privacy.
+
+Attestation identity keys (AIKs) address this by introducing an
+indirection layer.  The TPM generates a fresh AIK pair for each
+service or context.  The AIK's public key is sent to a Privacy CA,
+which verifies that the AIK was generated by a genuine TPM (by
+checking the endorsement key certificate).  If valid, the Privacy CA
+issues a certificate for the AIK without revealing the endorsement key
+to the relying party.
+
+The client uses different AIKs for the VPN and the cloud provider.
+Each service sees only the AIK, which is certified as coming from a
+genuine TPM but is not linkable to the endorsement key or to AIKs used
+with other services.  The Privacy CA must be trusted not to collude
+with relying parties, but this single trust point is preferable to
+allowing arbitrary cross-service linkage.
+
+This illustrates the tension between accountability (a single global
+identity makes attestation simple and strong) and privacy
+(unlinkability across contexts protects users from tracking).
+
+\end{document}

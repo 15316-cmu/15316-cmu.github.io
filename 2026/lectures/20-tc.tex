@@ -122,7 +122,7 @@ One idea is to store a secret key that is unique to the system, perhaps within t
 
 In short, adding the OS to the trusted computing base is a bad idea because it is too large and therefore difficult to account for. Perhaps instead we could push the secret key further down in the platform stack, perhaps in the system firmware (BIOS or UEFI) or as a privileged instruction implemented by the CPU itself. To mitigate the risk of leaking the signing key, we can expose a function that uses the key to sign messages (called a signing oracle), rather than exposing the key itself. However, typical firmware functions and privileged instructions can be invoked by the OS, and since we do not trust the OS, the signing oracle should only be accessible to certain pieces of known, trusted code running on the system.
 
-This is essentially the idea behind the Trusted Platform Module (TPM). TPM is a standard for secure hardware co-processors that provide functionality for securely storing small amounts of data, signing data with trusted keys, and measuring the state of the system (e.g., registers, memory, \ldots). The secure storage on the TPM comes pre-loaded with a unique key pair $(\pk{tpm}, \sk{tpm})$ as well as a certificate issued by a trusted CA
+This is essentially the idea behind the Trusted Platform Module (TPM)~\cite{TPM2Spec,ArthurTPM2}. TPM is a standard for secure hardware co-processors that provide functionality for securely storing small amounts of data, signing data with trusted keys, and measuring the state of the system (e.g., registers, memory, \ldots). The secure storage on the TPM comes pre-loaded with a unique key pair $(\pk{tpm}, \sk{tpm})$ as well as a certificate issued by a trusted CA
 \[
   \cert{\mi{ca}}{\mi{tpm}}
     \;\stackrel{\text{def}}{=}\;
@@ -193,7 +193,7 @@ The two roots of trust lay the foundation for the TPM's primary functions, which
 \caption{\label{fig:boot} Authenticated boot process. Solid arrows denote handoffs between boot stages. Dashed arrows denote PCR extend operations into the TPM. The root of trust for measurement is the firmware boot block, and the root of trust for reporting is the TPM.}
 \end{figure}
 
-The fundamental idea behind authenticated boot is to establish that the final software platform, i.e.\ the operating system and its various components, was correctly loaded into memory and executed as expected by the user or system administrator. To accomplish this, each stage of the system's boot process must be carefully modified to make use of the RTR so that a secure record of each piece of code involved in setting up the system is maintained. This of course starts with the RTM, which records a digest of the next piece of code that runs and extends a PCR with it. Each bit of code continues in this manner, by measuring (i.e., computing a digest of) the next piece of code and extending a PCR.
+The fundamental idea behind authenticated boot~\cite{SailerIMA} is to establish that the final software platform, i.e.\ the operating system and its various components, was correctly loaded into memory and executed as expected by the user or system administrator. To accomplish this, each stage of the system's boot process must be carefully modified to make use of the RTR so that a secure record of each piece of code involved in setting up the system is maintained. This of course starts with the RTM, which records a digest of the next piece of code that runs and extends a PCR with it. Each bit of code continues in this manner, by measuring (i.e., computing a digest of) the next piece of code and extending a PCR.
 
 This process is shown in Figure~\ref{fig:boot}, with the typical stages of boot for commodity platforms. Because the firmware boot block is the root of trust for measurement, it begins the process of measuring the next code to run. At each stage, the root of trust for reporting is utilized by extending the TPM's PCR registers with a digest summary of the next code immediately prior to handoff. When this finishes, one can verify that the code used to boot the system was trustworthy by inspecting the appropriate PCR, and checking its value against the expected digest of each stage's code.
 
@@ -212,7 +212,7 @@ The platform measurement process is the basis for most of the TPM's functionalit
 \subsection{Attestation}
 \label{sec:attestation}
 
-Once the system state is measured and recorded in secure PCRs, the process of reporting these measurements to remote systems is called attestation. Recall that the TPM has its own unique key pair $(\pk{tpm},\sk{tpm})$ and a certificate $\cert{\mi{ca}}{\mi{tpm}}$ vouching for the authenticity of $\pk{tpm}$. It may seem that attesting to the state of the system at any point is as simple as using $\sk{tpm}$ to sign the contents of specified PCRs, and indeed for some purposes this may be just fine.
+Once the system state is measured and recorded in secure PCRs, the process of reporting these measurements to remote systems is called attestation~\cite{CokerAttestation}. Recall that the TPM has its own unique key pair $(\pk{tpm},\sk{tpm})$ and a certificate $\cert{\mi{ca}}{\mi{tpm}}$ vouching for the authenticity of $\pk{tpm}$. It may seem that attesting to the state of the system at any point is as simple as using $\sk{tpm}$ to sign the contents of specified PCRs, and indeed for some purposes this may be just fine.
 \begin{equation}
 \label{eq:pcrval}
 \sign{\sk{tpm}}(\pcr{i} = \mathit{GoodHashVal})
@@ -260,7 +260,7 @@ Client & & Server \\
 
 \paragraph{Attestation identity keys and privacy.} There is a tension in the protocol above between security and privacy. The TPM's built-in key pair $(\pk{tpm}, \sk{tpm})$ uniquely identifies the physical hardware, since it is burned into the chip at manufacture and certified by the CA. If the client uses $\sk{tpm}$ directly to sign attestations, then every remote server the client attests to can link requests back to the same physical device, enabling cross-service tracking of the user's machine. This is a significant privacy concern, particularly when the same device is used to access unrelated services.
 
-To address this, the TPM supports the creation of Attestation Identity Keys (AIKs), which are purpose-specific key pairs generated by the TPM and used in place of the endorsement key for attestation. Each AIK can be certified by a Privacy CA that verifies the AIK was generated by a legitimate TPM (by checking the endorsement key certificate) and then issues a certificate for the AIK without revealing the endorsement key to the relying party. In this way, the client can use different AIKs for different services, preventing cross-service linkage while still providing each server with a trustworthy attestation rooted in genuine hardware. This illustrates a recurring theme in security design: the tension between accountability (which favors a single, global identity) and privacy (which favors unlinkability across contexts).
+To address this, the TPM supports the creation of Attestation Identity Keys (AIKs)~\cite{BrickellDAA}, which are purpose-specific key pairs generated by the TPM and used in place of the endorsement key for attestation. Each AIK can be certified by a Privacy CA that verifies the AIK was generated by a legitimate TPM (by checking the endorsement key certificate) and then issues a certificate for the AIK without revealing the endorsement key to the relying party. In this way, the client can use different AIKs for different services, preventing cross-service linkage while still providing each server with a trustworthy attestation rooted in genuine hardware. This illustrates a recurring theme in security design: the tension between accountability (which favors a single, global identity) and privacy (which favors unlinkability across contexts).
 
 \paragraph{Atomic measurement reporting.} A subtle but important detail of the attestation protocol is how PCR values are read and signed. If these were separate operations---first reading the PCR contents and then signing them---a time-of-check-to-time-of-use (TOCTOU) vulnerability would arise: the system state could change between the read and the sign, meaning the signed values would not accurately reflect the state at the time of signing. To prevent this, the TPM provides an atomic \texttt{Quote} operation that reads the specified PCR values and signs them together with the provided nonce in a single, indivisible step. This ensures that the signed attestation faithfully represents the PCR state at a single point in time.
 
@@ -329,6 +329,81 @@ Having established the integrity of the OS and the authenticity of its public ke
   \verify{\pk{os}}(Q_6) = \ms{true}
 \]
 If each of these steps is successful, then the file server can be confident that it is speaking to an uncompromised client, to which $\mi{mfredrik}$ has authenticated and issued a command to read the gradebook. Finally, it will attempt to prove the goal sequent, and if successful send back the contents of the file. Constructing this proof is left as an exercise.
+
+\section{Practice Problems}
+
+These problems are for self-study and are not to be handed in.
+
+\subsection{Hash Chains and Authenticated Boot [3 parts]}
+
+A TPM initializes $\pcr{0} = \mathbf{0}$ (the all-zeros value).
+During a boot sequence, the firmware extends $\pcr{0}$ with $D_F$ (a
+hash of the firmware image), the bootloader extends $\pcr{0}$ with
+$D_{BL}$ (a hash of the bootloader), and the OS kernel extends
+$\pcr{0}$ with $D_{OS}$ (a hash of the kernel).
+
+\begin{task}\rm
+  \label{task:hash1}
+  Write an expression for the final value of $\pcr{0}$ after all
+  three extensions.  A remote verifier knows the expected values
+  $D_F$, $D_{BL}$, and $D_{OS}$.  Explain how the verifier checks
+  that a reported $\pcr{0}$ corresponds to this expected boot
+  sequence, and why an attacker cannot produce the same final value
+  for a different sequence $E_F, E_{BL}, E_{OS}$ where at least one
+  $E_i \neq D_i$.  Which property of $H$ does this rely on?
+\end{task}
+
+\begin{task}\rm
+  \label{task:hash2}
+  An attacker replaces the bootloader with a malicious version.
+  The malicious bootloader measures a fake ``good kernel'' hash $D_{OS}$
+  instead of the actual corrupted kernel, and extends $\pcr{0}$
+  accordingly.  Will the remote verifier accept the final PCR value?
+  Explain why or why not, paying careful attention to what was
+  measured at each stage.
+\end{task}
+
+\begin{task}\rm
+  \label{task:hash3}
+  Suppose instead that the firmware itself is compromised: it
+  correctly measures the (legitimate) bootloader but then hands
+  control to malicious code instead.  The malicious code extends
+  $\pcr{0}$ with $D_{BL}$ and $D_{OS}$, mimicking the expected
+  boot sequence.  Will the remote verifier detect this?  What
+  does this tell us about the role of the firmware as the root of
+  trust for measurement?
+\end{task}
+
+\subsection{Attestation Protocol Design [3 parts]}
+
+A client wishes to prove to a server that it has booted cleanly and
+that their communication session is secure.
+
+\begin{task}\rm
+  \label{task:attest1}
+  Consider a protocol in which the client connects and immediately
+  sends $\sign{\sk{tpm}}(\pcr{0} = v)$.  Describe two distinct
+  attacks against this protocol and explain what an attacker achieves
+  with each.
+\end{task}
+
+\begin{task}\rm
+  \label{task:attest2}
+  The protocol is modified so that the server first sends a nonce $R$,
+  and the client responds with $\sign{\sk{tpm}}(\pcr{0},\; H(\pcr{0}
+  \| R))$.  Which of the two attacks from the previous task does this
+  defeat?  Which attack remains, and why?
+\end{task}
+
+\begin{task}\rm
+  \label{task:attest3}
+  Suppose the client uses $\sk{tpm}$ directly (rather than an
+  attestation identity key) to sign attestations for two unrelated
+  services: a corporate VPN and a personal cloud storage provider.
+  Explain the privacy concern this raises.  Then describe how
+  attestation identity keys address it, and what role the Privacy CA
+  plays in the solution.
+\end{task}
 
 \bibliographystyle{abbrv}
 \bibliography{bibliography}
