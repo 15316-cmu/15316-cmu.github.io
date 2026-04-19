@@ -196,16 +196,16 @@ schedule = [
   {
     date: "Thu 04/16",
     topic: "Differential Privacy",
-    pdf: "",
-    tex: "",
+    pdf: "22-diffprivacy.pdf",
+    tex: "22-diffprivacy.tex",
     comments: "",
   },
   {
     date: "Tue 04/21",
-    topic: "Privacy Vulnerabilities",
-    pdf: "",
-    tex: "",
-    comments: "Not covered on final exam",
+    topic: "Mechanisms and Composition",
+    pdf: "23-dpmechanisms.pdf",
+    tex: "23-dpmechanisms.tex",
+    comments: "",
   },
   {
     date: "Thu 04/23",

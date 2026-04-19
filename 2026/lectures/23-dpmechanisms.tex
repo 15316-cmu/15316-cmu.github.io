@@ -1,0 +1,409 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.5in]{geometry}
+\usepackage{lecnotes}
+% \usepackage{mpass}
+% \lstset{style=verb,language=mpass}
+\input{lmacros}
+
+\newcommand{\course}{15-316: Software Foundations of Security \& Privacy}
+\newcommand{\lecturer}{Matt Fredrikson}
+\newcommand{\lecdate}{April 21, 2026}
+\newcommand{\lecnum}{23}
+\newcommand{\lectitle}{Mechanisms and Composition}
+\newcommand{\courseurl}{https://15316-cmu.github.io/2026/}
+
+\newcommand{\pr}{\mathrm{Pr}}
+\newcommand{\flip}{\mathbf{flip}}
+\newcommand{\lap}{\mathbf{Lap}}
+\newcommand{\sens}{\Delta}
+
+\newaliascnt{example}{theorem}
+\newtheorem{example}[example]{Example}
+\aliascntresetthe{example}
+\providecommand*{\exampleautorefname}{Example}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+In \href{\courseurl/lectures/22-diffprivacy.pdf}{Lecture~22} we introduced
+differential privacy as a rigorous property of a randomized
+computation. A function $f$ satisfies $\epsilon$-differential privacy if, for
+any two neighboring inputs $m_1 \sim_1 m_2$ and any output $s$, we have
+$\pr[f(m_1) = s] \leq e^\epsilon \cdot \pr[f(m_2) = s]$.  The parameter
+$\epsilon$ controls a tradeoff between the accuracy of the answer and the
+indistinguishability of neighboring inputs, and we showed that randomized
+response achieves $\mathrm{ln}(3)$-differential privacy for a single secret
+bit.
+
+Randomized response is elegant, but it answers only one very specific kind of
+question: ``what is the true value of a single yes--no fact?'', and even then
+only with noise proportional to the answer itself.  Most of the useful
+computations we would like to perform on sensitive datasets---counting the
+number of students who earned an A, computing the average response time of an
+API, publishing a histogram of income levels by region---do not fit this
+template.  They return numeric values from potentially large ranges, rather
+than a single bit, and there is no obvious analogue of ``flipping a coin to
+return a random answer'' that preserves utility.  Worse, practitioners rarely
+have the luxury of running just one query: statistics are typically released
+as a batch, and each additional release erodes the privacy guarantee in some
+quantifiable way.
+
+Today's lecture builds up the two ingredients that make differential privacy a
+practical design discipline rather than a theoretical curiosity.  We begin
+with \emph{sensitivity}, the notion that captures ``how much can one
+individual's data change the answer to a query?''  We then introduce the
+\emph{Laplace mechanism}, a general-purpose recipe that converts any
+bounded-sensitivity numeric query into an $\epsilon$-differentially private
+approximation by adding calibrated noise.  Finally, we study the
+\emph{composition theorems}, which tell us how the privacy budget accumulates
+when several differentially private computations are released together.
+These three tools---sensitivity, Laplace, and composition---are what lets us
+take a realistic data-release scenario and reason directly about its privacy
+cost.
+
+\section{Sensitivity}
+
+To use the Laplace mechanism, we first need a way to measure how much an
+individual record can affect the output of a numeric query.  The right notion
+is the worst-case change in the query's output over all pairs of neighboring
+inputs.
+
+\begin{definition}[Global sensitivity]
+\label{def:sens}
+Let $f : \mathcal{D} \to \mathbb{R}$ be a real-valued query on memories.  The
+\emph{global sensitivity} of $f$ is
+\[
+  \sens f = \max_{m_1 \sim_1 m_2} |f(m_1) - f(m_2)|.
+\]
+\end{definition}
+
+Sensitivity is a property of the query, not of any particular dataset; it
+quantifies the worst damage that \emph{any} single individual's data can do
+to the answer.  Computing it requires thinking carefully about what it means
+for two memories to ``differ in exactly one index'', and what the extremal
+values of the differing index could be.  We will assume throughout this
+lecture that individual values are bounded in some known range, say $[0, U]$,
+without which global sensitivity would be infinite for most queries of
+interest.
+
+\begin{example}[Counting query]
+\label{ex:sens-count}
+Let $f_{\geq t}(m) = |\{i : m[i] \geq t\}|$ count the number of cells whose
+value exceeds threshold $t$.  Two neighboring memories $m_1$ and $m_2$ differ
+in one index; that index either satisfies the threshold in both, neither, or
+exactly one.  In the first two cases $f_{\geq t}(m_1) = f_{\geq t}(m_2)$, and
+in the last case they differ by exactly one.  Thus
+$\sens f_{\geq t} = 1$, regardless of the threshold or the size of the
+database.
+\end{example}
+
+\begin{example}[Sum and mean]
+\label{ex:sens-sum}
+Suppose each $m[i] \in [0, U]$.  For the sum
+$f_\Sigma(m) = \sum_i m[i]$, neighboring memories can differ by as much as
+$U$ at the one differing index, so $\sens f_\Sigma = U$.  For the mean
+$f_\mu(m) = (\sum_i m[i])/N$ over $N$ records, $\sens f_\mu = U/N$:
+the change in one record is averaged over $N$.
+\end{example}
+
+\begin{example}[Max]
+\label{ex:sens-max}
+Consider the maximum $f_{\max}(m) = \max_i m[i]$, with each $m[i] \in [0, U]$.
+Take $m_1 = (U, 0, 0, \ldots, 0)$ and $m_2 = (0, 0, 0, \ldots, 0)$; they are
+neighbors, and $f_{\max}(m_1) - f_{\max}(m_2) = U$.  Hence
+$\sens f_{\max} = U$.  The max is an intuitively ``leaky'' query, and its
+global sensitivity reflects that: a single record can move the answer across
+the entire range.
+\end{example}
+
+Small-sensitivity queries (counts, bounded averages) can be released with
+relatively little noise, while high-sensitivity queries like the max require
+more noise to be made private, at the cost of utility.  This is a recurring
+theme in differential privacy: the structure of the query itself dictates how
+much randomness you must inject.
+
+\section{The Laplace Mechanism}
+
+The Laplace distribution provides a principled way to add noise.  Its
+probability density function is
+\[
+  \lap(b)(x) = \frac{1}{2b}\exp\!\left(-\frac{|x|}{b}\right),
+\]
+where $b > 0$ is the \emph{scale} parameter.  Larger $b$ means heavier tails
+and more variance: the variance of $\lap(b)$ is $2b^2$, and its standard
+deviation is $b\sqrt 2$.
+
+The Laplace mechanism adds Laplace noise calibrated to the sensitivity of the
+query.
+
+\begin{definition}[Laplace mechanism]
+\label{def:laplace}
+Let $f : \mathcal{D} \to \mathbb{R}$ have global sensitivity $\sens f$, and
+let $\epsilon > 0$.  The \emph{Laplace mechanism} is the randomized
+function
+\[
+  M_\mathrm{Lap}(m) = f(m) + Y, \qquad Y \sim \lap(\sens f / \epsilon).
+\]
+\end{definition}
+
+The scale is chosen so that a change of $\sens f$ in the query's value is
+``absorbed'' by the noise to within the privacy budget, as the following
+theorem makes precise.
+
+\begin{theorem}[Privacy of the Laplace mechanism]
+\label{thm:laplace}
+The Laplace mechanism $M_\mathrm{Lap}$ satisfies $\epsilon$-differential
+privacy.
+\end{theorem}
+
+\begin{proof}
+We need to show that for all $m_1 \sim_1 m_2$ and all $s \in \mathbb{R}$,
+$\pr[M_\mathrm{Lap}(m_1) = s] \leq e^\epsilon \cdot \pr[M_\mathrm{Lap}(m_2) = s]$.
+Since the output is continuous we work with density ratios, but the
+argument is identical.  Let $b = \sens f / \epsilon$.  The density of
+$M_\mathrm{Lap}(m)$ at $s$ is $\lap(b)(s - f(m))$, so
+\[
+  \frac{\pr[M_\mathrm{Lap}(m_1) = s]}{\pr[M_\mathrm{Lap}(m_2) = s]}
+  = \frac{\exp(-|s - f(m_1)|/b)}{\exp(-|s - f(m_2)|/b)}
+  = \exp\!\left(\frac{|s - f(m_2)| - |s - f(m_1)|}{b}\right).
+\]
+By the reverse triangle inequality,
+$|s - f(m_2)| - |s - f(m_1)| \leq |f(m_1) - f(m_2)| \leq \sens f$, so
+\[
+  \frac{\pr[M_\mathrm{Lap}(m_1) = s]}{\pr[M_\mathrm{Lap}(m_2) = s]}
+  \leq \exp(\sens f / b) = \exp(\epsilon) = e^\epsilon. \qedhere
+\]
+\end{proof}
+
+The theorem reduces a difficult question (``is this computation private?'')
+to a much more tractable one (``what is the sensitivity of my query?'').
+Once you know $\sens f$, adding $\lap(\sens f / \epsilon)$ noise is a
+mechanical step.  Observe that \emph{smaller} privacy budgets $\epsilon$
+demand \emph{larger} noise scales: to cut the budget in half, you double the
+noise.  Doubling a query's sensitivity has the same effect.
+
+\begin{example}[Private mean]
+\label{ex:private-mean}
+Returning to \autoref{ex:sens-sum} with $U = 100$ and $N = 50$ students, the
+Laplace mechanism can release the class mean with $\epsilon = 1$ by adding
+noise drawn from $\lap(100/(50 \cdot 1)) = \lap(2)$.  The standard deviation
+of the noise is $2\sqrt 2 \approx 2.83$, so the private mean is typically
+within a few points of the true average.  Contrast this with releasing the
+\emph{maximum} grade with $\epsilon = 1$: by \autoref{ex:sens-max} the scale
+becomes $\lap(100)$, with standard deviation roughly $141$---the noise is
+larger than the entire range of valid answers, rendering the release almost
+useless.  This is why practitioners prefer aggregate queries (sums, counts,
+means) to order statistics when possible, and reach for more specialized
+mechanisms, such as the \emph{exponential mechanism}~\citep{Dwork14fttcs},
+when an order statistic or categorical answer is unavoidable.
+\end{example}
+
+\section{Composition}
+
+A single private query is rarely enough.  Research studies release dozens of
+statistics; dashboards update continuously; machine-learning pipelines make
+repeated passes over the same training set.  Each of these releases costs
+some privacy, and we need a principled way to track the total.  Three
+composition theorems cover the cases that arise most often.
+
+\subsection{Sequential Composition}
+
+The most general fact is that privacy budgets add under independent queries.
+
+\begin{theorem}[Sequential composition]
+\label{thm:seq-comp}
+Let $f_1$ and $f_2$ be randomized mechanisms satisfying $\epsilon_1$- and
+$\epsilon_2$-differential privacy respectively, and suppose they use
+independent randomness.  Then the combined mechanism
+$f_{12}(m) = (f_1(m), f_2(m))$ satisfies $(\epsilon_1 + \epsilon_2)$-
+differential privacy.
+\end{theorem}
+
+\begin{proof}
+Fix neighboring inputs $m_1 \sim_1 m_2$ and an output pair $(s_1, s_2)$.  By
+independence of $f_1$ and $f_2$'s randomness,
+\[
+  \pr[f_{12}(m_1) = (s_1, s_2)] = \pr[f_1(m_1) = s_1] \cdot \pr[f_2(m_1) = s_2].
+\]
+Applying the $\epsilon_i$-DP guarantee of each factor,
+\[
+\begin{array}{rl}
+  \pr[f_{12}(m_1) = (s_1, s_2)]
+  &\leq\ e^{\epsilon_1}\pr[f_1(m_2) = s_1]\cdot e^{\epsilon_2}\pr[f_2(m_2) = s_2] \\[0.5ex]
+  &=\ e^{\epsilon_1+\epsilon_2}\pr[f_{12}(m_2) = (s_1, s_2)]. \qedhere
+\end{array}
+\]
+\end{proof}
+
+Sequential composition is the reason $\epsilon$ is called a ``budget'': each
+query spends a portion of it, and once the total exceeds what the data
+custodian is willing to grant, no further releases are allowed.  It also
+holds \emph{adaptively}: even if the choice of $f_2$ depends on the output of
+$f_1$, the total budget is still $\epsilon_1 + \epsilon_2$.  Adaptive
+composition is what makes differential privacy compose cleanly with
+interactive analyses, where the next question depends on the previous
+answer.
+
+\subsection{Parallel Composition}
+
+When queries operate on \emph{disjoint} partitions of the data, we can do
+better than simply summing budgets.
+
+\begin{theorem}[Parallel composition]
+\label{thm:par-comp}
+Let $\{D_1, D_2, \ldots, D_k\}$ be a partition of the index set of $m$ into
+disjoint blocks, and let $f_i$ be an $\epsilon_i$-DP mechanism applied to
+the projection of $m$ onto $D_i$.  Then the joint release
+$(f_1(m|_{D_1}), \ldots, f_k(m|_{D_k}))$ satisfies
+$\max_i \epsilon_i$-differential privacy.
+\end{theorem}
+
+\begin{proof}
+Take neighbors $m_1 \sim_1 m_2$; they differ in exactly one index $j$, which
+lies in exactly one block $D_{i^*}$.  For every other block $D_i$ with
+$i \neq i^*$, the projections are identical, so $f_i$'s output distribution
+is identical on $m_1$ and $m_2$.  For the one block $D_{i^*}$ that contains
+$j$, the mechanism $f_{i^*}$ is $\epsilon_{i^*}$-DP.  Combining these two
+observations with independence gives the ratio bound $e^{\epsilon_{i^*}}$,
+and since $i^*$ could be any index we conclude $\max_i \epsilon_i$.
+\end{proof}
+
+Parallel composition is why a histogram over disjoint buckets is not much
+more expensive than a single count: an individual can fall into at most one
+bucket, so changing their record affects at most one count.  Intuitively, a
+partitioned release lets each block ``share'' the privacy budget rather than
+additively paying for each one.  The key word is \emph{disjoint}: if the
+blocks overlap, parallel composition does not apply, and we must fall back
+to sequential composition.
+
+\subsection{Post-Processing}
+
+The third property is perhaps the most reassuring: once a release is
+differentially private, no amount of further computation on the released
+value can make it less so.
+
+\begin{theorem}[Post-processing]
+\label{thm:post-proc}
+Let $f$ be an $\epsilon$-DP mechanism and $g$ an arbitrary (possibly
+randomized) function that depends only on the output of $f$.  Then
+$g \circ f$ is $\epsilon$-DP.
+\end{theorem}
+
+\begin{proof}
+For any neighbors $m_1 \sim_1 m_2$ and any output $s'$,
+\[
+\begin{array}{rl}
+  \pr[g(f(m_1)) = s']
+  &=\ \sum_s \pr[g(s) = s']\,\pr[f(m_1) = s] \\[0.5ex]
+  &\leq\ \sum_s \pr[g(s) = s']\, e^\epsilon\, \pr[f(m_2) = s] \\[0.5ex]
+  &=\ e^\epsilon \pr[g(f(m_2)) = s']. \qedhere
+\end{array}
+\]
+\end{proof}
+
+Post-processing is essential in practice: we often want to take a noisy
+count, round it to an integer, clamp it to a valid range, or feed it into
+downstream analytics.  None of these operations can harm the privacy
+guarantee, as long as they do not peek back at the raw data.
+
+\subsection{A Worked Example}
+
+Let us return to a realistic scenario.  Suppose the course staff wants to
+release the following three statistics about the class of $N$ students, and
+must decide how to split a total privacy budget of $\epsilon = 2$:
+\begin{enumerate}
+\item[(a)] The mean grade.
+\item[(b)] The count of students who scored an $A$ (grade in $[90, 101)$).
+\item[(c)] The count of students who scored a $C$ or below (grade in
+  $[0, 70)$).
+\end{enumerate}
+
+Each of (a), (b), (c) can be implemented as a Laplace mechanism with its own
+budget.  By \autoref{ex:sens-count} and \autoref{ex:sens-sum}, we have
+$\sens f_\mu = 100/N$ and $\sens f_{\geq 90} = \sens f_{<70} = 1$.
+
+Observe that (b) and (c) operate on \emph{disjoint} ranges: a student's
+grade is in $[90, 101)$ or in $[0, 70)$ or in $[70, 90)$, and these sets do
+not overlap.  Therefore we can apply \autoref{thm:par-comp} to (b) and (c)
+together, spending only $\max(\epsilon_b, \epsilon_c)$ on the pair rather
+than their sum.  The mean in (a) uses every student's grade, so it overlaps
+both (b) and (c); it must be composed sequentially with the pair.
+
+If we set $\epsilon_a = 1$, $\epsilon_b = 1$, $\epsilon_c = 1$, the overall
+budget is $\epsilon_a + \max(\epsilon_b, \epsilon_c) = 1 + 1 = 2$, exactly
+what we allotted.  The mechanism for (a) adds $\lap(100/N)$ noise; the
+mechanisms for (b) and (c) each add $\lap(1)$ noise.  If the staff
+additionally post-processes the noisy counts by rounding and clamping to
+$[0, N]$, \autoref{thm:post-proc} ensures the overall budget does not
+change.
+
+Had we ignored parallel composition and simply added all three budgets, we
+would have computed $\epsilon_a + \epsilon_b + \epsilon_c = 3$---a $50\%$
+overestimate of the real cost.  Recognizing which queries partition the data
+and which overlap is therefore a load-bearing step in any practical privacy
+analysis.
+
+\section{Conclusion}
+
+The pieces assembled in this lecture---sensitivity, the Laplace mechanism,
+and the three composition theorems---form the standard toolkit for
+designing differentially private computations in practice.  The broader
+literature has developed many refinements: advanced composition theorems
+with tighter bounds for large numbers of queries, the exponential mechanism
+for selecting among categorical options with bounded utility loss, and
+R\'enyi differential privacy for reasoning about Gaussian noise used in
+private machine learning~\citep{Dwork14fttcs}.  Language-based approaches go
+further still, building type systems that track $\epsilon$ automatically as
+a program is written~\citep{Reed10icfp,Gaboardi13popl}, so that privacy
+accounting becomes a compile-time check rather than a manual
+bookkeeping exercise.  What all of these techniques share is the same
+structure we have seen today: identify what one individual can influence,
+calibrate noise to hide that influence, and account carefully for the cost
+when multiple computations are released together.
+
+\section{Practice Problems}
+
+\begin{task}\rm
+  Compute the global sensitivity of each of the following queries, assuming
+  each $X(i) \in [0, 100]$ and there are $N$ students.  Briefly justify your
+  answer, in particular by exhibiting a pair of neighbors that witnesses the
+  bound.
+  \begin{enumerate}
+  \item The number of students whose grade is a perfect $100$.
+  \item The sum of all grades.
+  \item The difference between the mean grade and the median grade.
+  \item The number of students whose grade lies strictly within one standard
+    deviation of the mean grade.
+  \end{enumerate}
+\end{task}
+
+\begin{task}\rm
+  The TAs want to release four Laplace-noised statistics about 15-316,
+  each calibrated for $\epsilon = 0.5$:
+  \begin{enumerate}
+  \item[(a)] The mean grade over all students in the course.
+  \item[(b)] The count of freshmen whose final grade is at least $80$.
+  \item[(c)] The count of sophomores whose final grade is at least $80$.
+  \item[(d)] The count of students (any class) who submitted Lab 3 on time.
+  \end{enumerate}
+  \begin{enumerate}
+  \item Identify which pairs or subsets of (a)--(d) can be composed in
+    parallel, and which must be composed sequentially.  Justify your
+    reasoning in terms of which partitions of the class each query consumes.
+  \item Compute the tightest total privacy budget $\epsilon$ that follows
+    from \autoref{thm:seq-comp} and \autoref{thm:par-comp}.
+  \item Suppose the TAs then post-process the noisy count in (d) by dividing
+    it by the total enrollment to report a ``fraction of students on time''
+    instead of a count.  Does this post-processing change the privacy
+    budget?  State which composition theorem justifies your answer.
+  \end{enumerate}
+\end{task}
+
+\bibliographystyle{plainnat}
+\bibliography{bibliography}
+
+\end{document}
