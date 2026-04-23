@@ -188,23 +188,23 @@ schedule = [
   },
   {
     date: "Tue 04/14",
-    topic: "Verifiable Computing",
-    pdf: "",
-    tex: "",
-    comments: "",
-  },
-  {
-    date: "Thu 04/16",
     topic: "Differential Privacy",
     pdf: "22-diffprivacy.pdf",
     tex: "22-diffprivacy.tex",
     comments: "",
   },
   {
-    date: "Tue 04/21",
+    date: "Thu 04/16",
     topic: "Mechanisms and Composition",
     pdf: "23-dpmechanisms.pdf",
     tex: "23-dpmechanisms.tex",
+    comments: "",
+  },
+  {
+    date: "Tue 04/21",
+    topic: "Privacy Attacks",
+    pdf: "",
+    tex: "",
     comments: "",
   },
   {
