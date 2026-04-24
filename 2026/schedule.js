@@ -205,7 +205,7 @@ schedule = [
     topic: "Privacy Attacks",
     pdf: "",
     tex: "",
-    comments: "",
+    comments: "Not covered on exam",
   },
   {
     date: "Thu 04/23",
